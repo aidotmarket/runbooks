@@ -517,9 +517,9 @@
 - Path: `customer-mcp-connector.md`
 - Purpose: This page records the verified Chunk 2 infrastructure state for `specs/BQ-CONNECTOR-CORE-GATE2.md` §2 row 2. Mars verified it in S1753 on 2026-09-26. Both public services currently run a health-only auth stub with connector flags off; this is not a working customer MCP or OAuth release.
 - Owner: `unassigned`
-- Last verified: `2026-09-26`
+- Last verified: `2026-09-27`
 - Aliases: customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market
-- Error signatures: Config as Code is deprecated
+- Error signatures: Config as Code is deprecated, Infisical sync recursion setting unknown or enabled
 - Status: current
 
 ## Daily CRM Briefing — First Real-Content Verification
@@ -726,7 +726,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-09-27`
 - Aliases: none
-- Error signatures: none
+- Error signatures: error code: 1010, FST_ERR_CTP_EMPTY_JSON_BODY
 - Status: current
 
 ## Infrastructure Discovery

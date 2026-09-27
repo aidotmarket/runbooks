@@ -1,9 +1,9 @@
 ---
 title: Customer MCP connector — build and operations
 owner: unassigned
-last_verified: '2026-09-26'
+last_verified: '2026-09-27'
 aliases: [customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market]
-error_signatures: [Config as Code is deprecated]
+error_signatures: [Config as Code is deprecated, Infisical sync recursion setting unknown or enabled]
 ---
 
 # Customer MCP connector — build and operations
@@ -49,10 +49,41 @@ Variables set through `variableCollectionUpsert` with `skipDeploys: true` were `
 
 | Owner | Future variables | Required scope and verification |
 | --- | --- | --- |
-| Infisical | Distinct `SECRET_KEY` for each service; `CONNECTOR_OAUTH_SIGNING_KEYS` for auth only; resource audit HMAC key | Set up a separate correctly scoped secret path and native sync for each service. The existing `railway-backend-prod` sync targets only `ai-market-backend`. Exact new paths, syncs, values, and audit HMAC variable name are **UNVERIFIED**. |
+| Infisical | Distinct `SECRET_KEY` for each service; `CONNECTOR_OAUTH_SIGNING_KEYS` for auth only; resource audit HMAC key | Signing keyset: **DONE** in `ai-market-backend`/`prod` at `/connector-auth`, synced only to `ai-market-connector-auth` by `railway-connector-auth-prod` (details below). Distinct `SECRET_KEY` paths and syncs, the resource audit HMAC key name, and their verification remain **PENDING**. The root `railway-backend-prod` sync targets only `ai-market-backend`. |
 | Railway | `DATABASE_URL` as a restricted connector runtime DSN; `REDIS_URL` | Create these as Railway variables/service references for the intended service. Never store them in Infisical, per `infisical-secrets.md`. The restricted role and references are not yet provisioned or verified. |
 
 Before enable, verify that each connector Infisical path contains no `DATABASE_URL` or `REDIS_URL`, and use Railway GraphQL readback to confirm the intended service references and only the intended secret names. Suppress values in evidence.
+
+### Signing keyset: DONE (S1753, 2026-09-27)
+
+Max's decision is Event Ledger `3d152156`; provisioning and verification are recorded in Events `53a51344`, `c8d012e4`, and `fa836fd2`. `CONNECTOR_OAUTH_SIGNING_KEYS` lives in Infisical project `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), environment `prod`, folder `/connector-auth`. The second native sync, `railway-connector-auth-prod`, sends that folder only to Railway `ai-market-connector-auth` (`5ee110fc-df73-4107-b8fd-469099cb64d2`), with auto-sync on, initial behavior `overwrite-destination`, and `disableSecretDeletion` true. A canary in `/connector-auth` did not appear in `ai-market-backend` or `ai-market-connector` after a forced `railway-backend-prod` root sync pass. That proves the root sync is non-recursive for this recorded setup.
+
+The keyset has two P-256/ES256 public keys. `cs-20260927-251e63b07eed486c` signs; both it and `cs-20260927-f99004199d45d762` are published in JWKS. Their RFC 7638 thumbprints, in that order, are `_E2lVi8hJvz9E__tQjYH6TK0wPpDFhwWHCN4XcS0muU` and `hq0qWxa0BdJNJ2EfNNf78K8nVj0JVn1j9GoSd-lIjM0`. The canonical JWKS SHA-256 is `75d3999ee3bc147a30fb444207dbcd58330266945b97ab14f545489495d2cc19`. These are public identifiers and metadata, not signing material.
+
+### How to operate: connector signing keyset tool
+
+For the one-time provisioning sequence, use `koskadeux-mcp` main `7d240964` or a reviewed successor in a clean detached checkout. The tool is `scripts/secrets/connector_signing_keyset.py` (PRs #249-#252). Run it with `/Users/max/koskadeux-mcp/venv/bin/python`. Save its JSON receipts in a private scratch directory; they contain names and public metadata only. The sequence is:
+
+```bash
+PY=/Users/max/koskadeux-mcp/venv/bin/python
+TOOL=scripts/secrets/connector_signing_keyset.py
+$PY "$TOOL" --selftest
+$PY "$TOOL" inventory > baseline.json
+$PY "$TOOL" drift-check
+$PY "$TOOL" canary
+$PY "$TOOL" canary --execute > canary-proof.json
+$PY "$TOOL" create-sync --canary-proof canary-proof.json
+$PY "$TOOL" create-sync --execute --canary-proof canary-proof.json
+$PY "$TOOL" generate --canary-proof canary-proof.json
+$PY "$TOOL" generate --execute --canary-proof canary-proof.json
+$PY "$TOOL" verify --baseline baseline.json
+```
+
+Review each dry run before its `--execute` step. The tool refuses when `/Users/max/local-secops/HALT` exists, if the signing secret already exists, or on drift. `--selftest` makes no network calls. Its audit JSONL is `~/koskadeux-state/secrets/connector_signing_keyset.audit.jsonl`. This sequence records how provisioning was done; the live secret now exists, so `generate` will refuse. **Rotation is not supported by this tool.** Rotation needs a separate reviewed procedure.
+
+The canary forces one `railway-backend-prod` sync pass, which redeployed `ai-market-backend` (`e5ab7c66`, healthy, values identical). Creating the connector sync and writing the key each redeployed `ai-market-connector-auth` (`a414391a` and `02354162`, both `SUCCESS`). The generate write did not redeploy the backend. Any Infisical `prod` write can trigger both syncs, so do not write to `/connector-auth` except through this tool for initial provisioning or a reviewed procedure.
+
+### Deployment procedure
 
 The deployment procedure used a clean archive of backend main rather than a repository attachment:
 
