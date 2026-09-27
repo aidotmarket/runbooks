@@ -61,7 +61,7 @@ error_signatures: []
 
 ## How to operate-R. Restore the market (ordered: secrets -> infra -> data -> code -> edge)
 - **R1 Pre-flight:** scope the failure (one component vs total loss). Confirm sanctioned offline age, Infisical master/recovery, and S3 read access without exposing key material. Identify required role credentials and source revisions. Preserve local AIM Data/vectorAIz knowledge and establish a separate Docker volume recovery path.
-- **R2 ai.market PG:** provision an isolated PG17 instance and restore the chosen `postgres/ai-market/<date>/` dump. The Sep 27 full isolated restore exited 0 with 378 tables. The dump excluded ownership/ACLs; restore the required role matrix separately. A bounded, **unreleased** helper at `3bd8ac262eae54f48411306dd5347f23d34cb9b7` fixes pinned issue-channel/audit ACLs and passed 16 tests plus isolated idempotency, default ACL, and forced rollback checks. It does not restore all roles/passwords or prove application recovery. Do not treat it as a released step.
+- **R2 ai.market PG:** provision an isolated PG17 instance and restore the chosen `postgres/ai-market/<date>/` dump. The Sep 27 full isolated restore exited 0 with 378 tables. The dump excluded ownership/ACLs; restore the required role matrix separately. The bounded issue-channel/audit ACL helper at `3bd8ac262eae54f48411306dd5347f23d34cb9b7` passed 16 tests plus isolated idempotency, default ACL, and forced rollback checks. **Do not use it as an accepted recovery step:** PR509 is blocked by DS REVISE / GLM APPROVE_WITH_MANDATES pending reviewed application `SET ROLE` reachability checks. A controller's isolated PG17 synthetic watcher membership (`INHERIT FALSE`, `SET TRUE`) showed the helper succeeding while `pg_has_role(..., 'SET')` was true and direct `SELECT` was false; the membership was removed and scratch ACL restored afterward. The helper does not restore all roles/passwords or prove application recovery.
 - **R3 Infisical PG:** nightly Railway cron writes an **age-encrypted** custom-format dump to `postgres/infisical/<date>/railway-<ts>.dump.age`. A sanctioned operator must obtain the offline age and Infisical master/recovery keys, decrypt the chosen object, fully restore it with a matching Postgres client, and validate Infisical and dependent signing keys. The June 8 S797 decrypt plus `pg_restore -l` listed 6,994 TOC entries / 1,209 tables; it did **not** execute a full restore. The fresh Sep 27 encrypted backup has not passed full decrypt/restore, and it predates new signing keys.
 - **R4 Source:** retrieve the exact required revisions from GitHub or independently verified mirrors; the S3 `git-mirrors/` target is not established as complete.
 - **R5 Railway infra:** use `railway-config/<date>/` as a topology and variable-name guide, then recover secret values through the approved secret recovery path and verify each service before deployment. The export alone cannot recreate credentials.
@@ -208,16 +208,19 @@ Noted follow-ups (non-blocking, not done here): (a) `get_s3_backup_status` runs 
 ## Issue-channel schema restores (pointer, S1624)
 
 Dumps taken with `--no-owner --no-privileges` carry no ACLs or default privileges.
-After restoring the `issue_channel` schema, the role matrix MUST be recreated with
-`restore_roles_step_v3.py` (migration-reuse runner; see
-`issue-channel-gate2-receipts.md`, "S1624 corrective rounds 2-3"). The older
+The S1624 receipt's `restore_roles_step_v3.py` instruction refers to a hardcoded
+pinned backend checkout that is no longer available; it is historical evidence,
+not a currently executable recovery command (see
+[issue-channel-gate2-receipts.md](./issue-channel-gate2-receipts.md), "S1624 corrective rounds 2-3"). The older
 hand-copied `restore_roles_step.sql`/`_v2.sql` are historical and must not be used:
-v2 demonstrably leaves the watcher read-only on a clean restore.
+v2 demonstrably leaves the watcher read-only on a clean restore. The newer
+`3bd8ac262eae54f48411306dd5347f23d34cb9b7` helper is also blocked as an
+accepted recovery step pending reviewed application `SET ROLE` reachability checks.
 
 ## 2026-09-27 (S1754): ground-truth correction
 
 The earlier dated entries record what was claimed or checked at that time; they must not be read as proof of a complete restore today. In particular, June 8 Infisical `pg_restore -l` was a TOC listing, and June 7 main-PG archive checks were not full restores. Sep 27 main PG and six Qdrant collections passed isolated component restores as described in Capabilities. No restored ai.market application was exercised end to end.
 
-The pinned issue-channel/audit ACL helper commit `3bd8ac262eae54f48411306dd5347f23d34cb9b7` has bounded test and isolated rollback evidence, but is unreleased. It cannot supply every role/password or recover the application. Infisical requires sanctioned offline keys; the fresh encrypted backup predates new signing keys. Cloudflare D1/R2 inventory, Worker source, Railway secret values, local Docker volumes, and watchdog UTC/delivery/per-collection behavior remain open. The GitHub secondary check uses 26h, not 6h.
+The pinned issue-channel/audit ACL helper commit `3bd8ac262eae54f48411306dd5347f23d34cb9b7` retains its bounded test and isolated rollback evidence, but PR509 is blocked by DS REVISE / GLM APPROVE_WITH_MANDATES. The isolated PG17 synthetic watcher membership exposed missing application `SET ROLE` reachability checks despite helper success; the scratch membership and ACL were restored after the probe. Do not use the helper as accepted recovery until the correction is reviewed. It cannot supply every role/password or recover the application. Infisical requires sanctioned offline keys; the fresh encrypted backup predates new signing keys. Cloudflare D1/R2 inventory, Worker source, Railway secret values, local Docker volumes, and watchdog UTC/delivery/per-collection behavior remain open. The GitHub secondary check uses 26h, not 6h.
 
 The S3 copy `RESTORE-README.md` was observed stale at June 8, SHA256 beginning `595282`; this edited repository map has **not** been synced to S3. Map sync is pending and must be handled under separate authority. Existing bucket versioning, 35-day COMPLIANCE retention, and AES256 encryption remain observed; they do not close these recovery gaps.
