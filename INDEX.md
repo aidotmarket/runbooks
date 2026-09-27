@@ -1100,7 +1100,7 @@
 
 ## Session Close Protocol
 - Path: `session-close-protocol.md`
-- Purpose: Vulcan and Mars are equal-authority peers. Each session is keyed by instance and opens, plans, operates, and closes independently; there are no role-based lanes, lifecycle slots, parent-session dependency, or peer close ordering.
+- Purpose: The active peers in `config:instance-registry` include `vulcan`, `mars`, and `athena`; all are full equal-authority peers. Each session is keyed by its registered lowercase instance name and opens, plans, operates, and closes independently; there are no role-based lanes, lifecycle slots, parent-session dependency, or peer close ordering.
 - Owner: `unassigned`
 - Last verified: `2026-07-31`
 - Aliases: none
@@ -1118,7 +1118,7 @@
 
 ## Session Open Protocol
 - Path: `session-open-protocol.md`
-- Purpose: The canonical Koskadeux session-open flow for the two trusted peers, `vulcan` and `mars`: handoff load, planning gate, and briefing review. Owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0). Absorbs the prior `session_open_standup.md` per AG S612 mandate to eliminate two-file fragmentation.
+- Purpose: The canonical Koskadeux session-open flow for active peers in `config:instance-registry`, including `vulcan`, `mars`, and `athena`: handoff load, planning gate, and briefing review. Each is a full equal peer. Owned by **BQ-PROCESS-SESSION-LIFECYCLE-RELIABILITY-S612** (P0). Absorbs the prior `session_open_standup.md` per AG S612 mandate to eliminate two-file fragmentation.
 - Owner: `unassigned`
 - Last verified: `2026-08-30`
 - Aliases: Koskadeux boot, kd_session_open, session planning gate, boot envelope
