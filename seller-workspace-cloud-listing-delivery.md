@@ -411,7 +411,7 @@ Use this when a seller's listing is served through legacy AIM Data's S3 connecti
 3. Buy it from a separate buyer account with a real card in normal Chrome. Accept the licence.
 4. Download every file in the browser. Compare every SHA-256 with step 1.
 5. Wait out the payout hold. Confirm in Stripe that the transfer to the seller's connected account was created and paid, and that ai.market kept 5%.
-6. Second purchase of the same listing; ask for a refund through the order's problem path and confirm the full refund reaches the card and no payout is made for it.
+6. Second purchase of the same listing; refund it through the Seller Workspace refund route ([seller refund and access diagnosis](runbooks/seller-refund-access-diagnosis.md)) and confirm the full refund reaches the card and no payout is made for it.
 7. Record order ids, file hashes, Stripe transfer and refund ids in the Event Ledger and in the evidence section of [live release operations](runbooks/seller-workspace-live-release.md).
 
 **Pass:** every file byte-identical, payout paid, refund completed, no manual database edit anywhere. Any failure stops the switch; fix, then repeat the failed step.
