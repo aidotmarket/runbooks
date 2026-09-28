@@ -173,6 +173,22 @@ Recover only when a watcher deployment has been `BUILDING` for more than 15 minu
 5. Poll the deployment list until that id is `SUCCESS` with the commit. If it fails or sticks again, stop: the previous `SUCCESS` deployment has been superseded, so redeploy that previous deployment (`mutation{deploymentRedeploy(id:"<previous SUCCESS id>"){id status}}`), read the build log, and escalate rather than repeating the cycle.
 6. Wait one watcher cycle, run the mirror check in [Normal health check](#normal-health-check) and the events-coverage check in [Railway events credential (watcher)](#railway-events-credential-watcher), then post the deployment id, commit and result to peers (this releases the merge hold) and record them on the owning build entity.
 
+### Credential controller: executing a step
+
+Before any `--execute`:
+
+1. Announce a production write window on the peer bus. Ask peers not to write Infisical `prod`, change Railway variables, deploy `ai-market-backend`, `ai-market-connector-auth` or `issue-channel-watcher`, or merge to `koskadeux-mcp` `main`. Every `koskadeux-mcp` merge redeploys `issue-channel-watcher`; while that deployment is building the controller refuses with `Railway project, environment, or service discovery failed`. Wait for the watcher deployment to reach `SUCCESS` and rerun. Offer a safe pause between steps for peers' merges.
+2. Run the dry run of the step, then `--execute` in the background with output to a file. Each mutation waits for sync jobs, deployments, both health endpoints and a fresh watcher mirror cycle (up to 15 minutes; the watcher publishes about every 6 minutes and the Titan-1 poller copies it every 5), so one step can take 5-20 minutes.
+3. Record each step's receipt on the BQ entity and announce the window closed.
+
+Revocation and uncertain-mint recovery follow the controller's operator procedure exactly; there is no rotation path. A replacement is revoke, then a fresh preflight and mint. If a mint outcome is uncertain, never mint again until `recover-mint` proves the name absent.
+
+Known live refusals and meaning:
+
+- `apiTokens node incomplete`: an `apiTokens` row lacks an id or name (account-scoped tokens with a null `workspaceId` are accepted since PR #271).
+- `fresh healthy watcher mirror cycle unproved`: no new healthy watcher mirror within 15 minutes after the mutation; check the watcher deployment and snapshot freshness before retrying.
+- `attributable Infisical sync jobs unproved`: the expected sync job did not complete; stop, record it, and do not relax the check without review.
+
 ### Railway alert parity job (Titan-1)
 
 Installed 2026-09-28 by Mars S1762 (spec §3.3; koskadeux-mcp PR #281 merged as `7b482d0e9189b5dd07fc156f7133ae17472522e1`; operator procedure `docs/railway-alert-parity-job-s1758.md` in that repo). Every 15 minutes it reads Railway's own notification deliveries (EMAIL and INAPP), checks that every production `Deployment.crashed` or `Deployment.failed` was also observed by the watcher, opens an `ops` ticket for each miss older than 30 minutes and for each notification the watcher does not cover (for example `UsageAlert.triggered`, Railway spend warnings), and publishes `infra:railway-alert-parity` plus one `railway-alert-parity-daily` Event Ledger entry per UTC day. A day is clean only when all 96 slots ran successfully with zero misses and nothing pending. Railway emails stay on until 7 consecutive clean UTC days (§3.4).
@@ -191,25 +207,11 @@ launchctl print gui/$(id -u)/com.koskadeux.railway-alert-parity | grep -E "runs|
 tail -5 ~/Library/Logs/koskadeux/railway-alert-parity.log
 ```
 
-Then read `infra:railway-alert-parity` (`last_success` within 2 hours, `clean_days`) and open tickets whose subject starts `Railway notification`. To rotate the role password, generate a new value into the Infisical secret above, `ALTER ROLE railway_alert_parity_read PASSWORD` with that value through psql stdin (never argv), then run the launcher once by hand.
+Then read `infra:railway-alert-parity` (`last_success` within 2 hours, `clean_days`) and open tickets whose subject starts `Railway notification`. To rotate the role password, first pause the job (`launchctl bootout gui/$(id -u)/com.koskadeux.railway-alert-parity`), generate a new value into the Infisical secret above, `ALTER ROLE railway_alert_parity_read PASSWORD` with that value through psql stdin (never argv), run the launcher once by hand, and bootstrap the job again as in the installed pieces above.
 
 First run (2026-09-28 14:53Z, backfill from 2026-09-20): 11 notifications, 8 matched deployments including all four `ai-market-backend` FAILED deployments of 2026-09-25/26 (`3251e66d`, `a59bb8c2`, `3bee73b3`, `11f9f679`). One true historical miss, T-2026-000887: the watcher's own crash of 2026-09-21 (deployment `6e81689b`), which it could not see before the events adapter went live; resolved. Two usage alerts (T-2026-000888, T-2026-000889) resolved as informational.
 
-When it breaks: the log line is `{"status": "failed", "code": "<code>"}` and the run exits nonzero; the next slot retries from the persisted cursor. `railway_query_failed` means the Railway GraphQL call errored or returned `errors`; one isolated failure was seen at install and the next run succeeded. Repeated failures: run the launcher by hand in a minimal environment (`env -i HOME=$HOME PATH=/usr/bin:/bin /bin/zsh scripts/run_railway_alert_parity.sh`) and check `~/bin/railway-env.sh`. `parity_database_dsn_missing`: the loader did not resolve a secret; run `~/bin/infisical_auth_refresh.sh` and source the loader by hand. Ticket or state failures: check the backend and `INTERNAL_API_KEY`.
-
-Before any `--execute`:
-
-1. Announce a production write window on the peer bus. Ask peers not to write Infisical `prod`, change Railway variables, deploy `ai-market-backend`, `ai-market-connector-auth` or `issue-channel-watcher`, or merge to `koskadeux-mcp` `main`. Every `koskadeux-mcp` merge redeploys `issue-channel-watcher`; while that deployment is building the controller refuses with `Railway project, environment, or service discovery failed`. Wait for the watcher deployment to reach `SUCCESS` and rerun. Offer a safe pause between steps for peers' merges.
-2. Run the dry run of the step, then `--execute` in the background with output to a file. Each mutation waits for sync jobs, deployments, both health endpoints and a fresh watcher mirror cycle (up to 15 minutes; the watcher publishes about every 6 minutes and the Titan-1 poller copies it every 5), so one step can take 5-20 minutes.
-3. Record each step's receipt on the BQ entity and announce the window closed.
-
-Revocation and uncertain-mint recovery follow the controller's operator procedure exactly; there is no rotation path. A replacement is revoke, then a fresh preflight and mint. If a mint outcome is uncertain, never mint again until `recover-mint` proves the name absent.
-
-Known live refusals and meaning:
-
-- `apiTokens node incomplete`: an `apiTokens` row lacks an id or name (account-scoped tokens with a null `workspaceId` are accepted since PR #271).
-- `fresh healthy watcher mirror cycle unproved`: no new healthy watcher mirror within 15 minutes after the mutation; check the watcher deployment and snapshot freshness before retrying.
-- `attributable Infisical sync jobs unproved`: the expected sync job did not complete; stop, record it, and do not relax the check without review.
+When it breaks: the log line is `{"status": "failed", "code": "<code>"}` and the run exits nonzero; the next slot retries from the persisted cursor. `railway_query_failed` means the Railway GraphQL call errored or returned `errors`; one isolated failure was seen at install and the next run succeeded. Repeated failures: run the launcher by hand in a minimal environment (`env -i HOME=$HOME PATH=/usr/bin:/bin /bin/zsh /Users/max/koskadeux-mcp/scripts/run_railway_alert_parity.sh`) and check `~/bin/railway-env.sh`. `parity_database_dsn_missing`: the loader did not resolve a secret; run `~/bin/infisical_auth_refresh.sh` and source the loader by hand. Ticket or state failures: check the backend and `INTERNAL_API_KEY`.
 
 ## Normal health check
 
