@@ -1,7 +1,7 @@
 ---
 title: Issue Channel
 owner: mars
-last_verified: '2026-09-21'
+last_verified: '2026-09-28'
 aliases:
 - infrastructure failure channel
 - CI health board
@@ -126,13 +126,15 @@ Refer to credentials and identities by name only. Never paste or log their value
 - Watcher database access uses `ISSUE_CHANNEL_WATCHER_DATABASE_URL` and database role `issue_channel_watcher`.
 - Poller database access uses its dedicated database role `issue_channel_poller`.
 
-Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway reads, and Cloudflare reads. Do not give the local poller provider credentials or the watcher a broader support identity.
+Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway project-token reads, and Cloudflare reads. The one exception is `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN`: Railway has no read-only token scope, so it is a workspace-wide token that can change anything in the workspace if stolen (accepted by Max, Event `477a5087`); the watcher is restricted in code to using it for the events query only. Do not give the local poller provider credentials or the watcher a broader support identity.
 
 ## Railway events credential (watcher)
 
-The watcher reads Railway project `events` (Deployment crashed/failed) with a dedicated workspace token, because its project token is refused on `events` (Events `4982f9e3`, `477a5087`; spec `specs/BQ-RAILWAY-ALERT-PARITY-S1757.md` §3.1). Railway tokens have no read-only scope: this token can change anything in the workspace if stolen. Max accepted that risk (Event `477a5087`). The watcher code must use it only for `RailwayProjectEvents`.
+The watcher is to read Railway project `events` (Deployment crashed/failed) with a dedicated workspace token, because its project token is refused on `events` (Events `4982f9e3`, `477a5087`; spec `specs/BQ-RAILWAY-ALERT-PARITY-S1757.md` §3.1). Railway tokens have no read-only scope: this token can change anything in the workspace if stolen. Max accepted that risk (Event `477a5087`). The watcher code must use it only for `RailwayProjectEvents`.
 
-Live state (provisioned and verified 2026-09-28 by Mars S1758, receipts on entity `build:bq-railway-alert-parity-s1757` `body.credential_receipts`):
+Status (2026-09-28): the credential is provisioned and injected into the watcher, but the watcher code that consumes it (`RailwayProjectEvents` in `koskadeux_mcp/issue_channel/adapters/railway.py`) is NOT yet merged or deployed; until it is, Railway crash events are not observed and Railway emails stay on. Update this paragraph when the adapter is live.
+
+Credential state (provisioned and verified 2026-09-28 by Mars S1758, receipts on entity `build:bq-railway-alert-parity-s1757` `body.credential_receipts`):
 
 - Railway workspace token `issue-channel-watcher-events-s1757`, Railway token id `e8a6632c-c262-4ea5-b726-62ecf7d61247`, workspace `f44bd0d7-5739-411d-9876-aec715294eef` ("maxrobbins's Projects").
 - Stored only as `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN` in Infisical project `bd272d48-c5a1-4b52-9d24-12066ae4403c`, `prod`, folder `/issue-channel-watcher-railway`.
@@ -141,7 +143,7 @@ Live state (provisioned and verified 2026-09-28 by Mars S1758, receipts on entit
 
 The only supported tool is the reviewed controller `scripts/railway_watcher_credential/railway_watcher_credential.py` in `aidotmarket/koskadeux-mcp` (operator procedure: `docs/railway-watcher-events-credential-s1757.md` in that repo). Run it on Titan-1 from a detached checkout of current `main` with `/Users/max/koskadeux-mcp/venv/bin/python`, after `source ~/bin/railway-env.sh` and `unset RAILWAY_TOKEN`, and `~/bin/infisical_auth_refresh.sh >/dev/null 2>&1`. Every command is a dry run unless `--execute` is given; never run `--execute` as a build or review check. It refuses while `/Users/max/local-secops/HALT` exists and writes a redacted append-only receipt to `~/koskadeux-state/secrets/railway_watcher_credential.audit.jsonl`.
 
-Commands: `--selftest` (offline), `preflight`, `canary`, `create-sync`, `mint-and-store`, `verify`, `reconcile`, `recover-mint`, `revoke`. For a check, run `verify` (read-only); `VERIFIED` means the token id still exists in the workspace, the folder holds only the named secret, all three sync scopes are correct, all per-key digests are equal, the three deployments are `SUCCESS`, both health endpoints return 200 and the watcher mirror is healthy.
+Commands: `--selftest` (offline), `preflight`, `canary`, `create-sync`, `mint-and-store`, `verify`, `reconcile`, `recover-mint`, `revoke`. For a credential check, run `verify` (read-only). `VERIFIED` does not prove the token is authorized to read Railway `events` or that parity works; that is proven separately by the spec's first-build events probe and by the watcher's `sources.railway` events coverage marker once the adapter is live. `VERIFIED` means the token id still exists in the workspace, the folder holds only the named secret, all three sync scopes are correct, all per-key digests are equal, the three deployments are `SUCCESS`, both health endpoints return 200 and the watcher mirror is healthy.
 
 Before any `--execute`:
 
