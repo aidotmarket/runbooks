@@ -338,6 +338,20 @@ scenario_set:
         object: latest persisted outcome, check time and existing capped retry schedule
         target: normal owner GET with no write or provider call
     weight: 1.0
+  - id: I-03
+    type: repair
+    refs: [G-03]
+    scenario: A legacy log line contains marker text but its provenance, whole-record structure, closed values or attempt is invalid.
+    expected_answers:
+      - kind: human_action
+        verb: reject
+        object: the entire marker-like record as diagnostic evidence
+        target: the bounded closed projection; exact cause remains unknown
+      - kind: human_action
+        verb: retain
+        object: only the safe invalid-record count and observation window
+        target: the existing reviewed repair/review route without copying raw logs
+    weight: 1.0
 ```
 
 ## Maintenance
