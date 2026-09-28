@@ -1140,7 +1140,7 @@
 - Owner: `vulcan`
 - Last verified: `2026-08-07`
 - Aliases: connect-identity-bridge, seller-stripe-linkage
-- Error signatures: kyc_status_absent_defaults_not_started, seller_profiles_connect_id_never_written, stripe_connect_user_update_zero_rows, two_connect_onboarding_endpoints_disagree, webhook_predicate_column_mismatch
+- Error signatures: A Stripe account already exists for this email address, kyc_status_absent_defaults_not_started, seller_profiles_connect_id_never_written, stripe_connect_user_update_zero_rows, two_connect_onboarding_endpoints_disagree, webhook_predicate_column_mismatch
 - Status: current
 
 ## Support Ticket System — operations

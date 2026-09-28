@@ -6,6 +6,7 @@ aliases:
 - connect-identity-bridge
 - seller-stripe-linkage
 error_signatures:
+- A Stripe account already exists for this email address
 - kyc_status_absent_defaults_not_started
 - seller_profiles_connect_id_never_written
 - stripe_connect_user_update_zero_rows
@@ -142,6 +143,53 @@ failed verification are indistinguishable at the reader.
     through the Stripe API (payouts_enabled, charges_enabled, details_submitted)
     before comparing it to anything of ours.
   expect: Stripe's answer treated as ground truth and our four stores treated as caches.
+
+- id: E-03
+  name: Let a seller restart Stripe onboarding under a different email (unfinished account only)
+  status: >-
+    AVAILABLE since backend 675fc0462 (PR #515, deployed 2026-09-28, Railway deployment
+    5704e399, alembic head s1757_stripe_connect_party_unique). Reconciliation now refuses a
+    superseded account (party_has_other_stripe_connect_identity / user_has_other_stripe_account_id),
+    and the partial unique index uq_party_identity_one_stripe_connect_per_party makes a second
+    stripe_connect identity for one party impossible. Before that release the reconciliation job
+    could re-attach the superseded account (MultipleResultsFound in get_stripe_connect_identity);
+    never run E-03 against a backend older than 675fc0462.
+  when: >-
+    Stripe's hosted onboarding says "A Stripe account already exists for this email address" for an
+    email the seller no longer uses. Our Standard account was created with the user's ai.market email at
+    the time of the first Connect click (`stripe_connect.py` -> `create_standard_account(user.email)`),
+    so a later ai.market email change leaves Stripe asking for the old login.
+  preconditions: |
+    Max's explicit go for this production-data change (CORE S3). Stripe read (E-02) shows the account
+    unfinished: details_submitted=false, charges_enabled=false, payouts_enabled=false, balance 0.
+    No references to the old account id in listings.stripe_connect_account_id,
+    billing_entities.stripe_account_id, seller_payout_entries.stripe_connect_account_id,
+    seller_profiles.stripe_connect_id or seller_profiles.stripe_account_id.
+    stripe_events rows with stripe_account = the old id contain only account or capability lifecycle
+    events (account.*, capability.*, person.*); any charge, payment_intent, checkout, payout, transfer,
+    refund, dispute or balance event refuses the procedure.
+  not_possible: |
+    The platform cannot change the email on a Standard account (Stripe returned "This application is
+    not authorized to edit the parameter 'email'" in S1757; Stripe-side behaviour, not provable from our
+    code) and cannot delete a live Standard account.
+  procedure: |
+    Save a before-image of the users.stripe_account_id value and the party_identity stripe_connect row
+    to a private file under /Users/max/koskadeux-state/ops/<session>-stripe-unlink/, then in ONE
+    transaction: set users.stripe_account_id = NULL for that user (guarded on the old account id) and
+    delete the party_identity row with provider='stripe_connect' and that external_id. Keep stripe_events
+    rows (webhook idempotency only; they do not relink). Log an Event Ledger production_data_change
+    with the before-image path. This is the only hand-written production SQL this page authorizes and
+    it needs Max's go each time.
+  expect: |
+    The seller's next Connect Stripe click creates a new Standard account under their CURRENT ai.market
+    email. The old Stripe account stays at Stripe; a reconciliation dry run shows the old account as
+    refuse (party_has_other_stripe_connect_identity).
+  rollback: |
+    Before the seller's next Connect click: restore only users.stripe_account_id and the one
+    party_identity row from the before-image. After the click a new Stripe account and identity exist:
+    do not restore the old rows (users.stripe_account_id is unique and the party would have two
+    identities); record the new account id as an after-image and ask Max.
+  precedent: S1757 2026-09-27, acct_1UHT6PRwbq3PpZHy, Event ddbb67c1-7cc2-4eea-8c46-9acc68b310a9; new account acct_1UKKCARr7HNES1re created by the seller afterwards.
 ```
 
 ---
@@ -155,6 +203,7 @@ failed verification are indistinguishable at the reader.
 | F-03 | `stripe_connect_user_update_zero_rows` appears in logs | `users.stripe_account_id` is not linked to the account Stripe is describing | E-01 | G-01 | HIGH |
 | F-04 | Two sellers onboarded in the same week have different `seller_profiles` shapes | They used different endpoints, `stripe.py` versus `stripe_connect.py` (see C.2) | Check which endpoint the account-creation timestamp corresponds to | G-02 | HIGH |
 | F-05 | A fix to the identity bridge helpers changes nothing for an affected seller | The helpers sit downstream of the predicate and the seller never reaches them | Confirm the narrow predicates at `webhooks.py:691,704` | G-02 | HIGH — this is exactly what happened with T-2026-000567 |
+| F-06 | A seller who already submitted Stripe details is sent back into Stripe onboarding again and again after returning to ai.market | Before frontend c8219f9 (PR #98, 2026-09-28) the Stripe refresh URL `/dashboard/stripe-return?abandoned=1` (backend `stripe_connect.py` refresh_url) always minted a new onboarding link without checking status (root cause Event 7a6552d2) | Read `GET /api/v1/connect/status` for the seller: `details_submitted=true` with empty `requirements.currently_due` must now show success on the return page; non-empty `currently_due` legitimately routes back to Stripe | Confirm the deployed frontend includes c8219f9; if the seller still loops with nothing currently due, capture the status response and file a ticket | HIGH — source, S1757/S1758 |
 
 ---
 
@@ -232,5 +281,7 @@ failed verification are indistinguishable at the reader.
 | Updated | S1605, 2026-08-24, vulcan — recorded the unanimous approval-class Council ratification of T-2026-000565 Gate 2 Amendment A1 R4 at backend `1ab86d07291fc333622ca1a572e499ff35d35084`; documented the replacement P1-P7 evidence gate for C2-C without authorizing deletion |
 | Updated | S1529, 2026-08-11, mars — moved to the `runbooks/` canonical path; this historical move predates the simplified `INDEX.md` discovery model |
 | Updated | S1483, 2026-08-08, vulcan — H.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); documentation location was still pending at that point |
+| Updated | S1758, 2026-09-28, mars — E-03 unblocked after backend 675fc0462 (reconciliation refusal + one-identity-per-party index) deployed; added F-06 stripe-return loop (fixed in frontend c8219f9) |
+| Updated | S1757, 2026-09-27, mars — added E-03 (restart onboarding under a new email, blocked for new use until the reconciliation refusal ships); rest of the page not re-verified |
 | Refresh trigger | Any change to the Connect onboarding endpoints, `_handle_account_update`, or the `party_identity` metadata contract |
 | Related | `account-capability-onboarding.md` (E-06 activation chain), `auth-signup-flow.md`, `infisical-secrets.md`, T-2026-000565, T-2026-000567 |
