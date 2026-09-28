@@ -1,16 +1,16 @@
 ---
 title: Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)
 owner: vulcan
-last_verified: '2026-09-21'
+last_verified: '2026-09-28'
 aliases: [Daily Health Check, Health Check CRITICAL, health-check.yml, health_check.py, railway-volumes, volume capacity alert, backend issue 435]
-error_signatures: ["gmail_login_", "saved Gmail login is not working", "volume_unknown", "Health Check CRITICAL", "RAILWAY_API_TOKEN not set", "Check crashed:"]
+error_signatures: ["railway_alert_parity", "key=infra:railway-alert-parity", "gmail_login_", "saved Gmail login is not working", "volume_unknown", "Health Check CRITICAL", "RAILWAY_API_TOKEN not set", "Check crashed:"]
 ---
 
 # Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)
 
 ## What it does
 
-`ai-market-backend/.github/workflows/health-check.yml` ("Daily Health Check") runs at 07:00 UTC every day and on manual dispatch. It runs `scripts/health_check.py`, which calls the production backend (`BACKEND_URL`, default `https://ai-market-backend-production.up.railway.app`) with the `INTERNAL_API_KEY` repository secret in the `X-Internal-API-Key` header. Seven independent checks: Railway volumes (`/api/v1/internal/health/railway-volumes`), saved Gmail logins (`/api/v1/internal/health/gmail-logins`, added 2026-09-21), Postgres (`/api/v1/internal/health/postgres`), Redis (`/api/v1/internal/health/redis`), SSL certificates, the backend `/health` endpoint, and the Cloudflare worker. The workflow also fetches backup status and can run an auto-VACUUM on a bloat warning.
+`ai-market-backend/.github/workflows/health-check.yml` ("Daily Health Check") runs at 07:00 UTC every day and on manual dispatch. It runs `scripts/health_check.py`, which calls the production backend (`BACKEND_URL`, default `https://ai-market-backend-production.up.railway.app`) with the `INTERNAL_API_KEY` repository secret in the `X-Internal-API-Key` header. Eight independent checks: Railway alert parity freshness (reads Living State `infra:railway-alert-parity` through `/api/v1/allai/state/{key}`, added 2026-09-28), Railway volumes (`/api/v1/internal/health/railway-volumes`), saved Gmail logins (`/api/v1/internal/health/gmail-logins`, added 2026-09-21), Postgres (`/api/v1/internal/health/postgres`), Redis (`/api/v1/internal/health/redis`), SSL certificates, the backend `/health` endpoint, and the Cloudflare worker. The workflow also fetches backup status and can run an auto-VACUUM on a bloat warning.
 
 If any check is `critical` the workflow opens a GitHub issue titled `Health Check CRITICAL — <date>` with labels `health-check` and `urgent`. The open-items board counts those issues as one GitHub alert (`Health Check CRITICAL xN, <first>..<last>`), which is why the page headline can be one higher than the number of rows.
 
@@ -34,6 +34,10 @@ If a volume check goes `warning` or `critical` now, it is real:
 1. Confirm with the curl above; the message carries used and capacity, and the percent when capacity is known.
 2. Grow the volume in Railway (service, Volumes) or reduce data following `qdrant.md` / `backup-and-recovery.md`.
 3. `capacity unknown` means Railway returned no `sizeMB`: query it by hand (Railway credentials in `sysadmin.md`, account token as Bearer, `User-Agent` header required) before assuming anything.
+
+### `railway_alert_parity` critical: `key=infra:railway-alert-parity reason=<code> age_seconds=<n>`
+
+Added 2026-09-28 (backend PR #521, BQ-RAILWAY-ALERT-PARITY-S1757 §3.3). It is the independent monitor for the Titan-1 parity job: CRITICAL when the record is `absent`, unreadable (`http_error`, `transport_error`), malformed (`malformed_json`, `malformed_record`, `missing_last_success`, `invalid_last_success`), `future_last_success`, or `stale` (last success older than 2 hours; the job runs every 15 minutes). Diagnose the job, not this check: follow [issue-channel.md](issue-channel.md) "Railway alert parity job (Titan-1)". A stale result usually means Titan-1 was off or the launchd job is failing.
 
 ### `gmail_login_<name>` critical: "saved Gmail login is not working"
 

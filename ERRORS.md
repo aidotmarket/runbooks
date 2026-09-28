@@ -856,6 +856,10 @@
 
 - [Listing slug rename (seller-identifying slug)](listing-slug-rename.md)
 
+## `key=infra:railway-alert-parity`
+
+- [Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)](backend-daily-health-check.md)
+
 ## `kickstart non-zero / no fresh pid`
 
 - [Koskadeux Gateway Transport Runbook](gateway-transport.md)
@@ -1371,6 +1375,10 @@
 ## `Railway project, environment, or service discovery failed`
 
 - [Issue Channel](issue-channel.md)
+
+## `railway_alert_parity`
+
+- [Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)](backend-daily-health-check.md)
 
 ## `RAILWAY_API_TOKEN not set`
 
