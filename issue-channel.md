@@ -1,7 +1,7 @@
 ---
 title: Issue Channel
 owner: mars
-last_verified: '2026-09-28'
+last_verified: '2026-09-21'
 aliases:
 - infrastructure failure channel
 - CI health board
