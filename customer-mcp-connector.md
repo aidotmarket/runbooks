@@ -43,12 +43,12 @@ The settings are described by backend files `railway.connector.json` and `railwa
 
 The resource start command was changed from the auth health stub to the exact `railway.connector.json` value on 2026-09-28. `tests/connector/test_key_isolation.py::test_resource_service_switches_entrypoint_when_asgi_exists` enforces the entrypoint switch. The service start commands override the backend Dockerfile command, so these services do not run migrations at startup. The resource's `/readyz` returns HTTP 503 until `DATABASE_URL` and `REDIS_URL` exist and the connector tables are reachable, by design in `app/mcp/connector/health.py`. Its first Chunk 3 deployment, `c0b22302-8df4-42b5-ad0b-9b0eb5ab940f`, failed the Railway `/readyz` health check, leaving the previous stub serving. The resource `healthcheckPath` was then changed to `/healthz`. Restore `/readyz` in the same Gate 4 change that provisions the restricted DSN and Redis reference, and require HTTP 200 from `/readyz` before enable. The auth service keeps `/readyz`.
 
-Variables set through `variableCollectionUpsert` with `skipDeploys: true` were `PORT=8080` and `CONNECTOR_ENABLED`, `CONNECTOR_OAUTH_ENABLED`, `CONNECTOR_CIMD_ENABLED`, `CONNECTOR_DCR_ENABLED` all `false`. On 2026-09-28, Mars set the resource boot prerequisites with `railway variables --skip-deploys`: `CONNECTOR_AUTH_ISSUER=https://auth.ai.market`, `CONNECTOR_AUDIENCE=https://connect.ai.market/mcp`, and `CONNECTOR_JWKS_URL=https://auth.ai.market/.well-known/jwks.json`. The resource process refuses to start without them. `CONNECTOR_ALLOWED_HOSTS` defaults to `connect.ai.market`. `CONNECTOR_OAUTH_SIGNING_KEYS` must never be present on the resource: startup refuses it. That keyset is provisioned on `ai-market-connector-auth` only (see "Signing keyset: DONE" below). Distinct `SECRET_KEY` values, the resource audit HMAC key, and the Railway DSN and Redis references remain pending. Before Gate 4, provision and verify the remaining sources separately:
+Variables set through `variableCollectionUpsert` with `skipDeploys: true` were `PORT=8080` and `CONNECTOR_ENABLED`, `CONNECTOR_OAUTH_ENABLED`, `CONNECTOR_CIMD_ENABLED`, `CONNECTOR_DCR_ENABLED` all `false`. On 2026-09-28, Mars set the resource boot prerequisites with `railway variables --skip-deploys`: `CONNECTOR_AUTH_ISSUER=https://auth.ai.market`, `CONNECTOR_AUDIENCE=https://connect.ai.market/mcp`, and `CONNECTOR_JWKS_URL=https://auth.ai.market/.well-known/jwks.json`. The resource process refuses to start without them. `CONNECTOR_ALLOWED_HOSTS` defaults to `connect.ai.market`. Backend PR #526 adds `CONNECTOR_EXPECTED_PROCESSES` as the rate-limit fallback divisor; it must equal resource replicas × `CONNECTOR_WORKERS` (default `2 × 2 = 4`). `CONNECTOR_OAUTH_SIGNING_KEYS` must never be present on the resource: startup refuses it. That keyset is provisioned on `ai-market-connector-auth` only (see "Signing keyset: DONE" below). Distinct `SECRET_KEY` values, the resource audit HMAC key, and the Railway DSN and Redis references remain pending. Before Gate 4, provision and verify the remaining sources separately:
 
 | Owner | Future variables | Required scope and verification |
 | --- | --- | --- |
 | Infisical | Distinct `SECRET_KEY` for each service; `CONNECTOR_OAUTH_SIGNING_KEYS` for auth only; resource audit HMAC key | Signing keyset: **DONE** in `ai-market-backend`/`prod` at `/connector-auth`, synced only to `ai-market-connector-auth` by `railway-connector-auth-prod` (details below). Distinct `SECRET_KEY` paths and syncs, the resource audit HMAC key name, and their verification remain **PENDING**. The root `railway-backend-prod` sync targets only `ai-market-backend`. |
-| Railway | `DATABASE_URL` as a restricted connector runtime DSN; `REDIS_URL` | Create these as Railway variables/service references for the intended service. Never store them in Infisical, per `infisical-secrets.md`. The restricted role and references are not yet provisioned or verified. |
+| Railway | `DATABASE_URL` as a restricted connector runtime DSN; `REDIS_URL`; resource `CONNECTOR_EXPECTED_PROCESSES` | Create the DSN and Redis as Railway variables/service references for the intended service. Never store them in Infisical, per `infisical-secrets.md`. The restricted role and references are not yet provisioned or verified. Set `CONNECTOR_EXPECTED_PROCESSES` to resource replicas × `CONNECTOR_WORKERS` (currently `2 × 2 = 4`) when backend PR #526 is deployed, and verify it after any scale change. |
 
 Before enable, verify that each connector Infisical path contains no `DATABASE_URL` or `REDIS_URL`, and use Railway GraphQL readback to confirm the intended service references and only the intended secret names. Suppress values in evidence.
 
@@ -144,6 +144,74 @@ Backend PR #523 delivered core Chunk 3: the resource request edge, stateless MCP
 Mars verified at about 22:36 CEST: `https://connect.ai.market/healthz` returned HTTP 200 `{"status":"ok"}`; `/readyz` returned HTTP 503 `{"status":"unavailable"}`, expected until the restricted DSN, Redis reference, and connector tables are ready. Both `GET /.well-known/oauth-protected-resource` and `GET /.well-known/oauth-protected-resource/mcp` returned HTTP 200 with resource `https://connect.ai.market/mcp`, `authorization_servers` [`https://auth.ai.market`], nine sorted scopes, and `bearer_methods_supported` [`header`]. `POST /mcp` returned HTTP 503 with a JSON-RPC `CONNECTOR_DISABLED` error and action `wait`. `https://api.ai.market/health` returned HTTP 200, and `GET https://api.ai.market/api/v1/connector-oauth/status` returned `{"enabled":false}`. All four connector flags remain `false`.
 
 Verify after a resource deploy while flags are off: require HTTP 200 `{"status":"ok"}` from `/healthz`; until Gate 4, expect HTTP 503 `{"status":"unavailable"}` from `/readyz`. Check both protected resource metadata URLs for HTTP 200 and the resource, authorization server, nine sorted scopes, and header bearer method above. Check `POST /mcp` for HTTP 503 JSON-RPC `CONNECTOR_DISABLED` with action `wait`. Check backend `/health` for HTTP 200 and `/api/v1/connector-oauth/status` for `{"enabled":false}`. Before enable, complete the Gate 4 prerequisites above and require `/readyz` to return HTTP 200.
+
+### Connector switch administration (P0, runbook SQL)
+
+This procedure applies once backend PR #526 is merged and deployed. The resource service reads `connector_switches` from Postgres at most every five seconds. `CONNECTOR_ENABLED=false` always keeps `/mcp` off, regardless of these rows. A cold process that cannot read the table stays disabled. P0 has no switch HTTP endpoint.
+
+Migration `s_connector_foundation_001` creates `connector_switches` with `PRIMARY KEY (scope, key)`. Scope is one of `global`, `profile`, or `tool`; the global row is `('global', 'global')`. Until the connector runtime DB role exists (Gate 4), use the migration owner for writes through the documented credentialed production database access procedure in [`auth-signup-flow.md`](auth-signup-flow.md#production-database-query-when-needed); see also [`schema-migration.md`](schema-migration.md#s5-production-deploy-alignment) for the schema-owner connection boundary. Verify the database and environment before any statement. Never print credentials. Record the actor and reason in the change ticket.
+
+Run only the single action needed. Set `DB_URL` through the credentialed access procedure above without printing it. Replace the example `reason` and `actor` with the ticket reason and operator identity. The `:'name'` form quotes each psql variable as a SQL literal. Each write block must change exactly one row; confirm `INSERT 0 1` or `UPDATE 1`, then confirm the exact-row readback and verify `/mcp` behavior within ten seconds of the write. Stop and investigate if the write count or readback differs. Keep the row for operator history.
+
+Pause the entire connector (global row):
+
+```bash
+psql "$DB_URL" -v ON_ERROR_STOP=1 -v scope=global -v key=global -v reason='ticket reason' -v actor='operator identity' <<'SQL'
+INSERT INTO connector_switches(scope, key, disabled, reason, actor, updated_at)
+VALUES (:'scope', :'key', true, :'reason', :'actor', now())
+ON CONFLICT (scope, key) DO UPDATE SET disabled = true,
+  reason = EXCLUDED.reason, actor = EXCLUDED.actor, updated_at = now();
+SELECT scope, key, disabled, reason, actor, updated_at
+FROM connector_switches WHERE scope=:'scope' AND key=:'key';
+SQL
+```
+
+Pause one verified grant profile (`default`, `claude`, or `openai`; example `openai`):
+
+```bash
+psql "$DB_URL" -v ON_ERROR_STOP=1 -v scope=profile -v key=openai -v reason='ticket reason' -v actor='operator identity' <<'SQL'
+INSERT INTO connector_switches(scope, key, disabled, reason, actor, updated_at)
+VALUES (:'scope', :'key', true, :'reason', :'actor', now())
+ON CONFLICT (scope, key) DO UPDATE SET disabled = true,
+  reason = EXCLUDED.reason, actor = EXCLUDED.actor, updated_at = now();
+SELECT scope, key, disabled, reason, actor, updated_at
+FROM connector_switches WHERE scope=:'scope' AND key=:'key';
+SQL
+```
+
+Pause one registered tool (example `get_my_account`):
+
+```bash
+psql "$DB_URL" -v ON_ERROR_STOP=1 -v scope=tool -v key=get_my_account -v reason='ticket reason' -v actor='operator identity' <<'SQL'
+INSERT INTO connector_switches(scope, key, disabled, reason, actor, updated_at)
+VALUES (:'scope', :'key', true, :'reason', :'actor', now())
+ON CONFLICT (scope, key) DO UPDATE SET disabled = true,
+  reason = EXCLUDED.reason, actor = EXCLUDED.actor, updated_at = now();
+SELECT scope, key, disabled, reason, actor, updated_at
+FROM connector_switches WHERE scope=:'scope' AND key=:'key';
+SQL
+```
+
+Restore one existing exact `(scope, key)` after approval (example `tool`, `get_my_account`):
+
+```bash
+psql "$DB_URL" -v ON_ERROR_STOP=1 -v scope=tool -v key=get_my_account -v reason='ticket reason for restore' -v actor='operator identity' <<'SQL'
+UPDATE connector_switches SET disabled=false, reason=:'reason', actor=:'actor', updated_at=now() WHERE scope=:'scope' AND key=:'key';
+SELECT scope, key, disabled, reason, actor, updated_at
+FROM connector_switches WHERE scope=:'scope' AND key=:'key';
+SQL
+```
+
+Read back one exact row without changing it (example `tool`, `get_my_account`):
+
+```bash
+psql "$DB_URL" -v ON_ERROR_STOP=1 -v scope=tool -v key=get_my_account <<'SQL'
+SELECT scope, key, disabled, reason, actor, updated_at
+FROM connector_switches WHERE scope=:'scope' AND key=:'key';
+SQL
+```
+
+Do not set `CONNECTOR_ENABLED=true` as part of a DB switch change; that environment flag is a separate launch gate and requires a service restart.
 
 ### Signing keyset recovery: NO SUPPORTED PATH TODAY (S1757, 2026-09-27)
 
