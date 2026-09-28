@@ -328,7 +328,7 @@
 - Path: `runbooks/buyer-request-publication-and-discovery.md`
 - Purpose: This runbook describes current code and deployed state separately; a merged commit is not called deployed until Railway proves the exact SHA.
 - Owner: `vulcan`
-- Last verified: `2026-08-29`
+- Last verified: `2026-09-28`
 - Aliases: buyer-requests, request-matching, request-publication
 - Error signatures: BUYER_REQUEST_MATCH_RELEVANCE_QUESTION, delivery_cycle_failed, request_match_deliveries table does not exist, rolling_24h_cap
 - Status: current
@@ -553,7 +553,7 @@
 - Path: `data-requests.md`
 - Purpose: The data-request feature lets a buyer post a "I'm looking for X kind of data" listing and receive responses from sellers. Lifecycle: a buyer drafts a request, submits it for publication, eligible requests become public, sellers reply with proposals, the buyer picks a winning response and the flow proceeds to payment + fulfillment via the standard listing/order pipeline.
 - Owner: `unassigned`
-- Last verified: `2026-08-29`
+- Last verified: `2026-09-28`
 - Aliases: none
 - Error signatures: none
 - Status: current
