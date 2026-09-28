@@ -137,7 +137,9 @@ Refer to credentials and identities by name only. Never paste or log their value
 - `INTERNAL_API_KEY` authenticates watcher calls to the internal support API.
 - Provider inputs include `ISSUE_CHANNEL_GITHUB_TOKEN`, `RAILWAY_API_TOKEN`, `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN` (events only; see below), `ISSUE_CHANNEL_CLOUDFLARE_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and the launcher-injected `DEEPSEEK_API_KEY`.
 - Watcher database access uses `ISSUE_CHANNEL_WATCHER_DATABASE_URL` and database role `issue_channel_watcher`.
-- Poller database access uses its dedicated database role `issue_channel_poller`.
+- In backend source, the queue API uses `ISSUE_CHANNEL_QUEUE_DATABASE_URL` with dedicated database role `issue_channel_queue_api`; the outbound local poller authenticates to that HTTP API with `ISSUE_CHANNEL_POLLER_KEY`.
+
+The cited source does not define either dedicated database role as read-only. **SOURCE evidence, not a check of current production grants:** backend commit `9bcf6affa9b713882d1a2c7aea68fc710b4a619c` declares `issue_channel_watcher` and `issue_channel_queue_api` as the dedicated roles in [migration lines 22-25](https://github.com/aidotmarket/ai-market-backend/blob/9bcf6affa9b713882d1a2c7aea68fc710b4a619c/alembic/versions/20260826_001_issue_channel_schema_and_queue.py#L22-L25). [Migration lines 442-455](https://github.com/aidotmarket/ai-market-backend/blob/9bcf6affa9b713882d1a2c7aea68fc710b4a619c/alembic/versions/20260826_001_issue_channel_schema_and_queue.py#L442-L455) grant the watcher `SELECT`, `INSERT`, `UPDATE`, and `DELETE` across `issue_channel` tables; they grant the queue API role `SELECT` on `safe_snapshot_records` and `SELECT`, `INSERT`, and `UPDATE` on `dispatch_intents`. The [queue API](https://github.com/aidotmarket/ai-market-backend/blob/9bcf6affa9b713882d1a2c7aea68fc710b4a619c/app/api/v1/issue_channel_queue.py#L40-L83) checks the poller HTTP key, while the [queue service](https://github.com/aidotmarket/ai-market-backend/blob/9bcf6affa9b713882d1a2c7aea68fc710b4a619c/app/services/issue_channel_queue.py#L391-L404) checks the dedicated database role. The legacy `scripts/issue_channel_operate.sh` obtains `ISSUE_CHANNEL_WATCHER_DATABASE_URL`, so its queries use writer credentials. It is not the approved read-only operator verification path; do not source it for that purpose. `railway_alert_parity_read` is limited to `source_records(id, provider)` and `safe_raw_records(source_record_id, redacted_projection)` and must not be broadened or reused for `dispatch_intents`.
 
 Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway project-token reads, and Cloudflare reads. The one exception is `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN`: Railway has no read-only token scope, so it is a workspace-wide token that can change anything in the workspace if stolen (accepted by Max, Event `477a5087`); the watcher adapter uses it for the events query only (query-only allowlist in `RailwayProjectEvents`, live since 2026-09-28; see the status paragraph below). Do not give the local poller provider credentials or the watcher a broader support identity.
 
@@ -258,7 +260,7 @@ For Railway or Cloudflare, use the provider console or read-only API identity na
 
 ## Inspect queue, intents, spend, and breaker
 
-Run the read-only SQL in this runbook through an authorized `psql` session. Check recent intents before changing a rule or retrying anything. `queued`, `leased`, and `outcome_unknown` are open intent states. `expired_unleased`, `completed`, and `late_completion` are terminal journal states.
+Run the read-only SQL in this runbook only through a separately authorized, actual least-privileged read-only identity with access to the required tables. The absence of such an identity or approved projection is an evidence gap requiring a reviewed access/projection design; do not fall back to the watcher or queue API writer roles or claim verification without the evidence. The existing backend queue API exposes snapshot `GET` and lease/complete `POST`; the snapshot does not expose accepted dispatch completion metadata, and the POST operations are not a read-only verification path. Check recent intents before changing a rule or retrying anything. `queued`, `leased`, and `outcome_unknown` are open intent states. `expired_unleased`, `completed`, and `late_completion` are terminal journal states.
 
 The breaker opens on its reviewed failure-rate or flap thresholds and opens immediately for forced faults such as digest mismatch or measured cost above budget. An open breaker blocks new admission but does not stop provider collection or resolution. Do not reset it until the underlying journal evidence is understood.
 
@@ -333,7 +335,7 @@ A future deliberate canary requires fresh explicit authorization and a separatel
 
 ## Read-only SQL
 
-Connect with an authorized read-only identity. These queries contain no credentials and make no changes.
+Connect with a separately authorized, actual least-privileged read-only identity that covers each queried table. These queries contain no credentials and make no changes, but their text alone does not make a writer credential read-only. If that identity or an approved read-only projection is unavailable, record the evidence gap for reviewed access/projection design; do not use `scripts/issue_channel_operate.sh`, `ISSUE_CHANNEL_WATCHER_DATABASE_URL`, the poller role, or `railway_alert_parity_read` as a fallback, and do not report dispatch completion as verified.
 
 Status counts:
 
