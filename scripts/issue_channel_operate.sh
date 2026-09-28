@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Issue-channel operator helpers (runbook issue-channel.md §E). Source this file: `source OPERATE.sh`.
-# Never echo $W or $URL. The watcher role is read-only; never write with it.
+# Legacy issue-channel operator helpers; not the approved read-only verification path.
+# This file obtains ISSUE_CHANNEL_WATCHER_DATABASE_URL, which uses writer credentials.
+# Never echo $W or $URL. Do not use this helper for read-only operator verification.
 export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH HOME=/Users/max
 
 ic_url() {  # E-01: compose the watcher DB URL over the Postgres public TCP proxy into $URL
