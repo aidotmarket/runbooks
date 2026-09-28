@@ -34,6 +34,7 @@ error_signatures:
 | Exit code and queue-output capture per job | SHIPPED | `/opt/homebrew/bin/ts` | Task Spooler smoke coverage; queue output is separate from the bridge's durable builder transcript | 2026-08-10 |
 | Bridge integration (dispatch enqueues, never waits) | SHIPPED | `koskadeux_mcp/bridge_runner.py` | `tests/test_tsp_queue.py`, `tests/unit/test_c2_minimal_bridge_routing.py` | 2026-08-10 |
 | Durable builder transcript and test-output artifacts | SHIPPED | `koskadeux_mcp/minimal_bridge.py` | `tests/test_minimal_bridge.py` covers clean exit, timeout, crash and no-change paths | 2026-08-10 |
+| T882 independent job checkout and owned-clone lifecycle | REVIEWED-PENDING; not serving | Candidate `22e8b2bc87fb25192d922e6b32e63115018a7afd` | 198 focused temporary-fixture tests passed; PR264 test runs `36434870284`, `36434870154`, `36434867132` succeeded. Live dispatch and deletion remain unproven. | 2026-09-28 |
 
 ## Architecture & interactions
 
@@ -52,6 +53,16 @@ S1456 does not relocate any Task Spooler socket, slot marker, job spec, report,
 builder/test transcript, or `bridge_outcomes.db`: those defaults are already
 durable and have their own `KD_TS_*` / `KD_BRIDGE_*` contracts. It also does not
 make Task Spooler's queue server state a member of the five-record migration.
+
+### T882 pending operator procedure
+
+The reviewed-pending MCP candidate `22e8b2bc87fb25192d922e6b32e63115018a7afd` starts from original MCP base `7fb0f585a608b0e1d3cfeb91d436574677e32288`; the current gateway marker is still `7fb`. The companion branch is `build/s1763-t882-operating-companion` at runbooks base `d03835cca15143c540deb3a831273990cf88e6d0`. These are review identities, not activation evidence. On a future, separately authorized live canary, compare the returned job spec's repository, `task_id`, exact `expected_branch`, and `base_sha` with the intended dispatch before trusting its report. Verify a newly owned independent checkout has that branch and exact base HEAD; inspect peer and root branches/worktrees for preservation. The candidate fetches only a verified remote ancestry anchor and retains an unreadable or unanchored reservation; it does not copy source branches, tags or dangling objects wholesale. Authentication remains ordinary Git authentication under isolated history/URL rewrite configuration, and failed private remote reads retain the clone.
+
+For `check_build`, `task_id` identifies the build across repositories; `ts_job_id` is scoped to one Task Spooler queue. Inspect the returned `task_id`, repository/queue key and job spec before trusting a result. In S1763, supplying both IDs returned a different backend job. Treat that mismatch as unresolved; use the exact task ID and independently compare the persisted spec/report rather than inferring a new precedence contract from the current handler.
+
+For the candidate's capacity and cleanup, count at most 20 newly bridge-owned clone reservations globally. Keep ten ordinary verified, unpinned and inactive published clones per repository; pins, active leases and dependent checkouts retain their clones and still consume global slots. Foreign and legacy directories remain untouched. No-work reclamation needs a durable outcome, no unique tree/ref/object data, and independent remote proof of the base anchor. Published pruning also needs the structured marker and exact advertised head. Both checks include ignored files, reflog-only or dangling objects, grafts, replace refs, alternates, shallow/shared history, local config, hidden index flags, and every ref. Unknown or partial evidence retains the clone and its slot. The controller must register and release review pins through the APIs sharing the root lock with pruning. Persist `pruning_verified` or `reclaiming_clean_terminal` before deletion, and record completion only after removal; failed reads, writes or deletion are not successful cleanup. Never clear artifacts, rows, markers or admission records just to free capacity, including on rollback.
+
+Future live acceptance needs an ordinary new job on its own exact-base branch, peer preservation and private-auth behavior, durable report/ref facts that distinguish partial or unverified publication from author success, and safe no-work reclamation and cap refusal in an explicit isolated canary root. It must never blanket-delete peer or historical directories. The 198 focused tests used temporary fixtures, and the three successful PR264 GitHub test runs do not prove production activation or deletion safety. Require full CC, GLM and DeepSeek approval of the original source and this companion, owner-confirmed builder quiescence, and separately reviewed coordinated activation before changing the gateway. Do not use a reloader or override to activate this candidate. [Builder controls](builder-controls.md#t882-reviewed-pending-candidate-builder-boundary-and-preservation) covers the Git guard, preservation and proof boundary.
 
 **Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
 
@@ -127,7 +138,7 @@ Every one of these is a solved problem in any mature job queue. Task Spooler sol
   idempotency: IDEMPOTENT
   expected_success:
     shape: "Report contains builder_output_path, builder_output_bytes, builder_output_complete, builder_exit_code, terminal_status, tests_status, and (when configured) tests_output_path"
-    verification: "The builder artifact exists for clean_exit, timeout, crashed, and nothing_changed. tests_status is one of not_configured, passed, failed, or unavailable; clean_exit alone is not test evidence."
+    verification: "Match the report's task_id, repository/queue key and persisted job spec to the intended dispatch before using it. The builder artifact exists for clean_exit, timeout, crashed, and nothing_changed. tests_status is one of not_configured, passed, failed, or unavailable; clean_exit alone is not test evidence."
   expected_failures:
     - signature: builder output artifact missing or incomplete
       cause: "Evidence capture failed; do not treat the build as verified and do not discard any preserved work"
