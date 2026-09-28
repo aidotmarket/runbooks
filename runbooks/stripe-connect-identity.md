@@ -147,13 +147,13 @@ failed verification are indistinguishable at the reader.
 - id: E-03
   name: Let a seller restart Stripe onboarding under a different email (unfinished account only)
   status: >-
-    BLOCKED for new use until the backend reconciliation refusal ships (build
-    build/stripe-reconcile-superseded-s1757, Gate 3 pending). Until then the Stripe Connect
-    reconciliation job can resolve the superseded account through Stripe `metadata.user_id` and
-    insert a second `stripe_connect` identity for the party, which breaks checkout and onboarding
-    (`MultipleResultsFound` in `get_stripe_connect_identity`). Do not run
-    `scripts/reconcile_stripe_connect_identities.py` in apply mode for a seller unlinked this way
-    until that fix is deployed.
+    AVAILABLE since backend 675fc0462 (PR #515, deployed 2026-09-28, Railway deployment
+    5704e399, alembic head s1757_stripe_connect_party_unique). Reconciliation now refuses a
+    superseded account (party_has_other_stripe_connect_identity / user_has_other_stripe_account_id),
+    and the partial unique index uq_party_identity_one_stripe_connect_per_party makes a second
+    stripe_connect identity for one party impossible. Before that release the reconciliation job
+    could re-attach the superseded account (MultipleResultsFound in get_stripe_connect_identity);
+    never run E-03 against a backend older than 675fc0462.
   when: >-
     Stripe's hosted onboarding says "A Stripe account already exists for this email address" for an
     email the seller no longer uses. Our Standard account was created with the user's ai.market email at
@@ -182,8 +182,8 @@ failed verification are indistinguishable at the reader.
     it needs Max's go each time.
   expect: |
     The seller's next Connect Stripe click creates a new Standard account under their CURRENT ai.market
-    email. The old Stripe account stays at Stripe; once the reconciliation refusal is deployed, a
-    reconciliation dry run shows the old account as refuse (party_has_other_stripe_connect_identity).
+    email. The old Stripe account stays at Stripe; a reconciliation dry run shows the old account as
+    refuse (party_has_other_stripe_connect_identity).
   rollback: |
     Before the seller's next Connect click: restore only users.stripe_account_id and the one
     party_identity row from the before-image. After the click a new Stripe account and identity exist:
@@ -203,6 +203,7 @@ failed verification are indistinguishable at the reader.
 | F-03 | `stripe_connect_user_update_zero_rows` appears in logs | `users.stripe_account_id` is not linked to the account Stripe is describing | E-01 | G-01 | HIGH |
 | F-04 | Two sellers onboarded in the same week have different `seller_profiles` shapes | They used different endpoints, `stripe.py` versus `stripe_connect.py` (see C.2) | Check which endpoint the account-creation timestamp corresponds to | G-02 | HIGH |
 | F-05 | A fix to the identity bridge helpers changes nothing for an affected seller | The helpers sit downstream of the predicate and the seller never reaches them | Confirm the narrow predicates at `webhooks.py:691,704` | G-02 | HIGH — this is exactly what happened with T-2026-000567 |
+| F-06 | A seller who already submitted Stripe details is sent back into Stripe onboarding again and again after returning to ai.market | Before frontend c8219f9 (PR #98, 2026-09-28) the `/dashboard/stripe-return?refresh` path always minted a new onboarding link without checking status (root cause Event 7a6552d2) | Read `GET /api/v1/connect/status` for the seller: `details_submitted=true` with empty `requirements.currently_due` must now show success on the return page; non-empty `currently_due` legitimately routes back to Stripe | Confirm the deployed frontend includes c8219f9; if the seller still loops with nothing currently due, capture the status response and file a ticket | HIGH — source, S1757/S1758 |
 
 ---
 
@@ -280,6 +281,7 @@ failed verification are indistinguishable at the reader.
 | Updated | S1605, 2026-08-24, vulcan — recorded the unanimous approval-class Council ratification of T-2026-000565 Gate 2 Amendment A1 R4 at backend `1ab86d07291fc333622ca1a572e499ff35d35084`; documented the replacement P1-P7 evidence gate for C2-C without authorizing deletion |
 | Updated | S1529, 2026-08-11, mars — moved to the `runbooks/` canonical path; this historical move predates the simplified `INDEX.md` discovery model |
 | Updated | S1483, 2026-08-08, vulcan — H.2 frontend onboarding-error redirect retired (`ai-market-frontend` C2-A, base `a823e45a`, head `e37c595d`, Gate 3 unanimous); documentation location was still pending at that point |
+| Updated | S1758, 2026-09-28, mars — E-03 unblocked after backend 675fc0462 (reconciliation refusal + one-identity-per-party index) deployed; added F-06 stripe-return loop (fixed in frontend c8219f9) |
 | Updated | S1757, 2026-09-27, mars — added E-03 (restart onboarding under a new email, blocked for new use until the reconciliation refusal ships); rest of the page not re-verified |
 | Refresh trigger | Any change to the Connect onboarding endpoints, `_handle_account_update`, or the `party_identity` metadata contract |
 | Related | `account-capability-onboarding.md` (E-06 activation chain), `auth-signup-flow.md`, `infisical-secrets.md`, T-2026-000565, T-2026-000567 |
