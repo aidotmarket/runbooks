@@ -170,3 +170,54 @@ evt_3UKk4uRucxd97j0A1YRYrpK7 | payment_intent.succeeded | failed | 2026-09-28 20
 ```
 
 Stripe replay procedure (operator, after the column repair deploys): the live endpoint retries failed events automatically for up to 3 days (evt_3UKk4uRucxd97j0A1YRYrpK7 created 2026-09-28 19:19Z, so automatic retries run until about 2026-10-01 19:19Z). If the window lapses: POST https://api.stripe.com/v1/events/evt_3UKk4uRucxd97j0A1YRYrpK7/retry with webhook_endpoint=<prod endpoint id> using the live secret key from Infisical prod (human-approved, same shape as s1656/s1761-refund-ops.py retry-capture). Acceptance: the stripe_events row status=completed, and payments has a succeeded row for the PI.
+
+## r5 addition (CC F1: other 20260318_001 artifacts), 2026-09-28T22:25:04Z
+
+```sql
+select to_regclass('public.delivery_audit_log')
+```
+```
+delivery_audit_log
+```
+
+```sql
+select column_name||':'||data_type from information_schema.columns where table_schema='public' and table_name='delivery_audit_log' order by ordinal_position
+```
+```
+id:uuid
+transaction_id:uuid
+order_id:uuid
+event_type:character varying
+actor_type:character varying
+actor_id:uuid
+attempt_no:integer
+jwt_jti:character varying
+trust_session_id:uuid
+trust_device_id:uuid
+correlation_id:uuid
+http_status_code:integer
+range_start:bigint
+range_end:bigint
+bytes_count:bigint
+is_terminal:boolean
+payload:jsonb
+created_at:timestamp with time zone
+```
+
+```sql
+select indexname from pg_indexes where tablename='delivery_audit_log' order by 1
+```
+```
+delivery_audit_log_pkey
+ix_delivery_audit_log_event_type
+ix_delivery_audit_log_transaction_created
+```
+
+```sql
+select conname, contype from pg_constraint where conrelid='public.delivery_audit_log'::regclass order by 1
+```
+```
+delivery_audit_log_pkey | p
+```
+
+Conclusion: delivery_audit_log exists in prod with the migration's columns and both indexes; outcome A (the 11 transactions columns plus their checks and indexes) is sufficient for the create_delivery_record path.
