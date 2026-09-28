@@ -124,6 +124,10 @@
 
 - [Corpus Capture Policy - What We Keep](runbooks/corpus-capture-policy.md)
 
+## `apiTokens node incomplete`
+
+- [Issue Channel](issue-channel.md)
+
 ## `archived original acceptance differs from purchase-time receipt`
 
 - [Seller paired settlement conclusion and recovery](runbooks/seller-paired-settlement-conclusion.md)
@@ -131,6 +135,10 @@
 ## `At a glance preview empty for a listing published before P1`
 
 - [Listing Summary (At a glance) Source-Fact Backfill](listing-summary-source-backfill.md)
+
+## `attributable Infisical sync jobs unproved`
+
+- [Issue Channel](issue-channel.md)
 
 ## `AUTH_FAILED or Device is inactive or revoked`
 
@@ -627,6 +635,10 @@
 ## `foreign_key_violation on NO ACTION/RESTRICT tables`
 
 - [Account Teardown & User-Data Erasure](account-teardown.md)
+
+## `fresh healthy watcher mirror cycle unproved`
+
+- [Issue Channel](issue-channel.md)
 
 ## `FRONTEND_URL must equal http://localhost:13000`
 
@@ -1351,6 +1363,10 @@
 ## `queued row with idle slot`
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)
+
+## `Railway project, environment, or service discovery failed`
+
+- [Issue Channel](issue-channel.md)
 
 ## `RAILWAY_API_TOKEN not set`
 

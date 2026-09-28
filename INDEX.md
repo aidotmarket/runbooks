@@ -744,7 +744,7 @@
 - Owner: `mars`
 - Last verified: `2026-09-21`
 - Aliases: infrastructure failure channel, CI health board, issue channel watcher, issue channel poller
-- Error signatures: observation_complete":false, executor_busy_no_lease, malformed_output, expired_unleased, outcome_unknown, candidate_invalid, fallback_waiting_resolution, duplicate_cardinality, support_reconciliation_deadline, support_deadline_unavailable
+- Error signatures: observation_complete":false, executor_busy_no_lease, malformed_output, expired_unleased, outcome_unknown, candidate_invalid, fallback_waiting_resolution, duplicate_cardinality, support_reconciliation_deadline, support_deadline_unavailable, apiTokens node incomplete, fresh healthy watcher mirror cycle unproved, attributable Infisical sync jobs unproved, Railway project, environment, or service discovery failed
 - Status: current
 
 ## Issue-Channel Gate 2 Receipts Runbook
