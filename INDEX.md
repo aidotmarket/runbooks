@@ -895,7 +895,7 @@
 - Path: `ops-ai-market.md`
 - Purpose: Internal operations dashboard for ai.market. Single-page React app at `https://ops.ai.market`, deployed on Railway as a static site.
 - Owner: `unassigned`
-- Last verified: `2026-08-26`
+- Last verified: `2026-09-28`
 - Aliases: none
 - Error signatures: none
 - Status: current
