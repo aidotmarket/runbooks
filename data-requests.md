@@ -1,7 +1,7 @@
 ---
 title: data-requests — Buyer-initiated Data Request Surface
 owner: unassigned
-last_verified: '2026-08-29'
+last_verified: '2026-09-28'
 aliases: []
 error_signatures: []
 ---
@@ -56,7 +56,7 @@ The data-request feature lets a buyer post a "I'm looking for X kind of data" li
 
 A draft is private to the buyer. `publish` changes lifecycle state to `open`; visibility is a separate persisted decision. An open request remains private until verified identity, current content-bound consent, safety, and expiry checks produce `eligible`. Edits invalidate stale consent; withdrawal, closure, expiry, moderation rejection, or synthetic identity removes eligibility. As responses come in the lifecycle advances. Final terminal states are `fulfilled` (a response was accepted and the order pipeline took over), `closed` (buyer cancelled), or `expired` (TTL elapsed).
 
-Owner responses expose `publication_decision`, `publication_reason`, `publication_next_action`, `publication_decision_version`, `public_content_hash`, and the required consent-policy version. Public responses do not expose buyer identity or decision internals.
+Owner responses expose `publication_decision`, `publication_reason`, `publication_next_action`, `publication_decision_version`, `public_content_hash`, and the required consent-policy version. They also expose the latest persisted automated check outcome and time, capped retry stage counter, and next scheduled retry time: `publication_check_outcome`, `publication_checked_at`, `publication_retry_count`, and `publication_retry_at`. The owner API derives `publication_retry_stage` as `none`, `fast_retry`, or `recovery_probe`; it is not another persisted field. Outcome and checked time are null before a check, and a null retry time means no retry is scheduled. These fields describe the latest check, not a diagnostic history; the count is a scheduler stage, not lifetime attempts. See the owning publication runbook for the retry schedule and current production evidence. Public responses retain their existing field allowlist and expose neither buyer identity nor these owner-only publication fields.
 
 ## The contract — fields that MUST match between frontend and backend
 
