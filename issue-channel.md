@@ -207,7 +207,7 @@ launchctl print gui/$(id -u)/com.koskadeux.railway-alert-parity | grep -E "runs|
 tail -5 ~/Library/Logs/koskadeux/railway-alert-parity.log
 ```
 
-Then read `infra:railway-alert-parity` (`last_success` within 2 hours, `clean_days`) and open tickets whose subject starts `Railway notification`. To rotate the role password, first pause the job (`launchctl bootout gui/$(id -u)/com.koskadeux.railway-alert-parity`), generate a new value into the Infisical secret above, `ALTER ROLE railway_alert_parity_read PASSWORD` with that value through psql stdin (never argv), run the launcher once by hand, and bootstrap the job again as in the installed pieces above.
+Then read `infra:railway-alert-parity` (`last_success` within 2 hours, `clean_days`) and open tickets whose subject starts `Railway notification`. To rotate the role password, first pause the job (`launchctl bootout gui/$(id -u)/com.koskadeux.railway-alert-parity`), generate a new value into the Infisical secret above, `ALTER ROLE railway_alert_parity_read PASSWORD` with that value through psql stdin (never argv), run the launcher once by hand, and bootstrap the job again (`launchctl bootstrap gui/$(id -u) "$HOME/Library/LaunchAgents/com.koskadeux.railway-alert-parity.plist"`).
 
 First run (2026-09-28 14:53Z, backfill from 2026-09-20): 11 notifications, 8 matched deployments including all four `ai-market-backend` FAILED deployments of 2026-09-25/26 (`3251e66d`, `a59bb8c2`, `3bee73b3`, `11f9f679`). One true historical miss, T-2026-000887: the watcher's own crash of 2026-09-21 (deployment `6e81689b`), which it could not see before the events adapter went live; resolved. Two usage alerts (T-2026-000888, T-2026-000889) resolved as informational.
 
