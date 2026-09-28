@@ -29,6 +29,7 @@ This runbook describes current code and deployed state separately; a merged comm
 | External seller email (disabled) | PLANNED | `app/core/config.py` | controlled local retry/idempotency tests only | 2026-08-29 |
 | Homepage demand feed and Buyer Requests navigation (deployed) | SHIPPED | `app/page.tsx` | 258 frontend tests; typecheck; anonymous production GETs | 2026-08-29 |
 | Buyer publication controls, reason and latest check visibility (deployed) | SHIPPED | `app/requests/[slug]/DataRequestDetailClient.tsx`; backend owner response | S1760 focused source tests and exact-head CI; normal owner read-only journey | 2026-09-28 |
+| Invocation-local ambiguity review diagnostic marker | SOURCE STAGED; deployment and live receipt unverified | `app/services/mediation_service.py:AmbiguityReviewOutcome`, `AmbiguityReviewCause`, `review_ambiguous_contact`; publication caller `app/services/request_publication_service.py:_review_public_ambiguity` | `tests/test_publication_ambiguity_diagnostics.py`; source candidate `46dc92aff7a0e166fb779c2f4073bd5cd73749ec` | 2026-09-28 |
 | Public MCP request search (deployed) | SHIPPED | `app/services/mcp_tools.py` | 209 bounded backend tests including the agent route; anonymous production tool call | 2026-08-29 |
 | Later digest sender (retained state only, not built) | PLANNED | — | cap-state test only | 2026-08-29 |
 
@@ -41,6 +42,7 @@ Pinned rollout evidence, refreshed whenever production or candidate identity cha
 | Homepage feed and navigation | `aidotmarket/ai-market-frontend@3e61ca6d296edf1ae55c4b5710044d5315802e9c` | Deployed by Railway deployment `4509ace1-941f-466f-bd0f-24ccb73dfb03`, image `sha256:5d0b80fbd6f27ccb912e0900a864f363d4589276ad7510106608131f5af36d9f`; now included in the publication-controls release. |
 | Buyer publication controls | `aidotmarket/ai-market-frontend@7f1d7ba45df3a44c2b57fe4d42f18b398e7a864e` | Historical S1632 production deployment `62d6fdcf-f673-4118-b0cd-9bbf45922907`, image `sha256:c12b96a4cd2b147053cb6aa876d63f27d742e8cc4fb16fbb0eb370e6186c8ebe`; Railway status `SUCCESS`. The merged tree `b406444395e3de42a6aaaf45eac98cfad3c829d7` exactly matches the three-member Council-reviewed candidate `d13472d0f2320b4fe6e196f3b2652b692e514df0`. |
 | Public MCP request search | `aidotmarket/ai-market-backend@682ff2946d41130e66cb32ff720f3eb65cf15b2d` | Historical S1632 production deployment `a86e2c9f-b102-4414-8e8c-5c06b9d96fc7`, image `sha256:5d4fad9a84fa6809ec3538fe676b376d3c9645ad1db443a11a416a63aec86839`; Railway status `SUCCESS`. The merged tree exactly matches reviewed candidate `852c0b18b0d778089e89618deb45cd4242c49b58`. |
+| Ambiguity diagnostic marker | `aidotmarket/ai-market-backend@46dc92aff7a0e166fb779c2f4073bd5cd73749ec`, base `012aab` (PR #518) | As of 2026-09-28 06:30 UTC, all required source votes cleared: GLM 074507 and DeepSeek 074508 AWN at `7ffa9de843958f707d9e71413cb9307f58b44b75`; final `46dc` comment/test-only delta is runtime AST-identical, and CC 081344 AWN/no HIGH/MEDIUM on exact `46dc` full response. Controller's 847 focused tests PASS with four warnings; exact-head CI 36385192601 and 36385192650 SUCCESS. PR #518 remains unmerged; deployment, cause and recovery remain unknown. Runbook acceptance awaits raiser re-review and merge. |
 | Later digest sender | No backing artifact | Not built. |
 
 Production proof for the matching release: `BUYER_REQUEST_MATCHING_ENABLED=true`, publication side effects on, external email false. After Max directed Vulcan to keep the clean test demand visible, all 42 retained outbox rows were processed by discovery and matching with zero errors. Nine open, clean, previously public test requests are eligible and zero delivery rows exist because synthetic buyers remain excluded from seller matching. Four open test requests flagged for contact or personal data remain private. `/api/health` reports process health. `/health` reports HTTP 200 with `alembic_head=alembic_current=s1632_request_matching` and `alembic_drift=false`; its overall `degraded` label is the pre-existing model-inventory drift, not migration drift.
@@ -60,6 +62,26 @@ On `unavailable`, the request stays fail-closed and is automatically scheduled. 
 The normal sanctioned owner read-only run `run-20260928T035805Z-1576944c` passed nine steps: Dashboard > My Requests reopened the existing synthetic private request and showed automated check unavailable (not rejection), last check at 2026-09-28 02:26 GMT+2, next scheduled check at 06:26 GMT+2 (04:26 UTC), fast retry, and no owner action needed. At that observation, the scheduled retry had not yet been observed executing; actual recovery remained unverified. The normal anonymous run `run-20260928T040243Z-924965de` saw “Request not found” on that exact private detail. An independent exact-slug public GET returned 404 with `no-store`. That run's title-only browser-list comparison was insufficient to establish the similarly titled public row's identity. The follow-up normal anonymous run `run-20260928T040542Z-c969d2bc` completed at 04:06:31 UTC with four passed steps, zero findings, and zero mutations: a native click on the public row opened a detail URL ending `292929f3`, distinct from the private request ending `31554259`. This resolves that row-click identity check only; full public-list/discovery and withdrawal/current privacy acceptance remain open. Do not infer identity from a similar title.
 
 On 2026-09-28, the later normal owner read-only run `run-20260928T042610Z-7eee2820` completed at 04:27:48 UTC with eight passed steps and zero mutations. Dashboard > My Requests reopened the exact existing private request ending `31554259`. Its latest persisted check advanced from 00:26 to 04:27 UTC; the next check was scheduled for 10:27 UTC, with `recovery_probe` capped at stage 6. The outcome remained `unavailable` and visibility remained private. This proves that the scheduled automatic retry executed, but not recovery, the provider cause, public discovery, or withdrawal.
+
+### Invocation-local ambiguity marker (source staged, not live proof)
+
+Candidate PR #518 adds one INFO marker at `app/services/mediation_service.py:review_ambiguous_contact.finish` per completed invocation: `publication_ambiguity_review_result outcome=<outcome> cause=<cause> attempt=<attempt>`. The marker is emitted by this shared mediation method, including its non-publication callers in `app/services/mediation_service.py`; its name alone does not establish a publication check. The publication path calls it from `app/services/request_publication_service.py:_review_public_ambiguity` for ambiguous public-text parts. A single publication check may review multiple parts, while definite-pattern and other paths need not emit this marker. The marker has no user, request, or correlation identifier. Its `attempt` is 0 before the loop, or 1/2 for the one-based number of wrapper loop iterations entered in this invocation. It is neither the persisted publication retry stage or scheduler count nor a total physical provider/API-call count; one wrapper iteration can include resilience retries or fallback calls.
+
+The 04:27 UTC `unavailable` owner observation and 10:27 UTC next check above are historical. This documentation fold performs no new owner, log or deployment check and has no live cause or recovery proof.
+
+| Closed outcome | Closed cause | Meaning in this branch |
+|---|---|---|
+| `ordinary` | `no_candidates` | No ambiguous spans reached review; zero provider calls. |
+| `uncertain` | `span_limit` | More than 16 distinct spans; zero provider calls. |
+| `uncertain` | `context_cap` | Bounded prompt/context size exceeded; zero provider calls. |
+| `uncertain` | `budget_exhausted` | Budget denial before the loop (`attempt=0`) makes no provider call in this invocation. Denial inside loop iteration 1 or 2 makes no additional physical provider/API call at that boundary; earlier iterations may already have called the provider. |
+| `contact`, `ordinary`, or `uncertain` | `validated` | Existing response validation completed on attempt 1 or 2; low-confidence/uncertain decisions can still yield `uncertain`. `contact` means normalized validated spans were confirmed, not provider endorsement. |
+| `unavailable` | `provider_declared_unavailable` | A validated decision declared unavailable; attempt 1 or 2. |
+| `unavailable` | `timeout` | Existing wrapper classified the attempt as a timeout; attempt 1 or 2, not a proven provider root cause. |
+| `unavailable` | `invalid_output_exhausted` | Both existing parse/validation attempts were exhausted; `attempt=2`. |
+| `unavailable` | `unexpected_failure` | Closed broad exception branch; attempt 1 or 2, with no exception text or root-cause claim. |
+
+These are branch categories, not a provider diagnosis or remediation instruction. Source tests cover early exits, first/second attempt results, simultaneous calls, and closed marker fields. The new marker does not close privacy for the whole path: `check_llm_budget` retains a global warning that can include user identity, and LLMFactory/legacy mediation failure logs remain outside the marker invariant. Never use those logs as marker evidence or copy their contents.
 
 Owner-only fields do not enter the unchanged public response allowlist. Anonymous and other-owner access to a private request stays 404; a withdrawn formerly public request stays 410, with `no-store` on these detail responses. Public eligibility, exact-content consent hash, edit invalidation, and withdrawal protections remain in force. The frontend request list/detail and shared homepage three-request preview use `no-store` for fresh public data; this does not claim every discovery endpoint or sitemap has that cache policy. The accepted contact false-positive repair and separate My Requests navigation proof remain current; the initial `84bf` candidate is historical, not an outstanding unapproved state.
 
@@ -160,7 +182,34 @@ E-01 and G-01 retain the historical S1632 rollout checkpoint. Their `682ff2946d4
       cause: email remains retained as digest work while in-app delivery continues
   next_step_success: monitor delivery and response conversion without raw customer text
   next_step_failure: set the flag false; preserve delivery rows for diagnosis and retry
+
+- id: E-04
+  trigger: Read ambiguity diagnostic categories after an approved exact source deployment, without changing a request
+  pre_conditions:
+    - complete source review has approved PR 518 and the exact merged source containing candidate 46dc92aff7a0e166fb779c2f4073bd5cd73749ec is identified
+    - Railway's exact deployed SHA contains that approved source; service health is independently checked
+    - an existing configured scoped read-only log surface and a bounded time window are available; no new credential or permission is requested
+  tool_or_endpoint: existing scoped read-only service log surface, then normal owner GET for the existing request
+  argument_sourcing:
+    deployment: exact reviewed merge SHA and matching Railway deployment identity, not a branch label or service health alone
+    window: explicit bounded UTC start/end around the observation; never broaden to an unbounded raw-log export
+    projection: trusted application/service/logger provenance plus an exact complete INFO message with only publication_ambiguity_review_result, outcome, cause and attempt
+  idempotency: IDEMPOTENT
+  expected_success:
+    shape: a reader on the configured surface validates the complete marker structure, closed outcome/cause pair and attempt 0/1/2 against the table above, then emits only timestamp, verified deployment identity and those three closed fields; it discards every other line and field
+    verification: record the bounded window, source/deployment identity, service health and service-level category count; use normal owner GET only to compare latest persisted outcome/check/retry schedule without writing
+  expected_failures:
+    - signature: marker absent or stale
+      cause: no current validated marker observation; exact cause remains unknown
+    - signature: marker multiple or ambiguous
+      cause: records cannot be attributed to the same publication invocation; exact request cause remains unknown
+    - signature: marker invalid or untrusted
+      cause: substring hits, malformed values, unexpected fields or untrusted log provenance are not closed marker evidence
+  next_step_success: report only a service-level observed category unless independent execution evidence unambiguously ties it to the same invocation; retain bounded evidence and follow existing reviewed repair/review route for any source correction
+  next_step_failure: report unknown cause, retain safe bounded evidence and follow G-03; do not infer from a nearby timestamp or trigger a provider review
 ```
+
+E-04 has no raw Railway log copy command. Validate provenance and the **whole** record before emitting the closed projection; a generic substring search can match hostile legacy log text. If the configured surface cannot supply trusted structured provenance and a closed projection, stop at “no validated marker evidence.” A marker timestamp near `publication_checked_at` does not link it to that request when reviews can overlap. Do not add an identifier, hash, or class name to bridge this gap through documentation. Do not change credentials, permissions, configuration, timers, flags, SQL state, request content, or provider invocation to collect evidence.
 
 ## When it breaks
 
@@ -171,6 +220,9 @@ E-01 and G-01 retain the historical S1632 rollout checkpoint. Their `682ff2946d4
 | F-03 | Repeated delivery failure | Notification/provider exception with retained attempt and retry time | Inspect only state, attempts, next-attempt time, and safe error code; never raw request text or email | G-01 | CONFIRMED |
 | F-04 | More than one alert to the same seller/request | Out-of-band write, missing uniqueness, or a different legacy route | Verify unique constraint, delivery row, completed channel timestamps, and that legacy `request.published` handler is the no-op | G-01 | CONFIRMED |
 | F-05 | Email does not send | Expected kill switch, preference, synthetic seller, cap, or provider failure | Read `BUYER_REQUEST_MATCH_EMAILS_ENABLED` and channel state before treating it as an outage | G-02 | CONFIRMED |
+| F-06 | Marker absent or stale in a bounded window | Source may be unmerged/undeployed, no ambiguous review occurred, or scoped records are unavailable | Confirm exact approved source/deployed SHA and health first; compare only structurally validated closed records in the bounded window, then normal owner GET for persisted state | G-03 | UNCONFIRMED |
+| F-07 | Multiple markers or ambiguous timing | Shared caller or overlapping reviews; no request identifier | Count closed records only; require independent same-invocation execution evidence before attribution; nearby timestamps alone are insufficient | G-03 | CONFIRMED |
+| F-08 | Marker-like text fails validation or provenance | Malformed/hostile legacy log text or unsupported value | Reject the entire record; never inspect/copy raw message, exception, provider body, customer text, identity or credential as a workaround | G-03 | CONFIRMED |
 
 ## Repair
 
@@ -192,6 +244,15 @@ E-01 and G-01 retain the historical S1632 rollout checkpoint. Their `682ff2946d4
   change_pattern: Correct the source state or wait for the retained retry. Do not hand-insert a match, bypass synthetic exclusion, lower the global threshold for one case, or delete a delivery row to force another alert.
   rollback_procedure: revert only the source-state correction if it was wrong; completed delivery evidence stays immutable
   integrity_check: one current decision, one request/seller row, no duplicate completed channel, visible next action
+
+- id: G-03
+  symptom_ref: F-06, F-07, F-08
+  component_ref: Ambiguity diagnostic marker
+  root_cause: unknown until approved exact source, deployment and independent same-invocation evidence support a narrower finding
+  repair_entry_point: existing reviewed source-correction/review route, using only bounded closed marker evidence and normal owner GET observation
+  change_pattern: Preserve the request's existing fail-closed decision and capped automatic retry/recovery_probe. Record absent, stale, multiple, ambiguous or invalid evidence as unknown cause; retain the safe observation and seek reviewed source correction only if warranted. Do not force a provider evaluation, mutate a request, bypass retry, or promise incident resolution or customer action.
+  rollback_procedure: no diagnostic-only state change to roll back; any later source repair needs its own reviewed artifact and deployment proof
+  integrity_check: exact approved source and deployed SHA remain distinguishable; owner GET still reports only the latest persisted outcome/check/retry schedule; private and withdrawn public access remains gated
 ```
 
 ### Destructive migration downgrade prohibition
@@ -262,6 +323,34 @@ scenario_set:
         verb: disable
         object: matching and email switches
         target: the application rollout while retaining the forward schema and delivery history
+    weight: 1.0
+  - id: I-02
+    type: repair
+    refs: [G-03]
+    scenario: An owner check remains unavailable while the bounded log window has no current validated marker or several plausible markers.
+    expected_answers:
+      - kind: human_action
+        verb: report
+        object: exact request cause as unknown; any validated marker as service-level only
+        target: retained bounded evidence and the existing reviewed repair/review route
+      - kind: human_action
+        verb: observe
+        object: latest persisted outcome, check time and existing capped retry schedule
+        target: normal owner GET with no write or provider call
+    weight: 1.0
+  - id: I-03
+    type: repair
+    refs: [G-03]
+    scenario: A legacy log line contains marker text but its provenance, whole-record structure, closed values or attempt is invalid.
+    expected_answers:
+      - kind: human_action
+        verb: reject
+        object: the entire marker-like record as diagnostic evidence
+        target: the bounded closed projection; exact cause remains unknown
+      - kind: human_action
+        verb: retain
+        object: only the safe invalid-record count and observation window
+        target: the existing reviewed repair/review route without copying raw logs
     weight: 1.0
 ```
 
