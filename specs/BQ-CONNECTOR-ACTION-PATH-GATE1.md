@@ -157,15 +157,15 @@ Policy column: A = APPROVE floor, R = floor REVIEW condition, D = floor DENY. Ro
 | # | Tool | Action | Service (existing seam) | Role rule | Licence rule | Policy | Side effects |
 |---|---|---|---|---|---|---|---|
 | 1 | get_my_account | aim.account.get | profile/account dispatch `action_executor_service.py:569-576` + org role | member | none | A | none |
-| 2 | get_activity | aim.activity.list | new read over `connector_action_requests`, `pending_actions`, order/inquiry events | owner-filtered | none | A | none |
-| 3 | search_listings | aim.listing.search | listing search (mcp_marketplace `:158`) | any authenticated | show licence code/badge | A | none |
-| 4 | get_listing | aim.listing.get | listing detail + `listing_license_block` | any authenticated | full public licence block + hashes, no acceptance | A | none |
-| 5 | ask_allai | aim.allai.query | allAI ask (`mcp_marketplace.py:378`) | any authenticated | none | A | LLM cost only |
+| 2 | get_activity | aim.activity.list | new read over `connector_action_requests`, `pending_actions`, order/inquiry events — superseded — see Amendment S1762 | owner-filtered | none | A | none |
+| 3 | search_listings | aim.listing.search | listing search (mcp_marketplace `:158`) — superseded — see Amendment S1762 | any authenticated | show licence code/badge | A | none |
+| 4 | get_listing | aim.listing.get | listing detail + `listing_license_block` — superseded — see Amendment S1762 | any authenticated | full public licence block + hashes, no acceptance | A | none |
+| 5 | ask_allai | aim.allai.query | allAI ask (`mcp_marketplace.py:378`) — superseded — see Amendment S1762 | any authenticated | none | A | LLM cost only |
 | 6 | ask_seller | aim.inquiry.create | `InquiryService.create_inquiry` (`inquiries.py:143`) | buyer member | none | A; D if rate cap | inquiry + seller email (outbox) |
 | 7 | list_inquiries | aim.inquiry.list | inquiry list | owner-filtered (buyer or seller side) | none | A | none |
 | 8 | reply_to_inquiry | aim.inquiry.respond | `respond_to_inquiry` (`inquiries.py:506`) | party to inquiry | none | A | message + email |
 | 9 | post_data_request | aim.request.create | `POST /requests` (`requests.py:109`) | buyer member | none | A | public request (open-world) |
-| 10 | list_data_requests | aim.request.list | requests list | mine: owner; matching: public | none | A | none |
+| 10 | list_data_requests | aim.request.list | requests list — superseded — see Amendment S1762 | mine: owner; matching: public | none | A | none |
 | 11 | create_checkout_handoff | aim.checkout.handoff.create | `CheckoutDomainService.create_handoff` | buyer member, not seller of listing | preflight requires licence block + current seller acceptance; **no acceptance here** | R if price > buyer threshold; D if preflight blocked | handoff row only |
 | 12 | list_orders | aim.order.list | orders `/mine` (`orders.py:149`) | owner-filtered, seller view anonymised per S1737 | shows licence-record link | A | none |
 | 13 | get_delivery_handoff | aim.order.delivery_handoff | returns web URL `/orders/{id}` only | buyer of order | issuance still gated on web by `require_active_license_acceptance` (`license_access_service.py:90`) | A | none (no token, URL signature or bytes) |
@@ -187,6 +187,10 @@ Policy column: A = APPROVE floor, R = floor REVIEW condition, D = floor DENY. Ro
 | 29 | list_offers | aim.offer.list | same | owner-filtered | none | A | none |
 
 Global floor DENY: any action whose handler reaches `stripe.checkout.Session.create`, `Transfer.create`, `Payout.create`, a wallet mutation, or `OrderService.create_order` (static call-graph test, §5 I1).
+
+### Amendment S1762 — read-tool ownership (2026-09-28)
+
+The five read tools `get_activity`, `search_listings`, `get_listing`, `ask_allai` and `list_data_requests` are owned and specified by `specs/BQ-CONNECTOR-BUYER-DISCOVERY-GATE1.md` and `specs/BQ-CONNECTOR-BUYER-DISCOVERY-GATE2.md`. `ActionRegistry` registers the remaining **24 rows** of the 29-row table only. The five legacy handler mappings above are superseded and must not be used: the legacy `mcp_marketplace.py` `ask_allai` handler writes `mcp_conversations`/`mcp_messages`, and the `listings.py:410` `get_listing` route increments view counts.
 
 ### 4.8 Audit and redaction
 Every connector tool call (reads included) has exactly one row in core's `connector_audit_events` (core §5.9) with `event_type = 'tool.call'`; the connector path neither writes nor extends `agent_audit_log`. Tool-call fields (`tool`, `args_hmac`, `result_hmac`, `policy_decision`, `pending_action_id`, `binding_terms`) are nullable in core's schema, as core defines, so the same table also carries AS lifecycle events and the web confirmation events below. Reads are written by core's hook. For writes, `execute_connector` writes the row itself through core's `AuditSink.record_required(event, session)` on its own session, in the same transaction as the effect (I7), filling `policy_decision`, `pending_action_id` and `binding_terms`; core's hook does not write a second row for that call. Web confirm/decline (§4.5) each write one further row, `event_type = 'action.confirm'` or `'action.decline'`, for the same `pending_action_id` (with the decision evidence in `binding_terms`), in the same transaction as the decision; these are not tool calls and do not count against the one-row-per-tool-call rule. Args and results are stored only as core's keyed HMACs (`args_hmac`, `result_hmac`). `binding_terms` follows an **allowlist per action**, declared beside `input_model`: ids, enums, amounts, hashes; free text (`message`, `description`, `proposal`, `query`) never enters it; secrets never enter args (schemas forbid them). Binding actions (`binding=True`: 11, 14, 21, 22, 25, 26, 27) store in `binding_terms`: listing/version/order/quote ids, price and currency, licence/covenant/rider hashes, and for REVIEW the approval evidence (`actor_kind`, decided_by, decided_at, `decision_auth_time`, session hash, IP, UA). Retention (adopted, same in all three connector specs): keep every row until legal sign-off, then apply the retention matrix (core Q5a).

@@ -100,15 +100,15 @@ This is the complete Gate 1 §4.7 catalogue. Definitions and schemas land here; 
 | Tool → action | Service or owner | Role rule | Licence rule | Floor and side effect |
 |---|---|---|---|---|
 | `get_my_account` → `aim.account.get` | core account / `app/services/action_executor_service.py:569-576` | member | none | A; read only |
-| `get_activity` → `aim.activity.list` | new owner-filtered read over `connector_action_requests`, `pending_actions`, order/inquiry events (Gate 1 §4.7 row 2) | own user/org | none | A; read only |
-| `search_listings` → `aim.listing.search` | listing search (`app/api/v1/endpoints/listings.py:250`) | authenticated | show code/badge | A; read only |
-| `get_listing` → `aim.listing.get` | detail (`app/api/v1/endpoints/listings.py:410`) | authenticated | full public block/hashes; no acceptance | A; read only |
-| `ask_allai` → `aim.allai.query` | marketplace query (`app/api/v1/endpoints/mcp_marketplace.py:386-405`) | authenticated | none | A; LLM cost only |
+| `get_activity` → `aim.activity.list` | new owner-filtered read over `connector_action_requests`, `pending_actions`, order/inquiry events (Gate 1 §4.7 row 2) — superseded — see Amendment S1762 | own user/org | none | A; read only |
+| `search_listings` → `aim.listing.search` | listing search (`app/api/v1/endpoints/listings.py:250`) — superseded — see Amendment S1762 | authenticated | show code/badge | A; read only |
+| `get_listing` → `aim.listing.get` | detail (`app/api/v1/endpoints/listings.py:410`) — superseded — see Amendment S1762 | authenticated | full public block/hashes; no acceptance | A; read only |
+| `ask_allai` → `aim.allai.query` | marketplace query (`app/api/v1/endpoints/mcp_marketplace.py:386-405`) — superseded — see Amendment S1762 | authenticated | none | A; LLM cost only |
 | `ask_seller` → `aim.inquiry.create` | inquiry create (`app/api/v1/endpoints/inquiries.py:143-144`) | buyer member | none | A, D on rate cap; inquiry and outbox email |
 | `list_inquiries` → `aim.inquiry.list` | inquiry owner list (`app/api/v1/endpoints/inquiries.py:423-424`) | buyer/seller party | none | A; read only |
 | `reply_to_inquiry` → `aim.inquiry.respond` | inquiry respond (`app/api/v1/endpoints/inquiries.py:506-507`) | inquiry party | none | A; message/outbox email |
 | `post_data_request` → `aim.request.create` | request create (`app/api/v1/endpoints/requests.py:109-110`) | buyer member | none | A; public request |
-| `list_data_requests` → `aim.request.list` | request list (`app/api/v1/endpoints/requests.py:125-126`) | own or public matching | none | A; read only |
+| `list_data_requests` → `aim.request.list` | request list (`app/api/v1/endpoints/requests.py:125-126`) — superseded — see Amendment S1762 | own or public matching | none | A; read only |
 | `create_checkout_handoff` → `aim.checkout.handoff.create` | new `CheckoutDomainService.create_handoff` | buyer, not seller | current seller acceptance; buyer accepts only on web | R above limit; D blocked; handoff row only |
 | `list_orders` → `aim.order.list` | order mine (`app/api/v1/endpoints/orders.py:149`, **UNVERIFIED** current line) | owner-filtered; seller anonymised | licence record link | A; read only |
 | `get_delivery_handoff` → `aim.order.delivery_handoff` | new URL-only adapter | buyer of order | web issuance retains `require_active_license_acceptance` (`app/services/license_access_service.py:90`) | A; web URL only |
@@ -128,6 +128,10 @@ This is the complete Gate 1 §4.7 catalogue. Definitions and schemas land here; 
 | `respond_to_offer` → `aim.offer.respond` | `bq-negotiation-offers` **not built** | party | pin variant | A in limits, else R; quote only |
 | `withdraw_offer` → `aim.offer.withdraw` | `bq-negotiation-offers` **not built** | author | none | A; withdraw term |
 | `list_offers` → `aim.offer.list` | `bq-negotiation-offers` **not built** | owner-filtered | none | A; read only |
+
+### Amendment S1762 — read-tool ownership (2026-09-28)
+
+The five read tools `get_activity`, `search_listings`, `get_listing`, `ask_allai` and `list_data_requests` are owned and specified by `specs/BQ-CONNECTOR-BUYER-DISCOVERY-GATE1.md` and `specs/BQ-CONNECTOR-BUYER-DISCOVERY-GATE2.md`. `ActionRegistry` registers the remaining **24 rows** of the 29-row table only. The five legacy handler mappings above are superseded and must not be used: the legacy `mcp_marketplace.py` `ask_allai` handler writes `mcp_conversations`/`mcp_messages`, and the `listings.py:410` `get_listing` route increments view counts.
 
 `get_delivery_handoff` is URL-only and has **no P0 dependency** on `bq-buyer-download-unification-s1711` (Gate 0, not built); no download token, signed URL, raw bytes, cross-door state merge or issuance occurs in this BQ. A P1 buyer end-to-end claim that spans the unified download doors is blocked on S1711; until it passes, keep that claim and any unified-download handler out of P0 and behind the P1 gate. Offers rows 26–29 similarly have schemas/definitions only until `bq-negotiation-offers` lands; `quote_id` remains nullable with no FK or accepted input until then.
 
