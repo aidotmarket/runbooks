@@ -18,6 +18,10 @@ error_signatures:
 - duplicate_cardinality
 - support_reconciliation_deadline
 - support_deadline_unavailable
+- apiTokens node incomplete
+- fresh healthy watcher mirror cycle unproved
+- attributable Infisical sync jobs unproved
+- Railway project, environment, or service discovery failed
 ---
 
 # Issue Channel
@@ -118,11 +122,42 @@ Refer to credentials and identities by name only. Never paste or log their value
 
 - `ISSUE_CHANNEL_POLLER_KEY` authenticates the outbound local poller to the queue API.
 - `INTERNAL_API_KEY` authenticates watcher calls to the internal support API.
-- Provider inputs include `ISSUE_CHANNEL_GITHUB_TOKEN`, `RAILWAY_API_TOKEN`, `ISSUE_CHANNEL_CLOUDFLARE_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and the launcher-injected `DEEPSEEK_API_KEY`.
+- Provider inputs include `ISSUE_CHANNEL_GITHUB_TOKEN`, `RAILWAY_API_TOKEN`, `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN` (events only; see below), `ISSUE_CHANNEL_CLOUDFLARE_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and the launcher-injected `DEEPSEEK_API_KEY`.
 - Watcher database access uses `ISSUE_CHANNEL_WATCHER_DATABASE_URL` and database role `issue_channel_watcher`.
 - Poller database access uses its dedicated database role `issue_channel_poller`.
 
-Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway reads, and Cloudflare reads. Do not give the local poller provider credentials or the watcher a broader support identity.
+Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway project-token reads, and Cloudflare reads. The one exception is `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN`: Railway has no read-only token scope, so it is a workspace-wide token that can change anything in the workspace if stolen (accepted by Max, Event `477a5087`); the watcher is restricted in code to using it for the events query only. Do not give the local poller provider credentials or the watcher a broader support identity.
+
+## Railway events credential (watcher)
+
+The watcher is to read Railway project `events` (Deployment crashed/failed) with a dedicated workspace token, because its project token is refused on `events` (Events `4982f9e3`, `477a5087`; spec `specs/BQ-RAILWAY-ALERT-PARITY-S1757.md` §3.1). Railway tokens have no read-only scope: this token can change anything in the workspace if stolen. Max accepted that risk (Event `477a5087`). The watcher code must use it only for `RailwayProjectEvents`.
+
+Status (2026-09-28): the credential is provisioned and injected into the watcher, but the watcher code that consumes it (`RailwayProjectEvents` in `koskadeux_mcp/issue_channel/adapters/railway.py`) is NOT yet merged or deployed; until it is, Railway crash events are not observed and Railway emails stay on. Update this paragraph when the adapter is live.
+
+Credential state (provisioned and verified 2026-09-28 by Mars S1758, receipts on entity `build:bq-railway-alert-parity-s1757` `body.credential_receipts`):
+
+- Railway workspace token `issue-channel-watcher-events-s1757`, Railway token id `e8a6632c-c262-4ea5-b726-62ecf7d61247`, workspace `f44bd0d7-5739-411d-9876-aec715294eef` ("maxrobbins's Projects").
+- Stored only as `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN` in Infisical project `bd272d48-c5a1-4b52-9d24-12066ae4403c`, `prod`, folder `/issue-channel-watcher-railway`.
+- Native sync `railway-issue-channel-watcher-events-prod`: that folder only, non-recursive, to Railway `issue-channel-watcher` (`d48dd44c-4541-4387-89da-50b2b1d0c8fe`) only; auto-sync on; initial behaviour `overwrite-destination`; `disableSecretDeletion: true`. A canary proved the folder is outside the root `railway-backend-prod` sync (root sync job `18e19f0f-1719-40da-814d-f62efa9b786e`).
+- Any Infisical `prod` write can now trigger three syncs (root -> `ai-market-backend`, `/connector-auth` -> `ai-market-connector-auth`, `/issue-channel-watcher-railway` -> `issue-channel-watcher`). Never write to `/issue-channel-watcher-railway` except through the controller below. See [infisical-secrets.md](infisical-secrets.md).
+
+The only supported tool is the reviewed controller `scripts/railway_watcher_credential/railway_watcher_credential.py` in `aidotmarket/koskadeux-mcp` (operator procedure: `docs/railway-watcher-events-credential-s1757.md` in that repo). Run it on Titan-1 from a detached checkout of current `main` with `/Users/max/koskadeux-mcp/venv/bin/python`, after `source ~/bin/railway-env.sh` and `unset RAILWAY_TOKEN`, and `~/bin/infisical_auth_refresh.sh >/dev/null 2>&1`. Every command is a dry run unless `--execute` is given; never run `--execute` as a build or review check. It refuses while `/Users/max/local-secops/HALT` exists and writes a redacted append-only receipt to `~/koskadeux-state/secrets/railway_watcher_credential.audit.jsonl`.
+
+Commands: `--selftest` (offline), `preflight`, `canary`, `create-sync`, `mint-and-store`, `verify`, `reconcile`, `recover-mint`, `revoke`. For a credential check, run `verify` (read-only). `VERIFIED` does not prove the token is authorized to read Railway `events` or that parity works; that is proven separately by the spec's first-build events probe and by the watcher's `sources.railway` events coverage marker once the adapter is live. `VERIFIED` means the token id still exists in the workspace, the folder holds only the named secret, all three sync scopes are correct, all per-key digests are equal, the three deployments are `SUCCESS`, both health endpoints return 200 and the watcher mirror is healthy.
+
+Before any `--execute`:
+
+1. Announce a production write window on the peer bus. Ask peers not to write Infisical `prod`, change Railway variables, deploy `ai-market-backend`, `ai-market-connector-auth` or `issue-channel-watcher`, or merge to `koskadeux-mcp` `main`. Every `koskadeux-mcp` merge redeploys `issue-channel-watcher`; while that deployment is building the controller refuses with `Railway project, environment, or service discovery failed`. Wait for the watcher deployment to reach `SUCCESS` and rerun. Offer a safe pause between steps for peers' merges.
+2. Run the dry run of the step, then `--execute` in the background with output to a file. Each mutation waits for sync jobs, deployments, both health endpoints and a fresh watcher mirror cycle (up to 15 minutes; the watcher publishes about every 6 minutes and the Titan-1 poller copies it every 5), so one step can take 5-20 minutes.
+3. Record each step's receipt on the BQ entity and announce the window closed.
+
+Revocation and uncertain-mint recovery follow the controller's operator procedure exactly; there is no rotation path. A replacement is revoke, then a fresh preflight and mint. If a mint outcome is uncertain, never mint again until `recover-mint` proves the name absent.
+
+Known live refusals and meaning:
+
+- `apiTokens node incomplete`: an `apiTokens` row lacks an id or name (account-scoped tokens with a null `workspaceId` are accepted since PR #271).
+- `fresh healthy watcher mirror cycle unproved`: no new healthy watcher mirror within 15 minutes after the mutation; check the watcher deployment and snapshot freshness before retrying.
+- `attributable Infisical sync jobs unproved`: the expected sync job did not complete; stop, record it, and do not relax the check without review.
 
 ## Normal health check
 
