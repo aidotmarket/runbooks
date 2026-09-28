@@ -135,7 +135,7 @@ The watcher is to read Railway project `events` (Deployment crashed/failed) with
 
 Status (2026-09-28, Mars S1758): the events adapter is live. `RailwayProjectEvents` merged in koskadeux-mcp PR #278 as `5a8a0198ae9624dc4084fffb6bb2c585202083ac` (Gate 3 GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`; folds re-reviewed by raisers). Watcher deployment `6a1d3be2-fca9-4f3a-b020-722814a0069d` reached `SUCCESS` at 11:35Z. The first mirror cycle after it showed `ai-market:<project>:events` in both `expected_resources` and `observed_resources` of `sources.railway`, with `status` `ok` and `observation_complete` `true`, and the events path recorded the 2026-09-27 watcher `CRASHED` deployment. Railway emails stay on until the parity job (spec §3.3) shows 7 clean days (§3.4).
 
-To check events coverage, confirm that `sources.railway.observed_resources` contains `ai-market:e81dd66f-808c-412e-b32c-f6d910f0ac5d:events` and `observation_complete` is `true`. A recognized crash or failure event that cannot be resolved to a known service or deployment marks the observation incomplete by design.
+To check events coverage, run `jq '.snapshot.sources.railway | {status, observation_complete, events: (.observed_resources | map(select(endswith(":events"))))}' /Users/max/koskadeux-state/issue-channel/snapshot.json`: expect `status` `ok`, `observation_complete` `true` and `ai-market:e81dd66f-808c-412e-b32c-f6d910f0ac5d:events` listed. This is Railway-source coverage only; check `.snapshot.sources.watcher` separately for overall watcher health. A recognized crash or failure event that cannot be resolved to a known service or deployment marks the observation incomplete by design.
 
 Credential state (provisioned and verified 2026-09-28 by Mars S1758, receipts on entity `build:bq-railway-alert-parity-s1757` `body.credential_receipts`):
 
@@ -150,13 +150,16 @@ Commands: `--selftest` (offline), `preflight`, `canary`, `create-sync`, `mint-an
 
 ### Watcher deployment stuck in BUILDING
 
-Seen 2026-09-28: after a `koskadeux-mcp` merge, watcher deployment `56ccb11f-a3e3-479c-bd0a-6209ed8cbecf` stayed `BUILDING` for 25 minutes at the pip install step while Railway status was fully operational (normal builds finish in about 2 minutes). The previous `SUCCESS` deployment keeps serving meanwhile. `deploymentRedeploy` on a building deployment fails with `Cannot redeploy yet, please wait for the original deployment to finish building`. Recovery, with the account token from `~/bin/railway-env.sh`, `RAILWAY_TOKEN` unset, and a browser User-Agent on `https://backboard.railway.app/graphql/v2`:
+Seen 2026-09-28: after a `koskadeux-mcp` merge, watcher deployment `56ccb11f-a3e3-479c-bd0a-6209ed8cbecf` stayed `BUILDING` for 25 minutes at the pip install step while Railway status was fully operational (normal builds finish in about 2 minutes). The previous `SUCCESS` deployment keeps serving meanwhile. `deploymentRedeploy` on a building deployment fails with `Cannot redeploy yet, please wait for the original deployment to finish building`.
 
-1. `mutation { deploymentCancel(id: "<stuck deployment id>") }` (the stuck deployment becomes `REMOVED`).
-2. `mutation { serviceInstanceDeployV2(serviceId: "d48dd44c-4541-4387-89da-50b2b1d0c8fe", environmentId: "23e322c3-b195-45d8-9151-c4c27a998c33", commitSha: "<merged main SHA>") }` returns the new deployment id.
-3. `railway deployment list -s issue-channel-watcher --json` until it is `SUCCESS` with that commit, then read the mirror as above.
+Recover only when a watcher deployment has been `BUILDING` for more than 15 minutes and its build log shows no progress. Use the account token from `~/bin/railway-env.sh` with `RAILWAY_TOKEN` unset, POST to `https://backboard.railway.app/graphql/v2` with headers `Authorization: Bearer $RAILWAY_API_TOKEN`, `Content-Type: application/json` and a browser `User-Agent` (Cloudflare blocks the default), and never print the token.
 
-Tell peers first: the watcher redeploy is the same event as a `koskadeux-mcp` merge.
+1. Announce on the peer bus that you are redeploying `issue-channel-watcher` and ask peers to hold `koskadeux-mcp` `main` merges until you post the result.
+2. Record the preconditions: `railway deployment list -s issue-channel-watcher --json` shows the stuck deployment id and its commit, and the previous `SUCCESS` deployment id; `git ls-remote https://github.com/aidotmarket/koskadeux-mcp main` equals the stuck deployment's commit. If `main` has moved, deploy the new `main` SHA instead, and say so in the announcement.
+3. Send once: `{"query":"mutation{deploymentCancel(id:\"<stuck id>\")}"}`. Expect `true`, then confirm with the deployment list that it is `REMOVED`. If the response is lost or unclear, re-read the list; do not send the cancel again until it shows the deployment still `BUILDING`.
+4. Send once: `{"query":"mutation{serviceInstanceDeployV2(serviceId:\"d48dd44c-4541-4387-89da-50b2b1d0c8fe\",environmentId:\"23e322c3-b195-45d8-9151-c4c27a998c33\",commitSha:\"<SHA from step 2>\")}"}`. Keep the returned deployment id. If the response is lost, look in the deployment list for a new deployment of that commit created after step 3 and use its id; never send a second deploy while one exists.
+5. Poll the deployment list until that id is `SUCCESS` with the commit. If it fails or sticks again, stop: the previous `SUCCESS` deployment has been superseded, so redeploy that previous deployment (`mutation{deploymentRedeploy(id:"<previous SUCCESS id>"){id status}}`), read the build log, and escalate rather than repeating the cycle.
+6. Wait one watcher cycle, run the mirror check above and the events-coverage check, then post the deployment id, commit and result to peers (this releases the merge hold) and record them on the owning build entity.
 
 Before any `--execute`:
 
