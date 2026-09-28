@@ -248,6 +248,10 @@
 
 - [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
 
+## `Cannot redeploy yet, please wait for the original deployment to finish building`
+
+- [Issue Channel](issue-channel.md)
+
 ## `cannot remove a running job`
 
 - [Task Spooler Build Queue](runbooks/task-spooler-build-queue.md)

@@ -9,6 +9,7 @@ aliases:
 - issue channel poller
 error_signatures:
 - 'observation_complete":false'
+- 'Cannot redeploy yet, please wait for the original deployment to finish building'
 - executor_busy_no_lease
 - malformed_output
 - expired_unleased
@@ -126,13 +127,15 @@ Refer to credentials and identities by name only. Never paste or log their value
 - Watcher database access uses `ISSUE_CHANNEL_WATCHER_DATABASE_URL` and database role `issue_channel_watcher`.
 - Poller database access uses its dedicated database role `issue_channel_poller`.
 
-Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway project-token reads, and Cloudflare reads. The one exception is `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN`: Railway has no read-only token scope, so it is a workspace-wide token that can change anything in the workspace if stolen (accepted by Max, Event `477a5087`); the watcher adapter must use it for the events query only; that restriction takes effect when the events adapter is merged and deployed (see the status paragraph below). Do not give the local poller provider credentials or the watcher a broader support identity.
+Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway project-token reads, and Cloudflare reads. The one exception is `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN`: Railway has no read-only token scope, so it is a workspace-wide token that can change anything in the workspace if stolen (accepted by Max, Event `477a5087`); the watcher adapter uses it for the events query only (query-only allowlist in `RailwayProjectEvents`, live since 2026-09-28; see the status paragraph below). Do not give the local poller provider credentials or the watcher a broader support identity.
 
 ## Railway events credential (watcher)
 
 The watcher is to read Railway project `events` (Deployment crashed/failed) with a dedicated workspace token, because its project token is refused on `events` (Events `4982f9e3`, `477a5087`; spec `specs/BQ-RAILWAY-ALERT-PARITY-S1757.md` §3.1). Railway tokens have no read-only scope: this token can change anything in the workspace if stolen. Max accepted that risk (Event `477a5087`). The watcher code must use it only for `RailwayProjectEvents`.
 
-Status (2026-09-28): the credential is provisioned and injected into the watcher, but the watcher code that consumes it (`RailwayProjectEvents` in `koskadeux_mcp/issue_channel/adapters/railway.py`) is NOT yet merged or deployed; until it is, Railway crash events are not observed and Railway emails stay on. Update this paragraph when the adapter is live.
+Status (2026-09-28, Mars S1758): the events adapter is live. `RailwayProjectEvents` merged in koskadeux-mcp PR #278 as `5a8a0198ae9624dc4084fffb6bb2c585202083ac` (Gate 3 GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`; folds re-reviewed by raisers). Watcher deployment `6a1d3be2-fca9-4f3a-b020-722814a0069d` reached `SUCCESS` at 11:35Z. The first mirror cycle after it showed `ai-market:<project>:events` in both `expected_resources` and `observed_resources` of `sources.railway`, with `status` `ok` and `observation_complete` `true`, and the events path recorded the 2026-09-27 watcher `CRASHED` deployment. Railway emails stay on until the parity job (spec §3.3) shows 7 clean days (§3.4).
+
+To check events coverage, run `jq '.snapshot.sources.railway | {status, observation_complete, events: (.observed_resources | map(select(endswith(":events"))))}' /Users/max/koskadeux-state/issue-channel/snapshot.json`: expect `status` `ok`, `observation_complete` `true` and `ai-market:e81dd66f-808c-412e-b32c-f6d910f0ac5d:events` listed. This is Railway-source coverage only; check `.snapshot.sources.watcher` separately for overall watcher health. A recognized crash or failure event that cannot be resolved to a known service or deployment marks the observation incomplete by design.
 
 Credential state (provisioned and verified 2026-09-28 by Mars S1758, receipts on entity `build:bq-railway-alert-parity-s1757` `body.credential_receipts`):
 
@@ -144,6 +147,19 @@ Credential state (provisioned and verified 2026-09-28 by Mars S1758, receipts on
 The only supported tool is the reviewed controller `scripts/railway_watcher_credential/railway_watcher_credential.py` in `aidotmarket/koskadeux-mcp` (operator procedure: `docs/railway-watcher-events-credential-s1757.md` in that repo). Run it on Titan-1 from a detached checkout of current `main` with `/Users/max/koskadeux-mcp/venv/bin/python`, after `source ~/bin/railway-env.sh` and `unset RAILWAY_TOKEN`, and `~/bin/infisical_auth_refresh.sh >/dev/null 2>&1`. Every command is a dry run unless `--execute` is given; never run `--execute` as a build or review check. It refuses while `/Users/max/local-secops/HALT` exists and writes a redacted append-only receipt to `~/koskadeux-state/secrets/railway_watcher_credential.audit.jsonl`.
 
 Commands: `--selftest` (offline), `preflight`, `canary`, `create-sync`, `mint-and-store`, `verify`, `reconcile`, `recover-mint`, `revoke`. For a credential check, run `verify` (read-only). `VERIFIED` does not prove the token is authorized to read Railway `events` or that parity works; that is proven separately by the spec's first-build events probe and by the watcher's `sources.railway` events coverage marker once the adapter is live. `VERIFIED` means the token id still exists in the workspace, the folder holds only the named secret, all three sync scopes are correct, all per-key digests are equal, the three deployments are `SUCCESS`, both health endpoints return 200 and the watcher mirror is healthy.
+
+### Watcher deployment stuck in BUILDING
+
+Seen 2026-09-28: after a `koskadeux-mcp` merge, watcher deployment `56ccb11f-a3e3-479c-bd0a-6209ed8cbecf` stayed `BUILDING` for 25 minutes at the pip install step while Railway status was fully operational (normal builds finish in about 2 minutes). The previous `SUCCESS` deployment keeps serving meanwhile. `deploymentRedeploy` on a building deployment fails with `Cannot redeploy yet, please wait for the original deployment to finish building`.
+
+Recover only when a watcher deployment has been `BUILDING` for more than 15 minutes and its build log shows no progress. Use the account token from `~/bin/railway-env.sh` with `RAILWAY_TOKEN` unset, POST to `https://backboard.railway.app/graphql/v2` with headers `Authorization: Bearer $RAILWAY_API_TOKEN`, `Content-Type: application/json` and a browser `User-Agent` (Cloudflare blocks the default), and never print the token.
+
+1. Announce on the peer bus that you are redeploying `issue-channel-watcher` and ask peers to hold `koskadeux-mcp` `main` merges until you post the result.
+2. Record the preconditions: `railway deployment list -s issue-channel-watcher --json` shows the stuck deployment id and its commit, and the previous `SUCCESS` deployment id; `git ls-remote https://github.com/aidotmarket/koskadeux-mcp main` equals the stuck deployment's commit. If `main` has moved, deploy the new `main` SHA instead, and say so in the announcement.
+3. Send once: `{"query":"mutation{deploymentCancel(id:\"<stuck id>\")}"}`. Expect `true`, then confirm with the deployment list that it is `REMOVED`. If the response is lost or unclear, re-read the list; do not send the cancel again until it shows the deployment still `BUILDING`.
+4. Send once: `{"query":"mutation{serviceInstanceDeployV2(serviceId:\"d48dd44c-4541-4387-89da-50b2b1d0c8fe\",environmentId:\"23e322c3-b195-45d8-9151-c4c27a998c33\",commitSha:\"<SHA from step 2>\")}"}`. Keep the returned deployment id. If the response is lost, look in the deployment list for a new deployment of that commit created after step 3 and use its id; never send a second deploy while one exists.
+5. Poll the deployment list until that id is `SUCCESS` with the commit. If it fails or sticks again, stop: the previous `SUCCESS` deployment has been superseded, so redeploy that previous deployment (`mutation{deploymentRedeploy(id:"<previous SUCCESS id>"){id status}}`), read the build log, and escalate rather than repeating the cycle.
+6. Wait one watcher cycle, run the mirror check above and the events-coverage check, then post the deployment id, commit and result to peers (this releases the merge hold) and record them on the owning build entity.
 
 Before any `--execute`:
 
