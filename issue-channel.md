@@ -126,7 +126,7 @@ Refer to credentials and identities by name only. Never paste or log their value
 - Watcher database access uses `ISSUE_CHANNEL_WATCHER_DATABASE_URL` and database role `issue_channel_watcher`.
 - Poller database access uses its dedicated database role `issue_channel_poller`.
 
-Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway project-token reads, and Cloudflare reads. The one exception is `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN`: Railway has no read-only token scope, so it is a workspace-wide token that can change anything in the workspace if stolen (accepted by Max, Event `477a5087`); the watcher is restricted in code to using it for the events query only. Do not give the local poller provider credentials or the watcher a broader support identity.
+Use Railway variable references on `issue-channel-watcher` so the service consumes the managed production variables without copied values. Provider credentials stay read-only and least-privileged: GitHub repository metadata and Actions reads, Railway project-token reads, and Cloudflare reads. The one exception is `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN`: Railway has no read-only token scope, so it is a workspace-wide token that can change anything in the workspace if stolen (accepted by Max, Event `477a5087`); the watcher adapter must use it for the events query only; that restriction takes effect when the events adapter is merged and deployed (see the status paragraph below). Do not give the local poller provider credentials or the watcher a broader support identity.
 
 ## Railway events credential (watcher)
 
