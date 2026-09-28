@@ -387,6 +387,15 @@
 - Error signatures: Incorrect API key provided: sk-svcac, gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap, minimal bridge has no configured checkout for repo
 - Status: current
 
+## Completion Trust and Ref Disposition
+- Path: `runbooks/completion-trust-and-ref-disposition.md`
+- Purpose: This is the S1763 operational companion candidate for the existing `build:bq-open-items-triage-s1754` programme, controlled by Athena. It describes how to diagnose retained work and how a future completion authority must be reviewed and proved. It does not itself issue a receipt, certify a project, dispose a ref, or authorize activation. `S1764` in the pinned SQL and test filenames is historical draft naming, not a separate author session.
+- Owner: `athena`
+- Last verified: `2026-09-28`
+- Aliases: board completion authority, exact ref disposition
+- Error signatures: none
+- Status: current
+
 ## Connectivity Layer
 - Path: `connectivity.md`
 - Purpose: **Status:** CURRENT — live-verified 2026-05-31 (S738.w, Mars) against Titan-1 incl. serials + `tailscale whois`. **Owner:** SysAdmin agent / Council instances. **Last updated:** 2026-05-31.

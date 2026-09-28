@@ -1,0 +1,91 @@
+---
+title: Completion Trust and Ref Disposition
+owner: athena
+last_verified: '2026-09-28'
+aliases:
+- board completion authority
+- exact ref disposition
+error_signatures: []
+---
+
+# Completion trust and ref disposition
+
+This is the S1763 operational companion candidate for the existing `build:bq-open-items-triage-s1754` programme, controlled by Athena. It describes how to diagnose retained work and how a future completion authority must be reviewed and proved. It does not itself issue a receipt, certify a project, dispose a ref, or authorize activation. `S1764` in the pinned SQL and test filenames is historical draft naming, not a separate author session.
+
+## Status and source boundary
+
+The accepted full Gate 2 design is the S1760 [completion receipts design](https://github.com/aidotmarket/koskadeux-mcp/blob/6ef8043e9110fd414019ca6a4d6bbda05c8fee0c/specs/BQ-AUTONOMOUS-OPS-COMPLETION-RECEIPTS-S1760-GATE2-DESIGN.md). Its status is design only and its own full CC/GLM/DeepSeek review is required. The S1763 source package at `/Users/max/koskadeux-state/s1763/completion-companion-author-source-package/manifest.json` pins 17 SHA-256-matched copies, including that design, the complete `cc520463420707cfb9a036ed0507cb0af6efa8ee` backend foundation source, future SQL, tests, and author note. Recheck source identity before using the package for a later decision.
+
+The `cc520` foundation is **source candidate, unreviewed, disabled, uninstalled, unprovisioned and unverified live**. Its `StateService.append_event` and two atomic-write adapters reject reserved completion types and shapes before generic writes; it reserves eight event types and checks protected rows again under the archive lock. The future SQL is outside Alembic, has no trusted receipt insertion function, and rejects even trusted-role protected inserts. The registry models and identity helper specify scoped roles and retained session evidence, while issuance is hard disabled and no real registry rows or credentials exist. These are source shapes, not database, deployment, custody or completion proof. No checked trusted writer, canonical authority reader, current/archive reconciliation, four-fact validator, ref disposition issuer, sole-publisher positive path or UI acceptance is built in this foundation.
+
+The controller's cleared synthetic pure checks at `cc520` returned exit 0. A first native attempt at `9206b154c3945d2f260ba2d0a81066df1598e85e` returned exit 1: `initdb` failed at `shmget(size=56)` with `ENOSPC` before PostgreSQL started or any DB assertion ran. Preserve that first failure. The native receipt's empty artifact list was a parent-tempdir enumeration mistake; `/Users/max/koskadeux-state/s1763/completion-9206-native-artifact-enumeration-correction.json` records the cleared child's socket directory and absent postmaster PID. Neither result is a native pass, installed role proof, source CI, or live authority. Earlier author `10/128` checks are not controller proof. Do not remove unknown shared-memory segments or disturb peer fixtures to rerun it.
+
+## Capabilities and evidence status
+
+| Component | Current status | What an operator may conclude |
+|---|---|---|
+| Generic API/service reserved-claim rejection and archive lock recheck | Disabled, unreviewed source candidate | Inspect exact source and pure receipt only; no live guard claim. |
+| Future PostgreSQL registry, roles and guard DDL | Uninstalled, unprovisioned, native verification blocked | No production role, trigger, grant or credential is established. |
+| Scoped session issuance and trusted receipt writer | Disabled / unbuilt | No authenticated completion receipt can be issued. |
+| Canonical reader, full archive reconciliation and validator | Unbuilt | No authority response or certificate can be accepted. |
+| Exact ref disposition and sole-publisher positive projection | Unbuilt | Every original ref remains visible; `safe_to_delete_branch=False`. |
+| Normal deployed source, outside journey, legacy and indexed runbook proof | Unverified for this candidate | No project can be closed from this companion or source votes. |
+
+## Trust roles, custody and session evidence
+
+Future role assignments are per reviewed principal, exact work and purpose: `source_producer` supplies source/deployment; `outside_verifier` supplies the independent normal journey; `legacy_reviewer` supplies exact legacy and ref-disposition decisions; `runbook_verifier` checks published indexed Markdown; `validator` alone appends validation/correction after full recheck; `authority_reader` is the sole publisher's exact-work, audience-bound read-only principal. A role cannot be asserted by an API body, `actor`, `session_id`, model name, trust tier or the shared internal key. The six credentials require independent provisioning, separated custody, versioned registry review and source-author exclusions for the same work. A source author or shared-key holder cannot appoint themselves producer, verifier, reviewer or validator. Missing, blank, malformed, overlapping or unreviewed owner, author, custodian, purpose, audience or work binding leaves the fact pending, including a conflicting inactive peer binding.
+
+The future server must derive principal and role from a dedicated scoped credential, then issue an opaque short-lived session for exact work, role, purpose and audience. Retain only its hash and immutable authenticated issuance record: principal, DB issue/expiry, credential and revocation versions, registry version, custody review, and issuance digest. Issuance and every **new** receipt or corrective write require a currently valid session, with DB receipt time inside its issuance interval. Historical verification checks that interval and the immutable issuance binding at receipt time, then separately checks the **current** principal, credential, registry, custody, conflict and adverse-event state. Natural expiry after a valid write does not by itself invalidate the historical receipt. Invalid or wrong-purpose issuance/write, a missing or changed issuance binding, later revocation, compromise or custody conflict blocks certification. A fresh validator correction needs the validator's own current session. No self-signed old event or backfill becomes a trusted receipt.
+
+## The four exact completion facts
+
+For each accepted `work_id` and mapping version, retain the exact original `(repo, full ref, tip SHA, full-history digest)` and all PR/review/deployment history. Titles, session stamps, catalogue groupings and owner prose are presentation inputs. If ownership cannot be proved, retain the exact slug with `owner_state=unknown` and a visible gap; do not create a new ticket from inventory growth.
+
+1. **Source plus deployed identity:** fetch fresh remote ref/PR ancestry, landed source commit and CI source; independently identify the active artifact digest, environment, deployment ID and provider revision. A merged PR, green CI, source vote, gateway module merge or provider `SUCCESS` alone cannot fill the active runtime binding.
+2. **Independent normal outside journey:** bind the affected customer/operator journey, separately maintained test specification version, active source/artifact/deployment, safe result hash, run ID, observation and expiry to an `outside_verifier` independent of the author, producer and deploy operator. Health probes, synthetic checks, author assertions and private tests are insufficient.
+3. **Legacy retirement or narrow N/A:** name the exact old route, flag, job, ref and affected scope with retired source and active artifact proof. A genuine narrow N/A needs independent scoped decision and evidence; a broad programme N/A cannot waive product, privacy, payment or security duties. A ref's abandonment does not prove legacy removal or customer health.
+4. **Unique indexed published Markdown hash:** verify exact `aidotmarket/runbooks` path appears exactly once in current `INDEX.md`, published Markdown commit and actual blob SHA-256, with independent `runbook_verifier` review. A path link or draft file is insufficient. Docs-only outside/legacy N/A must bind the same published bytes and prove the absence of an applicable runtime/legacy path for that exact scope.
+
+The complete goal includes the future writer, reader, correction and permanent ledger/archive exemption, full `REPEATABLE READ` current/archive reconciliation, bounded all-page scan, canonical authenticated registry, full-source review and CI, exact deployment, these four facts and the normal publisher/UI acceptance. The foundation alone cannot shrink that goal or resolve any ref.
+
+## Immutable ledger and canonical read
+
+Reserve `completion_producer_v1`, `completion_outside_v1`, `completion_legacy_v1`, `completion_runbook_v1`, `completion_validated_v1`, `completion_corrective_v1`, `completion_conflict_v1` and `ref_disposition_v1`, plus the protected receipt wrapper, digest namespace and recursively detected claim shapes. A future reviewed PostgreSQL trigger and least-privilege application/trusted/migration/archive boundary must reject generic POST, atomic-write, MCP/gateway, direct service, archive and direct-SQL forgery in every mode. Python guards are early checks only. Trusted receipts need closed schemas, DB UUID/time, canonical bytes and digest, server-derived identity, source context, same-byte idempotent replay and a durable conflict for different bytes under one key. Append corrections linked to original UUIDs; never rewrite away a contradiction.
+
+The future archive rule exempts all eight types forever at candidate selection and after row lock. Before a positive read, a reviewed one-time reconciliation must compare current and archive rows and reserved shapes, restore already moved canonical rows without changing UUID/time/bytes/digest, and flag mismatched duplicates. Identical duplicates count once only after byte comparison. A move during validation, unknown row, incomplete boundary or mismatch returns pending; do not delete a duplicate to hide a conflict.
+
+The proposed `GET /api/v1/allai/completion-authority/v1/{work_id}` is future, not a current operator endpoint. It requires a verified origin and scoped `authority_reader` with exact request/audience binding. A closed response includes work/ref IDs, all scanned event UUIDs/digests, reasons, versions, DB snapshot, freshness bounds, per-scope counts/high-watermarks/completeness and a reproducible content digest. TLS and that digest protect transport/integrity, not producer truth. Under one PostgreSQL `REPEATABLE READ` snapshot, scan **every** keyset page by `(ts,id)` across exact work and linked original refs, compare first/final counts and high-watermarks, and include archive boundary, corrections and conflicts. Set numeric event/page/time caps from reviewed measured plans; cap exhaustion, later-page conflict, query failure, incomplete page, stale source, cache or malformed response means pending. No first-page, public `limit=500`, offset or author-supplied response can certify.
+
+The independent validator folds immutable events by DB time and UUID, applies causal corrections, checks every issuance record and all current adverse state, and revalidates Git/PR, active deployment, normal journey, legacy and exact published Markdown. A conflict stays visible until an authenticated independent correction names all conflicting IDs and exact source proofs; old correction cannot suppress a later conflict. Every authoritative read and publish rechecks current bindings. A change in tip, artifact, journey, runbook, registry, policy, source context or adverse state returns pending and appends a reason when an authorized validator can write. If it cannot write, the reader still refuses a positive result.
+
+## Exact ref disposition
+
+`ref_disposition_v1` is separate from the four-fact project certificate. Only an independent `legacy_reviewer` with a current exact-work `ref_disposition` session may issue its closed, versioned tagged record. Bind original repo/full ref/tip/history digest, work/mapping/source-context/policy versions, server-derived reviewer/issuance/DB time, digest and idempotency key. A `successor` also requires exact successor repo/full ref/tip/history digest, original-to-successor lineage, accepted landed commit/PR, active artifact/environment IDs and digests and acceptance proof for that scope. An `abandoned` ref instead requires exact abandoned scope and a source-backed **approved decision UUID and hash** with decision source and DB decision/review time; do not invent a successor. Missing, malformed, stale or conflicting binding leaves that one ref pending with correction/conflict links. A similar branch name, paused state or owner note cannot dispose another ref.
+
+Each original ref remains individually in historical inventory with its PR, review, deployment and disposition evidence. Even a valid disposition only makes that exact ref nonblocking; it does not certify the programme, repair source, establish outside health, authorize execution or deletion. The four Max-paused OAuth/preview refs remain paused and visible unless individually proved under this rule. T820 remains under its separate owner and normal schedule: no pause change, reassignment or forced retry follows from this page.
+
+## How to operate
+
+1. Read the current [open-items board runbook](../ops-ai-market.md), [Task Spooler runbook](task-spooler-build-queue.md), exact source manifest and retained first-failure receipts. Read Task Spooler queue status without withdrawing, reordering, restarting or retrying peer work. Preserve root `d038` and all peer `97`/`FC`/`603` issue-channel, ops and agent work.
+2. For a disputed row, record exact work mapping and each original full ref; obtain fresh supported Git/PR, deployment, ticket/DB and uniquely indexed Markdown evidence. Distinguish active project work, completion-verification backlog, retained historical refs, incidents, Needs You and Attention. An unavailable feed or owner is unknown, not zero or complete.
+3. Today, classify the foundation as source candidate and the completion response as unavailable. Keep uncertain rows visible, all refs retained, and `safe_to_delete_branch=False`. Do not handwrite a certificate, edit Living State, or treat author checks, pure tests, native fixture failure, reviews, merge or provider health as completion.
+4. After separately authorized implementation and activation gates pass, only `scripts/ground_truth_open_items.py --publish` may consume a complete canonical authority response alongside fresh matching source, deployment and indexed-runbook facts. Its versioned positive `stage_for` path may remove a certified project only from active-work presentation. Verify normal publisher artifact/version, supported DB GET and authenticated normal browser UI with separate active/backlog/history/incident counts. No alternative board writer is authorized.
+
+## When it breaks
+
+| Symptom | Operator diagnosis and safe state |
+|---|---|
+| Reserved type or nested claim accepted by any generic writer | Treat the guard boundary as failed; retain original events and refs, keep trusted route and positive projection disabled, request exact-source review across API, MCP/gateway, service, archive and SQL roles. |
+| Issuance proof missing, role/work/purpose wrong, author/custody overlap | Keep that fact pending; use independently reviewed registry and immutable DB issuance evidence. Caller actor, session text or shared key cannot fill it. |
+| Original session naturally expired | Check valid issuance and receipt DB time plus current registry/adverse state. Ordinary expiry alone is not revocation; a new write still needs a fresh valid session. |
+| Principal/credential revoked or compromised, registry changed adversely | Pending even if receipt-time session was valid; preserve receipt and append an authorized correction when possible. Never grandfather it silently. |
+| Archive mismatch, duplicate difference, move race or incomplete page | Pending; preserve both versions and conflict IDs. Reconcile under reviewed procedure before any positive read. |
+| Query cap, stale provider, changed tip/artifact/runbook or unverified origin | Pending with explicit reason; no partial certificate or cached author response. |
+| Paused, unknown-owner, abandoned or claimed-successor ref | Keep each exact original visible; demand its independent scoped disposition proof. No implied merge, deletion or programme closure. |
+| Published board and UI disagree | Inspect exact publisher source/artifact, supported DB GET and authenticated browser snapshot. Preserve the sole writer and prior records; withhold completion until normal path agrees. |
+
+## Activation, recovery and closure gates
+
+Separate authorization and full review are required for production DDL, least-privilege grants, credential custody/rotation, session issuance, registry changes, trusted writer/reader, archive reconciliation, publisher and UI changes. Before enabling any positive projection, prove every generic/direct/SQL write guard in real PostgreSQL in both relevant modes; full-source CI and unanimous applicable review; immutable issuance, adverse state, idempotency, archive/current reconciliation, pagination, conflicts, measured caps and concurrent movement; exact deployed source and runtime identity; and independent live normal journey plus published indexed Markdown. Use a bounded allowlist only after those gates and authorized normal publisher/Chrome verification. No production setup, grant, SQL or unverified rollback command is prescribed here.
+
+On a regression, the separately reviewed recovery is to disable only the new positive projection and trusted route, keep all ledger/current/archive rows, corrections, refs and existing incident/Needs You behavior, and compare the read-only populations before any reactivation. Do not clear health, restart a gateway, prune a remote ref or clean a peer worktree to improve a count. Completion closes only when the **entire** accepted full scope and all four current facts pass the exact normal live publisher and browser verification. Merge, source votes, tests and provider `SUCCESS` are inputs, never a certificate; `safe_to_delete_branch` remains false throughout this scope.
