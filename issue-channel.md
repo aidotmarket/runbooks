@@ -1,7 +1,7 @@
 ---
 title: Issue Channel
 owner: mars
-last_verified: '2026-09-21'
+last_verified: '2026-09-28'
 aliases:
 - infrastructure failure channel
 - CI health board
@@ -145,7 +145,7 @@ Use Railway variable references on `issue-channel-watcher` so the service consum
 
 The watcher is to read Railway project `events` (Deployment crashed/failed) with a dedicated workspace token, because its project token is refused on `events` (Events `4982f9e3`, `477a5087`; spec `specs/BQ-RAILWAY-ALERT-PARITY-S1757.md` §3.1). Railway tokens have no read-only scope: this token can change anything in the workspace if stolen. Max accepted that risk (Event `477a5087`). The watcher code must use it only for `RailwayProjectEvents`.
 
-Status (2026-09-28, Mars S1758): the events adapter is live. `RailwayProjectEvents` merged in koskadeux-mcp PR #278 as `5a8a0198ae9624dc4084fffb6bb2c585202083ac` (Gate 3 GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`; folds re-reviewed by raisers). Watcher deployment `6a1d3be2-fca9-4f3a-b020-722814a0069d` reached `SUCCESS` at 11:35Z. The first mirror cycle after it showed `ai-market:<project>:events` in both `expected_resources` and `observed_resources` of `sources.railway`, with `status` `ok` and `observation_complete` `true`, and the events path recorded the 2026-09-27 watcher `CRASHED` deployment. Railway emails stay on until the parity job (spec §3.3) shows 7 clean days (§3.4).
+Status (2026-09-28, Mars S1758): the events adapter is live. `RailwayProjectEvents` merged in koskadeux-mcp PR #278 as `5a8a0198ae9624dc4084fffb6bb2c585202083ac` (Gate 3 GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`; folds re-reviewed by raisers). Watcher deployment `6a1d3be2-fca9-4f3a-b020-722814a0069d` reached `SUCCESS` at 11:35Z. The first mirror cycle after it showed `ai-market:<project>:events` in both `expected_resources` and `observed_resources` of `sources.railway`, with `status` `ok` and `observation_complete` `true`, and the events path recorded the 2026-09-27 watcher `CRASHED` deployment. Railway emails stay on until the parity job (spec §3.3, installed 2026-09-28, see [Railway alert parity job (Titan-1)](#railway-alert-parity-job-titan-1)) shows 7 clean days (§3.4).
 
 To check events coverage, run `jq '.snapshot.sources.railway | {status, observation_complete, events: (.observed_resources | map(select(endswith(":events"))))}' /Users/max/koskadeux-state/issue-channel/snapshot.json`: expect `status` `ok`, `observation_complete` `true` and `ai-market:e81dd66f-808c-412e-b32c-f6d910f0ac5d:events` listed. This is Railway-source coverage only; check `.snapshot.sources.watcher` separately for overall watcher health. A recognized crash or failure event that cannot be resolved to a known service or deployment marks the observation incomplete by design.
 
@@ -171,7 +171,31 @@ Recover only when a watcher deployment has been `BUILDING` for more than 15 minu
 3. Send once: `{"query":"mutation{deploymentCancel(id:\"<stuck id>\")}"}`. Expect `true`, then confirm with the deployment list that it is `REMOVED`. If the response is lost or unclear, re-read the list; do not send the cancel again until it shows the deployment still `BUILDING`.
 4. Send once: `{"query":"mutation{serviceInstanceDeployV2(serviceId:\"d48dd44c-4541-4387-89da-50b2b1d0c8fe\",environmentId:\"23e322c3-b195-45d8-9151-c4c27a998c33\",commitSha:\"<SHA from step 2>\")}"}`. Keep the returned deployment id. If the response is lost, look in the deployment list for a new deployment of that commit created after step 3 and use its id; never send a second deploy while one exists.
 5. Poll the deployment list until that id is `SUCCESS` with the commit. If it fails or sticks again, stop: the previous `SUCCESS` deployment has been superseded, so redeploy that previous deployment (`mutation{deploymentRedeploy(id:"<previous SUCCESS id>"){id status}}`), read the build log, and escalate rather than repeating the cycle.
-6. Wait one watcher cycle, run the mirror check above and the events-coverage check, then post the deployment id, commit and result to peers (this releases the merge hold) and record them on the owning build entity.
+6. Wait one watcher cycle, run the mirror check in [Normal health check](#normal-health-check) and the events-coverage check in [Railway events credential (watcher)](#railway-events-credential-watcher), then post the deployment id, commit and result to peers (this releases the merge hold) and record them on the owning build entity.
+
+### Railway alert parity job (Titan-1)
+
+Installed 2026-09-28 by Mars S1762 (spec §3.3; koskadeux-mcp PR #281 merged as `7b482d0e9189b5dd07fc156f7133ae17472522e1`; operator procedure `docs/railway-alert-parity-job-s1758.md` in that repo). Every 15 minutes it reads Railway's own notification deliveries (EMAIL and INAPP), checks that every production `Deployment.crashed` or `Deployment.failed` was also observed by the watcher, opens an `ops` ticket for each miss older than 30 minutes and for each notification the watcher does not cover (for example `UsageAlert.triggered`, Railway spend warnings), and publishes `infra:railway-alert-parity` plus one `railway-alert-parity-daily` Event Ledger entry per UTC day. A day is clean only when all 96 slots ran successfully with zero misses and nothing pending. Railway emails stay on until 7 consecutive clean UTC days (§3.4).
+
+Installed pieces:
+
+- launchd `com.koskadeux.railway-alert-parity` (`~/Library/LaunchAgents/com.koskadeux.railway-alert-parity.plist`, `StartInterval` 900, `RunAtLoad`), running `scripts/run_railway_alert_parity.sh` from the `/Users/max/koskadeux-mcp` checkout. Log: `~/Library/Logs/koskadeux/railway-alert-parity.log` (one JSON line per run). Lock and cursor: `~/koskadeux-state/railway-alert-parity/`.
+- Loader `~/bin/railway-alert-parity-env.sh` (mode 0700): exports `RAILWAY_ALERT_PARITY_DATABASE_URL` and `INTERNAL_API_KEY` from Infisical with the SysAdmin identity and prints no values. The role password is `RAILWAY_ALERT_PARITY_DB_PASSWORD` in Infisical project koskadeux-mcp (`0943f641-faee-4324-b337-0d50c276e4a9`), `prod`, root; this project has no Railway sync. The DSN host is the Postgres public proxy `shuttle.proxy.rlwy.net:50727`, database `railway`; if Railway moves the proxy, update the loader.
+- Database role `railway_alert_parity_read` in the backend Postgres (`railway`): LOGIN, NOINHERIT, no superuser/createrole/createdb/bypassrls, SELECT only on `issue_channel.source_records(id, provider)` and `issue_channel.safe_raw_records(source_record_id, redacted_projection)`; a write probe returns `permission denied`. Index `issue_channel.ix_issue_channel_safe_raw_deployment_id` (valid).
+- Independent freshness monitor: backend Daily Health Check `railway_alert_parity` (see [backend-daily-health-check.md](backend-daily-health-check.md)).
+
+Check it:
+
+```sh
+launchctl print gui/$(id -u)/com.koskadeux.railway-alert-parity | grep -E "runs|last exit"
+tail -5 ~/Library/Logs/koskadeux/railway-alert-parity.log
+```
+
+Then read `infra:railway-alert-parity` (`last_success` within 2 hours, `clean_days`) and open tickets whose subject starts `Railway notification`. To rotate the role password, generate a new value into the Infisical secret above, `ALTER ROLE railway_alert_parity_read PASSWORD` with that value through psql stdin (never argv), then run the launcher once by hand.
+
+First run (2026-09-28 14:53Z, backfill from 2026-09-20): 11 notifications, 8 matched deployments including all four `ai-market-backend` FAILED deployments of 2026-09-25/26 (`3251e66d`, `a59bb8c2`, `3bee73b3`, `11f9f679`). One true historical miss, T-2026-000887: the watcher's own crash of 2026-09-21 (deployment `6e81689b`), which it could not see before the events adapter went live; resolved. Two usage alerts (T-2026-000888, T-2026-000889) resolved as informational.
+
+When it breaks: the log line is `{"status": "failed", "code": "<code>"}` and the run exits nonzero; the next slot retries from the persisted cursor. `railway_query_failed` means the Railway GraphQL call errored or returned `errors`; one isolated failure was seen at install and the next run succeeded. Repeated failures: run the launcher by hand in a minimal environment (`env -i HOME=$HOME PATH=/usr/bin:/bin /bin/zsh scripts/run_railway_alert_parity.sh`) and check `~/bin/railway-env.sh`. `parity_database_dsn_missing`: the loader did not resolve a secret; run `~/bin/infisical_auth_refresh.sh` and source the loader by hand. Ticket or state failures: check the backend and `INTERNAL_API_KEY`.
 
 Before any `--execute`:
 
@@ -665,5 +689,7 @@ Verify: confirm `.github/workflows/issue-channel-canary.yml` is absent at curren
 Repair or rollback: do not recreate or dispatch the deleted workflow. A future deliberate canary requires fresh explicit authorization and a separately reviewed temporary workflow, followed by the same failure, newer-success, complete-observation, resolution, and cleanup sequence.
 
 ## Changes
+
+2026-09-28 S1762: documented the installed Railway alert parity job; stuck-build step 6 now links the Normal health check (GLM nit on PR #329).
 
 2026-09-24 S1738: documented the unowned-ticket peer alert, check-in ownership duty, GitHub Actions notification setting, and fallback-ticket recovery after the listing-detail outage.

@@ -254,11 +254,11 @@
 
 ## Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)
 - Path: `backend-daily-health-check.md`
-- Purpose: `ai-market-backend/.github/workflows/health-check.yml` ("Daily Health Check") runs at 07:00 UTC every day and on manual dispatch. It runs `scripts/health_check.py`, which calls the production backend (`BACKEND_URL`, default `https://ai-market-backend-production.up.railway.app`) with the `INTERNAL_API_KEY` repository secret in the `X-Internal-API-Key` header. Seven independent checks: Railway volumes (`/api/v1/internal/health/railway-volumes`), saved Gmail logins (`/api/v1/internal/health/gmail-logins`, added 2026-09-21), Postgres (`/api/v1/internal/health/postgres`), Redis (`/api/v1/internal/health/redis`), SSL certificates, the backend `/health` endpoint, and the Cloudflare worker. The workflow also fetches backup status and can run an auto-VACUUM on a bloat warning.
+- Purpose: `ai-market-backend/.github/workflows/health-check.yml` ("Daily Health Check") runs at 07:00 UTC every day and on manual dispatch. It runs `scripts/health_check.py`, which calls the production backend (`BACKEND_URL`, default `https://ai-market-backend-production.up.railway.app`) with the `INTERNAL_API_KEY` repository secret in the `X-Internal-API-Key` header. Eight independent checks: Railway alert parity freshness (reads Living State `infra:railway-alert-parity` through `/api/v1/allai/state/{key}`, added 2026-09-28), Railway volumes (`/api/v1/internal/health/railway-volumes`), saved Gmail logins (`/api/v1/internal/health/gmail-logins`, added 2026-09-21), Postgres (`/api/v1/internal/health/postgres`), Redis (`/api/v1/internal/health/redis`), SSL certificates, the backend `/health` endpoint, and the Cloudflare worker. The workflow also fetches backup status and can run an auto-VACUUM on a bloat warning.
 - Owner: `vulcan`
-- Last verified: `2026-09-21`
+- Last verified: `2026-09-28`
 - Aliases: Daily Health Check, Health Check CRITICAL, health-check.yml, health_check.py, railway-volumes, volume capacity alert, backend issue 435
-- Error signatures: gmail_login_, saved Gmail login is not working, volume_unknown, Health Check CRITICAL, RAILWAY_API_TOKEN not set, Check crashed:
+- Error signatures: railway_alert_parity, key=infra:railway-alert-parity, gmail_login_, saved Gmail login is not working, volume_unknown, Health Check CRITICAL, RAILWAY_API_TOKEN not set, Check crashed:
 - Status: current
 
 ## Backup & Recovery — ai.market
@@ -742,7 +742,7 @@
 - Path: `issue-channel.md`
 - Purpose: The active Railway `issue-channel-watcher` service permits one replica. It reads GitHub, Railway, Cloudflare, and Council-provider consumption (DeepSeek balance; see Council provider consumption for limits), sanitizes provider data before persistence, stores canonical issues in the backend Postgres `issue_channel` schema, and publishes a safe snapshot. The snapshot is mirrored to `/Users/max/koskadeux-state/issue-channel/snapshot.json` for local operations and the open-items board.
 - Owner: `mars`
-- Last verified: `2026-09-21`
+- Last verified: `2026-09-28`
 - Aliases: infrastructure failure channel, CI health board, issue channel watcher, issue channel poller
 - Error signatures: observation_complete":false, Cannot redeploy yet, please wait for the original deployment to finish building, executor_busy_no_lease, malformed_output, expired_unleased, outcome_unknown, candidate_invalid, fallback_waiting_resolution, duplicate_cardinality, support_reconciliation_deadline, support_deadline_unavailable, apiTokens node incomplete, fresh healthy watcher mirror cycle unproved, attributable Infisical sync jobs unproved, Railway project, environment, or service discovery failed
 - Status: current
