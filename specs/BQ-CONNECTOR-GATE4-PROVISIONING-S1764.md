@@ -216,8 +216,10 @@ def closed_stage(label):
     for service in (BACK,AUTH,RES):
         values=rv(service)
         for name in FLAGS:
-            assert values.get(name)=='false', (service,name,'must be false')
-            print(label,service,name,'false')
+            # Backend main 673bba93 app/core/config.py:70-73 defaults unset to False.
+            is_closed=(name not in values or values[name]=='false') if service==BACK else values.get(name)=='false'
+            assert is_closed, (service,name,'must be closed')
+            print(label,service,name,'unset/default false' if service==BACK and name not in values else 'false')
     assert global_kill_disabled() is True
     print(label,'global connector switch','disabled')
 
@@ -232,7 +234,7 @@ def verify_upsert_shape():
     data=gql(q,{})
     fields={f['name'] for f in data['__type']['inputFields']}
     mutations={f['name']:f for f in data['__schema']['mutationType']['fields']}
-    assert {'projectId','environmentId','serviceId','variables','skipDeploys'} <= fields
+    assert fields=={'projectId','environmentId','serviceId','replace','skipDeploys','variables'}
     assert len(mutations['variableCollectionUpsert']['args'])==1
     assert mutations['variableCollectionUpsert']['args'][0]['name']=='input'
     assert mutations['variableCollectionUpsert']['args'][0]['type']['name']=='VariableCollectionUpsertInput' or mutations['variableCollectionUpsert']['args'][0]['type']['ofType']['name']=='VariableCollectionUpsertInput'
@@ -261,9 +263,107 @@ def put(service,items):
     return result
 ```
 
-**UNVERIFIED Railway schema:** `customer-mcp-connector.md:46` records `variableCollectionUpsert(skipDeploys:true)`; live introspection in `verify_upsert_shape()` must prove the current input and mutation argument before any `put()`. Abort on an unknown shape. Backend `app/agents/sysadmin/skills/railway_ops.py` instead demonstrates a deploy-triggering single `variableUpsert` followed by `serviceInstanceDeploy`; it is not the Step 2 mutation. The `deployment_ids()` and `global_kill_disabled()` bindings are mandatory, reviewed preconditions. Bind them in the same protected interpreter before running `closed_stage('preflight'); BASE_DEPLOYMENTS=deployment_snapshot(); assert verify_upsert_shape()`; do not begin §2.1 until these pass. For the Redis reference, also bind `raw_reference(service,name)` to the live-introspected GraphQL variable metadata readback before its `put()`, and refuse an unknown shape. Compare deployment IDs after every mutation, including sync operations. A value-bearing readback is never written to disk. For raw service-reference metadata and `variableDelete`, introspect their current Railway GraphQL shapes before use; their exact schema is **UNVERIFIED** by the supplied runbooks.
+**Railway schema:** Mars's read-only production introspection at 2026-09-29T23:45Z found `VariableCollectionUpsertInput` fields `environmentId`, `projectId`, `replace`, `serviceId`, `skipDeploys`, `variables`; `VariableDeleteInput` has only `environmentId`, `name`, `projectId`, `serviceId`, with no `skipDeploys`. Re-introspect at execution and abort on drift. `customer-mcp-connector.md:46` records `variableCollectionUpsert(skipDeploys:true)`. Backend `app/agents/sysadmin/skills/railway_ops.py` instead demonstrates a deploy-triggering single `variableUpsert` followed by `serviceInstanceDeploy`; neither that nor `variableDelete` is the Step 2 removal path. The `deployment_ids()` and `global_kill_disabled()` bindings are mandatory, reviewed preconditions. Bind them in the same protected interpreter before running `closed_stage('preflight'); BASE_DEPLOYMENTS=deployment_snapshot(); assert verify_upsert_shape()`; do not begin §2.1 until these pass. For the Redis reference and §2.4 replacement, bind `raw_reference(service,name)` to live-introspected GraphQL raw variable metadata; refuse an unknown shape or unreadable raw value. Compare deployment IDs after every mutation, including sync operations. A value-bearing readback is never written to disk.
 
-**No-deploy stop gate, forward and rollback.** Railway `skipDeploys:true` applies only to the verified collection upsert. `infisical-secrets.md` records that a `prod` secret write re-pushes syncs and redeploys the backend; S1753 records auth redeploys from sync creation and the signing-key write. Before the first production mutation, prove in a disposable nonproduction setup of the *same* native-sync and Railway versions that every planned secret/folder write and deletion, forced sync, resource-sync creation/disable/deletion, and Railway variable deletion (including all rollback deletions) leaves destination deployment IDs unchanged. Verify actual rollback input shapes and rehearse each deletion. Record before/after backend, auth, resource and watcher deployment IDs for every operation. If proof is missing for any operation, **stop before its first dependent production mutation**, or obtain a reviewed amendment moving that operation and its rollback to Step 5's restart window. A post-write ID check cannot substitute for this preflight. Do not label a sync-driven restart as `skipDeploys` compliant.
+**No-deploy stop gate, forward and rollback.** `infisical-secrets.md` records that a `prod` secret write re-pushes syncs and redeploys the backend; S1753 records auth redeploys from sync creation and the signing-key write. Railway has only `production` in the `ai-market` project, so use a separate Railway project for the proof. Before the first dependent production mutation, prove each Infisical operation class below against the same self-hosted Infisical instance, native Railway connection type and current API versions. A passing class has an unchanged destination deployment ID after its sync job settles. A class that restarts, lacks a verified operation shape or lacks a receipt moves **with its forward and rollback actions** to Step 5's restart window by reviewed amendment; stop before its first Step 2 production dependency. A post-write production ID check cannot replace this preflight or undo a restart. The Railway `replace:true, skipDeploys:true` removal in §2.4 is a separate proof on the disposable service and then a guarded production operation. No `variableDelete` is permitted in Step 2.
+
+Create a throwaway Railway project named `s1764-nodeploy-proof` with one trivial service from a pinned static image (for example `nginx:alpine` pinned by digest). Give it no database, Redis, shared network, production variable, domain or production resource reference. Record its project/environment/service IDs and image digest. In Infisical project `ai-market-backend` `bd272d48-c5a1-4b52-9d24-12066ae4403c`, use **staging** and create only `/s1764-proof`; never use root or `prod`. Create one native Railway sync from that exact folder to the disposable service, using the existing Railway connection type, `includeAllSubFolders:false`, `disableSecretDeletion:true`, and the same initial behavior/auto-sync settings planned for the resource sync. Capture the deployment ID immediately before the sync-create POST and after its first job settles; this is the `sync-create` proof row. Confirm the source path, environment, destination project/environment/service IDs and connection ID on readback. The existing production syncs must be unchanged. This setup touches no production resources; cost is only the short-lived throwaway Railway service and its sync jobs.
+
+Run the following sequence from the protected Python interpreter used above, with `P` unchanged and a separate staging API wrapper (`PE='staging'`, `PROOF_PATH='/s1764-proof'`) and disposable Railway IDs. Tokens are loaded from `~/.config/infisical/sysadmin-token` and ambient `RAILWAY_API_TOKEN` as above; refresh through `infisical-secrets.md`/`local-secops.md`. No token or secret value goes to argv, disk, output or a receipt. `proof_deployment_id()` is bound to the same reviewed Railway deployment-ID reader as `deployment_ids()` but scoped to the disposable service. `proof_sync(sync_id)` filters `GET /api/v1/secret-syncs?projectId=P` by the exact ID and asserts its staging source and disposable destination before each operation. `wait_job(sync_id,old_job)` polls until a new `lastSyncJobId` has `syncStatus` `success`/`succeeded`, or fails on error/timeout. `wait_proof_quiet(sync_id)` polls the inventory and deployment ID until no job is pending and both remain stable through the operator's bounded observation interval; it fails on an unknown status or timeout. `proof_variables_raw()` uses the live-introspected raw-reference readback described in §2.4; it refuses unresolved values. The Infisical UI may supply `disable_proof_sync()` only after the operator verifies its exact sync ID and reads back `isAutoSyncEnabled=false`; an unverified pause API shape is a refusal, not a pass.
+
+```python
+PE='staging'; PROOF_PATH='/s1764-proof'
+PROOF_NAME='s1764-nodeploy-proof'
+# Bind these IDs and four guarded readers to the throwaway resources, never RP/RE/RES.
+assert PROOF_PROJECT_ID!=RP and PROOF_ENV_ID!=RE
+assert PROOF_SERVICE_ID not in (BACK,RES,AUTH,WATCH)
+proof_api=api
+receipt=[]
+root=next(s for s in syncs() if s['name']=='railway-backend-prod')
+assert root['projectId']==P and root['connection']['app']=='railway'
+assert not any(s['name']==PROOF_NAME for s in syncs())
+before=proof_deployment_id()
+proof_api('POST','/api/v1/secret-syncs/railway',body={
+    'name':PROOF_NAME,'projectId':P,'connectionId':root['connectionId'],
+    'environment':PE,'secretPath':PROOF_PATH,'isAutoSyncEnabled':True,
+    'syncOptions':{'initialSyncBehavior':'overwrite-destination',
+                   'includeAllSubFolders':False,'disableSecretDeletion':True},
+    'destinationConfig':{'projectId':PROOF_PROJECT_ID,
+      'projectName':PROOF_PROJECT_NAME,'environmentId':PROOF_ENV_ID,
+      'environmentName':PROOF_ENV_NAME,'serviceId':PROOF_SERVICE_ID,
+      'serviceName':PROOF_SERVICE_NAME}})
+created=[s for s in syncs() if s['name']==PROOF_NAME]
+assert len(created)==1
+PROOF_SYNC_ID=created[0]['id']
+wait_job(PROOF_SYNC_ID,None)
+after=proof_deployment_id()
+receipt.append({'operation':'sync-create','before_deployment_id':before,
+                'after_deployment_id':after,'sync_id':PROOF_SYNC_ID,
+                'sync_job_id':proof_sync(PROOF_SYNC_ID).get('lastSyncJobId'),
+                'result':'PASS' if before==after else 'RESTART'})
+assert before==after, 'sync-create must move to Step 5'
+assert proof_sync(PROOF_SYNC_ID)['id']==PROOF_SYNC_ID
+assert proof_sync(PROOF_SYNC_ID)['folder']['path']==PROOF_PATH
+assert proof_sync(PROOF_SYNC_ID)['environment']['slug']==PE
+assert proof_sync(PROOF_SYNC_ID)['destinationConfig']['projectId']==PROOF_PROJECT_ID
+assert proof_sync(PROOF_SYNC_ID)['destinationConfig']['serviceId']==PROOF_SERVICE_ID
+def checked(label, operation, sync_id=PROOF_SYNC_ID, expect_job=True):
+    before=proof_deployment_id()
+    old_job=proof_sync(sync_id).get('lastSyncJobId')
+    operation()
+    if expect_job: wait_job(sync_id,old_job)
+    else: wait_proof_quiet(sync_id)
+    after=proof_deployment_id()
+    receipt.append({'operation':label,'before_deployment_id':before,
+                    'after_deployment_id':after,'sync_id':sync_id,
+                    'sync_job_id':proof_sync(sync_id).get('lastSyncJobId'),
+                    'result':'PASS' if before==after else 'RESTART'})
+    assert before==after, label+' must move to Step 5'
+
+# Baseline sync creation is measured against the service ID recorded just before
+# POST /api/v1/secret-syncs/railway; use the §2.2 payload with PE/PROOF_PATH and
+# disposable destination substituted. Do not count setup as proof of creation.
+checked('folder-write',lambda: proof_api('POST','/api/v2/folders',
+    body={'projectId':P,'environment':PE,'name':'child','path':PROOF_PATH}),expect_job=False)
+checked('folder-delete',delete_proof_child_folder,expect_job=False)
+checked('secret-write',lambda: proof_api('POST','/api/v4/secrets/S1764_PROOF',
+    body={'projectId':P,'environment':PE,'secretPath':PROOF_PATH,
+          'secretValue':secrets.token_urlsafe(32),'type':'shared',
+          'skipMultilineEncoding':True}))
+checked('forced-sync',lambda: proof_api('POST',
+    '/api/v1/secret-syncs/railway/'+PROOF_SYNC_ID+'/sync-secrets'))
+checked('secret-delete',lambda: proof_api('DELETE','/api/v4/secrets/S1764_PROOF',
+    body={'projectId':P,'environment':PE,'secretPath':PROOF_PATH,'type':'shared'}))
+# The initial sync-create row was captured at setup, before this block.
+checked('sync-disable',disable_proof_sync,PROOF_SYNC_ID,False)
+before=proof_deployment_id()
+delete_proof_sync()  # exact PROOF_SYNC_ID; assert absent in sync inventory
+wait_proof_service_quiet()  # no sync remains; watch the deployment ID
+after=proof_deployment_id()
+receipt.append({'operation':'sync-delete','before_deployment_id':before,
+                'after_deployment_id':after,'sync_id':PROOF_SYNC_ID,
+                'sync_job_id':None,'result':'PASS' if before==after else 'RESTART'})
+assert before==after, 'sync-delete must move to Step 5'
+
+# Rehearse the Railway removal with a disposable literal variable. The helper
+# reads EVERY raw variable first and must preserve every name/value except one.
+before=proof_deployment_id()
+raw=proof_variables_raw(PROOF_SERVICE_ID)
+assert 'S1764_PROOF_REMOVE' in raw
+expected={k:v for k,v in raw.items() if k!='S1764_PROOF_REMOVE'}
+gql('mutation($input:VariableCollectionUpsertInput!){variableCollectionUpsert(input:$input)}',
+    {'input':{'projectId':PROOF_PROJECT_ID,'environmentId':PROOF_ENV_ID,
+              'serviceId':PROOF_SERVICE_ID,'variables':expected,
+              'replace':True,'skipDeploys':True}})
+assert proof_variables_raw(PROOF_SERVICE_ID)==expected
+after=proof_deployment_id()
+receipt.append({'operation':'railway-collection-remove','before_deployment_id':before,
+                'after_deployment_id':after,'sync_id':None,'sync_job_id':None,
+                'result':'PASS' if before==after else 'RESTART'})
+assert before==after, 'Railway removal must move to Step 5'
+```
+
+Before executing the block, bind and review `delete_proof_child_folder()`, `disable_proof_sync()` and `delete_proof_sync()` to the current Infisical API or verified UI actions. The folder deletion and sync pause shapes are not established by this runbook; refuse them until their endpoint/field shape or UI readback is recorded. Create `S1764_PROOF_REMOVE` on the disposable service with `skipDeploys:true` before the Railway removal rehearsal and capture that setup mutation's deployment IDs too. For each sync mutation, inspect the sync inventory and any new job until settled even where `expect_job=False`; record a new job ID if one appeared. The `sync-create` before ID must be captured **before** the setup POST; missing that boundary is a failed proof. Assert the source folder is still isolated and no production sync ID/options changed. Also rehearse §2.4 with a raw `${{...}}` reference to a disposable service variable; if the reference cannot resolve without adding another service, mark reference preservation unproved and block any production removal that would retain a reference. Teardown in reverse order: disable/delete the proof sync, delete proof secrets and folder, then delete the throwaway Railway project; verify absence in both systems. Teardown may restart only the disposable service. Save a restricted, names/IDs-only `s1764-nodeploy-proof.json` receipt outside Git with `actor`, UTC time, Infisical host/project/environment/path, Railway project/environment/service/image IDs, API/schema versions, `operations` (the `receipt` rows above plus setup `sync-create`), teardown IDs/absence and the Step 2 or Step 5 disposition for each class. Never save raw API responses.
 
 ### 2.1 Restricted resource DSN and Redis
 
@@ -349,14 +449,14 @@ def reconcile_active_sync_values(after=False):
     assert backend.get('LISTING_LICENSES_ENABLED')=='true'
     assert backend.get('X402_ENABLED')=='false'
     assert backend.get('TERMS_1_1_EFFECTIVE_AT')
-    # backend config.py:945-949 refuses licensing without terms, or with X402.
+    # backend main 673bba93 app/core/config.py:990-994 enforces this trio.
 
 closed_stage('before-sync-work')
 assert deployment_snapshot()==BASE_DEPLOYMENTS
 reconcile_active_sync_values()  # before the FIRST Infisical write or forced sync
 ```
 
-The watcher readback has the same protected, shape-checked Railway CLI behavior as `rv()`; never print its raw output. The digest comparison must cover **every shared name/value for every active sync**. Output only names and `MATCH`/`MISMATCH`; a mismatch stops before writing or forcing. Reconcile under that sync's reviewed procedure, then repeat preflight. The backend licence/X402/terms pre-check is mandatory because `config.py:945-949` rejects their incompatible combination.
+The watcher readback has the same protected, shape-checked Railway CLI behavior as `rv()`; never print its raw output. The digest comparison must cover **every shared name/value for every active sync**. Output only names and `MATCH`/`MISMATCH`; a mismatch stops before writing or forcing. Reconcile under that sync's reviewed procedure, then repeat preflight. The backend licence/X402/terms pre-check is mandatory because backend main `673bba93` `app/core/config.py:990-994` rejects their incompatible combination.
 
 Use `POST /api/v2/folders` body `{'projectId':P,'environment':E,'name':'connector-resource','path':'/'}` only if absent. Reconcile values again, then write a disposable random value via `POST /api/v4/secrets/CONNECTOR_RESOURCE_CANARY_S1764`, body `{'projectId':P,'environment':E,'secretPath':'/connector-resource','secretValue':secrets.token_urlsafe(32),'skipMultilineEncoding':True,'type':'shared'}`. Do not print the value. After each mutation run `closed_stage()` and compare all four deployment IDs. Force **each** existing sync, one at a time, only after rerunning `reconcile_active_sync_values()`, with bodiless `POST /api/v1/secret-syncs/railway/<sync-id>/sync-secrets` (no `Content-Type`); poll `syncs()` until a new `lastSyncJobId` has `syncStatus` `success` or `succeeded`. Require the canary name absent from backend, auth, watcher and resource Railway variable names. After each force run `closed_stage()` and compare deployment IDs. A leaked name stops and triggers canary rollback. Save all three existing sync job IDs, versions and deployment IDs in the ticket. This proves non-recursion for the current shapes only.
 
@@ -387,9 +487,9 @@ Require `require_current_syncs(after=True)`, all four flag values and the global
 
 ### 2.3 Remaining variables and readback
 
-Before the first §2.3 write, read backend `LISTING_LICENSES_ENABLED`, `TERMS_1_1_EFFECTIVE_AT`, and `X402_ENABLED` as nonsecret effective values. Require exactly `true`, a nonempty effective terms value, and exactly `false`, respectively; this is `config.py:945-949`'s boot invariant. Record resource prior values for rollback. Set these three on **resource only, in one** `put(RES, {'LISTING_LICENSES_ENABLED':'true', 'TERMS_1_1_EFFECTIVE_AT':backend_terms, 'X402_ENABLED':'false'})` collection upsert with `skipDeploys:true`. `backend_terms=rv(BACK)['TERMS_1_1_EFFECTIVE_AT']` is read and held in the protected interpreter. Assert resource readback equals backend for all three nonsecret values, names absent from both connector Infisical folders, `closed_stage('after-licence-upsert')`, and unchanged deployment IDs. These three Step 2 settings satisfy Step 5's line-113 provisioning prerequisite; Step 5 still proves effective values after restart. Backend PR `build/connector-licence-fail-closed-s1764` makes connector listing visibility fail closed independently of this setting, subject to its own merge/deploy verification.
+Before the first §2.3 write, read backend `LISTING_LICENSES_ENABLED`, `TERMS_1_1_EFFECTIVE_AT`, and `X402_ENABLED` as nonsecret effective values. Require exactly `true`, a nonempty effective terms value, and exactly `false`, respectively; this is backend main `673bba93` `app/core/config.py:990-994`'s boot invariant. Record resource prior values for rollback. Set these three on **resource only, in one** `put(RES, {'LISTING_LICENSES_ENABLED':'true', 'TERMS_1_1_EFFECTIVE_AT':backend_terms, 'X402_ENABLED':'false'})` collection upsert with `skipDeploys:true`. `backend_terms=rv(BACK)['TERMS_1_1_EFFECTIVE_AT']` is read and held in the protected interpreter. Assert resource readback equals backend for all three nonsecret values, names absent from both connector Infisical folders, `closed_stage('after-licence-upsert')`, and unchanged deployment IDs. These three Step 2 settings satisfy Step 5's line-113 provisioning prerequisite; Step 5 still proves effective values after restart. Backend PR `build/connector-licence-fail-closed-s1764` makes connector listing visibility fail closed independently of this setting, subject to its own merge/deploy verification.
 
-With `put()` and `skipDeploys:true`, set resource `CONNECTOR_EXPECTED_PROCESSES=4` after verifying 2 replicas × `CONNECTOR_WORKERS=2`; set `CONNECTOR_AUTH_FAILURE_MAX_IPS=10000` (documented default, integer >=1), and `OTEL_SERVICE_NAME=ai-market-connector`. Read back existing resource `CONNECTOR_AUTH_ISSUER=https://auth.ai.market`, `CONNECTOR_AUDIENCE=https://connect.ai.market/mcp`, `CONNECTOR_JWKS_URL=https://auth.ai.market/.well-known/jwks.json`; repair any drift via `put()` and record it. On **each** of backend, auth and resource, set `CONNECTOR_EARLY_ACCESS_ENFORCED=true` and `CONNECTOR_EARLY_ACCESS_USER_IDS=''` with `put()`. Verify exact values on all three and record only the count `0` and a protected in-process comparison to the SHA-256 of the empty string. Empty plus enforcement true admits nobody. Step 6 supplies UUIDs identically to all three, restarts them and proves the negative paths. Recalculate expected processes after any resource scale change.
+With `put()` and `skipDeploys:true`, set resource `CONNECTOR_EXPECTED_PROCESSES=4` after verifying 2 replicas × `CONNECTOR_WORKERS=2`; set `CONNECTOR_AUTH_FAILURE_MAX_IPS=10000` (documented default, integer >=1), and `OTEL_SERVICE_NAME=ai-market-connector`. Read back existing resource `CONNECTOR_AUTH_ISSUER=https://auth.ai.market`, `CONNECTOR_AUDIENCE=https://connect.ai.market/mcp`, `CONNECTOR_JWKS_URL=https://auth.ai.market/.well-known/jwks.json`; repair any drift via `put()` and record it. On **each** of backend, auth and resource, set `CONNECTOR_EARLY_ACCESS_ENFORCED=true` and `CONNECTOR_EARLY_ACCESS_USER_IDS=''` with `put()`, but first capture exact prior names/values. If either backend name is absent, move its forward addition and rollback to Step 5's restart window; §2.4 forbids backend variable removal. Verify exact values on all three after the applicable window and record only the count `0` and a protected in-process comparison to the SHA-256 of the empty string. Empty plus enforcement true admits nobody. Step 6 supplies UUIDs identically to all three, restarts them and proves the negative paths. Recalculate expected processes after any resource scale change.
 
 Final names-only proof: `/connector-auth` has `SECRET_KEY` and `CONNECTOR_OAUTH_SIGNING_KEYS`, but no audit key or URLs; `/connector-resource` has `SECRET_KEY` and `CONNECTOR_AUDIT_HMAC_KEY`, but no signing key or URLs. Check backend has no new connector key names, auth lacks the resource audit key, and resource lacks signing keys. In protected memory compare `hashlib.sha256(source.encode()).digest()` with each destination secret, and prove the two `SECRET_KEY` digests differ; output only `MATCH`/`DIFFERENT`, no values or hashes. Check the existing public JWKS thumbprints against `customer-mcp-connector.md`. Run `closed_stage('final')`, compare the three licensing values with backend, check the global switch remains disabled, assert `require_current_syncs(after=True)`, and compare all deployment IDs with baseline. Any unexpected name, sync scope, value mismatch or restart fails Step 2. Runtime `/readyz` and dependency reachability are Step 5 proofs.
 
@@ -425,19 +525,50 @@ del srca,srcr,dst_a,dst_r
 
 ### 2.4 Per-action rollback
 
-Before **any** Step 2 production mutation, introspect the Railway `VariableDeleteInput` shape and complete §2.0's same-version nonproduction no-deploy proof for every required forward and rollback deletion. If `skipDeploys` is unavailable, obtain a reviewed safe alternative or stop before the dependent mutation. A deployment-ID comparison after deletion detects a violation but cannot undo it. With `disableSecretDeletion=true`, deleting an Infisical secret or sync does not delete its Railway copy: explicitly revoke both sides in the proven rollback window. Run `closed_stage()` and compare deployment IDs after each rollback action. Keep global switch/flags off throughout. If flags were later enabled, use the rollback map's global kill first.
+Before **any** Step 2 production mutation, complete §2.0's no-deploy proof for each dependent Infisical forward/rollback class and the Railway collection replacement. Mars's 2026-09-29T23:45Z read-only introspection proves `VariableDeleteInput` has no `skipDeploys`; `variableDelete` is prohibited for Step 2 even though `scripts/railway_watcher_credential/railway_watcher_credential.py` uses it elsewhere. With `disableSecretDeletion=true`, deleting an Infisical secret or sync leaves its Railway copy; remove those names explicitly only through the guarded collection replacement below. Keep global switch/flags off throughout; if flags were later enabled, use the rollback map's global kill first.
 
-The existing `scripts/railway_watcher_credential/railway_watcher_credential.py` uses `gql('mutation($input:VariableDeleteInput!){variableDelete(input:$input)}', {'input':{'projectId':RP,'environmentId':RE,'serviceId':RES,'name':'<target-name>'}})` for a single name. Use the same call for the table's exact target service/name after introspection and the no-deploy rehearsal; the cited script does **not** show `skipDeploys`. Infisical secret deletion is `api('DELETE','/api/v4/secrets/'+name,body={'projectId':P,'environment':E,'secretPath':path,'type':'shared'})`. Sync deletion is `api('DELETE','/api/v1/secret-syncs/railway/'+resource_sync_id)` only after proving the ID belongs to `railway-connector-resource-prod`. **UNVERIFIED disable endpoint:** the source scripts show sync create/delete but no reviewed pause mutation; use the Infisical UI to switch off auto-sync and read it back before deletion, or stop for a reviewed API shape. These calls remove only the named resource objects; never target the root or auth sync.
+For a removal, fetch the **entire current service variable name set** through `rv(service)` in the protected interpreter. Fetch each name's raw value through the live-introspected Railway metadata readback `raw_reference(service,name)`; this must return the literal value or the unchanged raw `${{...}}` reference, never a resolved reference value. Assert the raw metadata names equal `rv(service).keys()`, and refuse if any raw value is missing, unreadable or of unknown shape. Re-read immediately before mutation; refuse concurrent name/value drift. Form `variables` as exactly that protected-memory mapping minus the named removals (or with exact prior values restored for a mixed rollback). Apply one `variableCollectionUpsert` with `replace:true, skipDeploys:true`, then assert readback names equal the expected set, retained raw references equal their originals, retained literal values match in protected memory, and **all four** production deployment IDs equal the baseline. Do not log values. This operation is permitted only for `ai-market-connector` (`RES`) and `ai-market-connector-auth` (`AUTH`), never `ai-market-backend` (`BACK`) or `issue-channel-watcher` (`WATCH`). A backend-only new variable requiring deletion moves with its dependent forward action to Step 5's restart window; do not extend this helper's allow-list.
+
+```python
+def remove_or_restore_connector_vars(service,remove=(),restore=None):
+    assert service in (RES,AUTH)  # never BACK or WATCH
+    remove=set(remove); restore={} if restore is None else dict(restore)
+    assert remove.isdisjoint(restore)
+    assert verify_upsert_shape() and closed_stage('before-collection-replace') is None
+    assert deployment_snapshot()==BASE_DEPLOYMENTS
+    effective=rv(service)                 # values stay in protected memory
+    names=set(effective)
+    assert remove <= names
+    raw={name:raw_reference(service,name) for name in names}
+    assert set(raw)==names and all(isinstance(v,str) for v in raw.values())
+    # The raw reader must distinguish a literal from a Railway reference.
+    # In particular, never replace a ${{...}} value with rv()'s expansion.
+    assert all(not v.startswith('${{') or v.endswith('}}') for v in raw.values())
+    expected={k:v for k,v in raw.items() if k not in remove}
+    expected.update(restore)
+    assert set(rv(service))==names
+    assert {k:raw_reference(service,k) for k in names}==raw
+    gql('mutation($input:VariableCollectionUpsertInput!){variableCollectionUpsert(input:$input)}',
+        {'input':{'projectId':RP,'environmentId':RE,'serviceId':service,
+                  'variables':expected,'replace':True,'skipDeploys':True}})
+    assert set(rv(service))==set(expected)
+    assert {k:raw_reference(service,k) for k in expected}==expected
+    assert deployment_snapshot()==BASE_DEPLOYMENTS
+    closed_stage('after-collection-replace')
+    print(service,sorted(remove),'removed; retained names verified; deployments unchanged')
+```
+
+The helper's live metadata binding and a disposable rehearsal are prerequisites. A Railway reference's raw syntax and target must be validated before the call; the `endswith` check alone is not sufficient. Infisical secret deletion is `api('DELETE','/api/v4/secrets/'+name,body={'projectId':P,'environment':E,'secretPath':path,'type':'shared'})`. Sync deletion is `api('DELETE','/api/v1/secret-syncs/railway/'+resource_sync_id)` only after proving the ID belongs to `railway-connector-resource-prod`. For sync disable, use only the reviewed API shape or Infisical UI to switch off auto-sync and read it back before deletion. These calls remove only the named resource objects; never target the root or auth sync. After each rollback action run `closed_stage()` and compare all deployment IDs. If any required operation class lacks a passing §2.0 receipt, move the whole dependent action and rollback to Step 5 before Step 2 mutates production.
 
 | Action | Immediate rollback and proof |
 | --- | --- |
-| Restricted DSN | Delete resource `DATABASE_URL` only; names-only absence and unchanged deployment ID. Step 1 role `NOLOGIN` and grant revocation are a separate, global-kill-first rollback. |
-| Redis reference | Delete resource `REDIS_URL` only; names-only absence, backend/auth unchanged. |
+| Restricted DSN | `remove_or_restore_connector_vars(RES,{'DATABASE_URL'})`; names-only absence and unchanged deployment IDs. Step 1 role `NOLOGIN` and grant revocation are a separate, global-kill-first rollback. |
+| Redis reference | `remove_or_restore_connector_vars(RES,{'REDIS_URL'})`; names-only absence, backend/auth unchanged. |
 | Folder/canary | Remove the source canary before resource-sync creation; prove name absent everywhere, with no Railway canary deletion. If it leaked into an existing destination, stop and use a separately reviewed no-deploy deletion route. Leave an empty folder if deleting it would alter sync scope. |
 | New resource sync | Disable only `railway-connector-resource-prod`, then delete its ID if the reviewed API permits; prove root/auth sync IDs, options and destinations unchanged. Separately delete already-synced resource variables. |
-| New auth `SECRET_KEY` | Delete/revoke that new source name and explicitly delete its auth Railway variable; prove signing keyset fingerprint and auth sync unchanged. If already consumed, coordinate safe replacement/redeploy with flags off. |
-| Resource `SECRET_KEY` or audit HMAC | Revoke the affected source name and explicitly delete its resource Railway variable; prove absence everywhere else. Preserve audit rows. |
-| Resource licensing trio | Restore the exact prior `LISTING_LICENSES_ENABLED`, `TERMS_1_1_EFFECTIVE_AT` and `X402_ENABLED` values together in one `skipDeploys:true` collection upsert; if a name was previously absent, use only the pre-proven deletion route. Read back nonsecret values, check backend remains `true`/effective terms/`false`, flags and global switch off, and deployment IDs unchanged. Do not leave a partial incompatible trio. |
-| Nonsecret settings and early-access env | Restore the exact prior value on the same service with `skipDeploys:true`, or delete a new name with verified input. Keep enforcement true with empty list on all three until Step 6; global kill first if rollback could weaken admission. |
+| New auth `SECRET_KEY` | Delete/revoke that new source name, then `remove_or_restore_connector_vars(AUTH,{'SECRET_KEY'})`; prove signing keyset fingerprint and auth sync unchanged. If already consumed, coordinate safe replacement/redeploy with flags off. |
+| Resource `SECRET_KEY` or audit HMAC | Revoke the affected source name, then use `remove_or_restore_connector_vars(RES,{name})`; prove absence everywhere else. Preserve audit rows. |
+| Resource licensing trio | Restore the exact prior `LISTING_LICENSES_ENABLED`, `TERMS_1_1_EFFECTIVE_AT` and `X402_ENABLED` state together with one `remove_or_restore_connector_vars(RES, absent_names, prior_present_values)` call. Read back nonsecret values and exact names, check backend remains `true`/effective terms/`false`, flags and global switch off, and deployment IDs unchanged. Do not leave a partial incompatible trio. |
+| Nonsecret settings and early-access env | On resource/auth, restore prior values or remove new names with the guarded collection replacement. Backend names must remain present and closed; any backend deletion is deferred with its dependent forward action to Step 5. Keep enforcement true with empty list on all three until Step 6; global kill first if rollback could weaken admission. |
 
 After rollback repeat names-only inventories, retained-secret in-process comparisons, sync-scope checks and deployment-ID comparison. An incomplete cleanup is an open blocker, not a Step 2 receipt. Never delete the existing signing keyset.
