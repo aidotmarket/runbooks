@@ -137,3 +137,178 @@ Every mutation below gets its own timestamped ticket receipt: before/after **nam
 | Image/config | Redeploy prior exact resource/auth SHA and restore prior Railway config and `healthcheckPath` only after flags/global off | health, key-name isolation and disabled response |
 
 Update `customer-mcp-connector.md` and `infisical-secrets.md` after actual execution with role/ACL proof, edge CIDR and hop, sync IDs, alert rule and issue-channel test, readiness, allowlist enforcement SHA, switch/flag order, reviewer fixture IDs (private receipt), kill/revoke timing and current directory status. Log Event Ledger entries for preflight decision, each provisioning stage, failed/retried step, enable, rollback drill, Max approvals and submission; link them and the change ticket in the runbook. A draft PR for this **plan** is not an enable receipt.
+
+## Gate 4 STEP 2 operator procedure — secrets and variables (S1764)
+
+**Procedure only, not an execution receipt.** Step 1 completed 2026-09-29 (Event `2c4998ed`): `connector_runtime` exists; its password lives only in the Titan-1 macOS keychain (`keyring`, service `ai-market-connector-runtime-db`, account `connector_runtime`). Recheck Step 1's privilege evidence before provisioning. Keep the global connector switch and all four connector flags off. Use the S1764 ticket and the rollback map above. Record actor, timestamp, before/after *names or IDs only*, sync job IDs, deployment IDs and an immediate rollback for each mutation. Disable tracing (`set +x`), set `umask 077`, and suppress HTTP error bodies and debug logging. Never put a DSN, token, key or password in argv, a shell trace, a log, Git, or a receipt.
+
+### 2.0 Preflight and API session
+
+Re-read `customer-mcp-connector.md` (environment table, Signing keyset DONE, and `railway-connector-auth-prod`) and `infisical-secrets.md`. Verify live Railway project `ai-market` `e81dd66f-808c-412e-b32c-f6d910f0ac5d`, production environment `23e322c3-b195-45d8-9151-c4c27a998c33`, and services: backend `4a68ea36-41de-4300-9bab-48e506b0dba6`, resource `a08ef347-d2d1-4fcb-ba50-9299a9484fd5`, auth `5ee110fc-df73-4107-b8fd-469099cb64d2`. Infisical project is `ai-market-backend` `bd272d48-c5a1-4b52-9d24-12066ae4403c`, env `prod`, API `https://secrets.ai.market`. Refuse a mismatch or `/Users/max/local-secops/HALT`. From the linked Railway operator directory, `rtk railway status --json` must show those IDs; Railway CLI 4.30.3 has no project selector for `status`. `rtk railway variables --service <service-id> --environment <environment-id> --json` is a read only, value-bearing command: capture and parse its stdout inside the protected Python process, never print it.
+
+Refresh Infisical's short-lived Universal Auth JWT using `rtk proxy ~/bin/infisical_auth_refresh.sh >/dev/null 2>&1`; source `~/bin/railway-env.sh` with output suppressed, then `unset RAILWAY_TOKEN`. Load `~/.config/infisical/sysadmin-token` and ambient `RAILWAY_API_TOKEN` in the protected Python process, not on a command line. The following snippets use one protected interpreter session; no helper file is installed. They reuse `koskadeux-mcp/scripts/connector_keyset/connector_signing_keyset.py`'s `Client.request`, secret list, sync inventory and payload shapes. Turn off urllib/requests debugging, catch failures without printing response bodies, and never print `values()`, `rv()`, `gql()` or their raw results.
+
+```python
+import hashlib, json, os, secrets, subprocess, urllib.parse, urllib.request
+from pathlib import Path
+P='bd272d48-c5a1-4b52-9d24-12066ae4403c'; E='prod'
+RP='e81dd66f-808c-412e-b32c-f6d910f0ac5d'
+RE='23e322c3-b195-45d8-9151-c4c27a998c33'
+BACK='4a68ea36-41de-4300-9bab-48e506b0dba6'
+RES='a08ef347-d2d1-4fcb-ba50-9299a9484fd5'
+AUTH='5ee110fc-df73-4107-b8fd-469099cb64d2'
+assert not Path('/Users/max/local-secops/HALT').exists()
+IT=Path.home().joinpath('.config/infisical/sysadmin-token').read_text().strip()
+RT=os.environ['RAILWAY_API_TOKEN']; assert IT and RT
+
+def api(method,path,query=None,body=None):
+    url='https://secrets.ai.market'+path
+    if query: url+='?'+urllib.parse.urlencode(query)
+    req=urllib.request.Request(url,method=method,
+      data=None if body is None else json.dumps(body,separators=(',',':')).encode(),
+      headers={'Authorization':'Bearer '+IT,'User-Agent':'connector-step2/1.0',
+               **({'Content-Type':'application/json'} if body is not None else {})})
+    with urllib.request.urlopen(req,timeout=30) as response: return json.load(response)
+
+def gql(query,variables):
+    req=urllib.request.Request('https://backboard.railway.app/graphql/v2',
+      data=json.dumps({'query':query,'variables':variables},separators=(',',':')).encode(),
+      headers={'Authorization':'Bearer '+RT,'Content-Type':'application/json',
+               'User-Agent':'Mozilla/5.0 (S1764 operator)'})
+    with urllib.request.urlopen(req,timeout=30) as response: result=json.load(response)
+    if result.get('errors'): raise RuntimeError('Railway GraphQL error; body suppressed')
+    return result['data']
+
+def folder(path,show_values=False):
+    rows=api('GET','/api/v4/secrets',{'projectId':P,'environment':E,
+      'secretPath':path,'viewSecretValue':str(show_values).lower(),
+      'recursive':'false','includeImports':'false',
+      'expandSecretReferences':'false'})['secrets']
+    assert all(r.get('type')=='shared' for r in rows)
+    out={r['secretKey']:(r['secretValue'] if show_values else None) for r in rows}
+    assert len(out)==len(rows)
+    return out
+
+def syncs(): return api('GET','/api/v1/secret-syncs',{'projectId':P})['secretSyncs']
+
+def rv(service):
+    assert service in (BACK,RES,AUTH)
+    p=subprocess.run(['/opt/homebrew/bin/railway','variables','--service',service,
+      '--environment',RE,'--json'],capture_output=True,text=True,check=True,
+      cwd='/Users/max/Projects/ai-market/ai-market-backend')
+    return json.loads(p.stdout)  # value-bearing; never print
+
+def put(service,items):
+    assert service in (BACK,RES,AUTH)
+    q='mutation($input:VariableCollectionUpsertInput!){variableCollectionUpsert(input:$input)}'
+    return gql(q,{'input':{'projectId':RP,'environmentId':RE,'serviceId':service,
+                           'variables':items,'skipDeploys':True}})
+```
+
+**UNVERIFIED Railway schema:** The runbooks confirm `variableCollectionUpsert(skipDeploys:true)` but do not preserve the full current `VariableCollectionUpsertInput` signature. Before the first write, introspect `__type(name:"VariableCollectionUpsertInput")` and the mutation arguments (names/types only); compare them with `put()` and adjust only the input envelope if necessary. The existing backend `app/agents/sysadmin/skills/railway_ops.py` is a second local example. Abort on an unknown shape. After every `put()`, assert the target value equals `rv(service)[name]` *in process*, print only `service-id name MATCH`, and verify deployment IDs did not change. A value-bearing readback is never written to disk. For raw service-reference metadata and `variableDelete`, introspect their current Railway GraphQL shapes before use; their exact schema is **UNVERIFIED** by the supplied runbooks.
+
+**Native sync restart stop gate.** Railway `skipDeploys:true` applies to GraphQL variable mutations. `infisical-secrets.md` records that a `prod` secret write re-pushes syncs and redeploys the backend; S1753 records auth redeploys from sync creation and the signing-key write. No source proves native sync can stage changes without restarting. Before any Infisical write or forced sync, prove in a disposable nonproduction setup of the same native-sync version that these operations preserve destination deployment IDs, or obtain a reviewed amendment that moves those writes to Step 5. If neither is available, **stop Step 2 here**. Do not label a sync-driven restart as `skipDeploys` compliant. The canary forced sync can itself restart backend/auth.
+
+### 2.1 Restricted resource DSN and Redis
+
+Read the owner `AUTHOR_DISPATCH_DATABASE_URL` from Infisical root in the *same protected process* using `folder('/',True)` (the `schema-migration.md` §S.7a credential source). Parse only its host, port, database path and TLS query; get the Step 1 password through Python `keyring`. Refuse missing password, malformed URI, an unverified database/host, or a URL that does not decode to user `connector_runtime`. Never use the owner username/password in the result. The owner DSN, derived DSN and Railway request exist only in memory; no shell substitution, SQL literal, CLI `--set` or secret in argv.
+
+```python
+import keyring
+from urllib.parse import urlsplit,urlunsplit,quote
+owner=folder('/',True)['AUTHOR_DISPATCH_DATABASE_URL']
+u=urlsplit(owner); pw=keyring.get_password('ai-market-connector-runtime-db','connector_runtime')
+assert u.scheme in ('postgres','postgresql') and u.hostname and u.path not in ('','/') and pw
+host=u.hostname if ':' not in u.hostname else '['+u.hostname+']'
+netloc='connector_runtime:'+quote(pw,safe='')+'@'+host
+if u.port: netloc+=':'+str(u.port)
+dsn=urlunsplit((u.scheme,netloc,u.path,u.query,''))
+assert urlsplit(dsn).username=='connector_runtime'
+del owner,pw
+assert 'DATABASE_URL' not in rv(RES)  # if present, investigate; do not overwrite
+put(RES,{'DATABASE_URL':dsn})
+assert rv(RES).get('DATABASE_URL')==dsn
+print(RES,'DATABASE_URL MATCH')
+del dsn,u,netloc
+```
+
+Inspect the live production Redis service name, ID and `REDIS_URL` in Railway before setting the reference. **UNVERIFIED:** these runbooks do not prove that the service is literally `Redis`, or that another service currently uses `${{Redis.REDIS_URL}}`. If the live service name and reference form match, call `put(RES,{'REDIS_URL':'${{Redis.REDIS_URL}}'})`; otherwise substitute the verified service name in Railway's reference syntax. Read back the raw reference through Railway GraphQL variable metadata or UI, check the effective `REDIS_URL` is present in `rv(RES)` without printing it, and confirm this action did not add the name to auth/backend. `/readyz` reachability is proved after the Step 5 restart, not by this readback. Neither URL belongs in Infisical.
+
+### 2.2 Canary, distinct secrets and resource sync
+
+Capture names from `folder('/')`, `folder('/connector-auth')`, `folder('/connector-resource')` if present, `rv()` for all three services, and `syncs()`. Require the auth folder already contains `CONNECTOR_OAUTH_SIGNING_KEYS`, no new `SECRET_KEY`, and the resource folder is absent or empty; investigate any drift before writing. Require neither connector folder has `DATABASE_URL` or `REDIS_URL`. Verify root `railway-backend-prod` and `railway-connector-auth-prod` paths, connection ID, auto-sync, `disableSecretDeletion`, destination IDs and non-recursion against `connector_signing_keyset.py` `require_syncs()`; do not call its `generate` or `create-sync` because the signing keyset and auth sync already exist.
+
+Use `POST /api/v2/folders` body `{'projectId':P,'environment':E,'name':'connector-resource','path':'/'}` only if absent. Write a disposable random value via `POST /api/v4/secrets/CONNECTOR_RESOURCE_CANARY_S1764`, body `{'projectId':P,'environment':E,'secretPath':'/connector-resource','secretValue':secrets.token_urlsafe(32),'skipMultilineEncoding':True,'type':'shared'}`. Do not print the value. Force **each** existing sync, one at a time, with bodiless `POST /api/v1/secret-syncs/railway/<sync-id>/sync-secrets` (no `Content-Type`); poll `syncs()` until a new `lastSyncJobId` has `syncStatus` `success` or `succeeded`. Require the canary name absent from `rv(BACK)`, `rv(AUTH)` and `rv(RES)`. A leaked name stops the procedure and triggers the canary rollback. Save the root/auth sync job IDs, versions and service deployment IDs in the ticket. This is the disposable non-recursion proof for the *current* shapes, not a permanent assertion about future sync versions.
+
+Then create the resource native sync using the exact `connector_signing_keyset.py` payload pattern and the verified root `connectionId`:
+
+```python
+root=next(r for r in syncs() if r['name']=='railway-backend-prod')
+payload={'name':'railway-connector-resource-prod','projectId':P,
+ 'connectionId':root['connectionId'],'environment':E,'secretPath':'/connector-resource',
+ 'isAutoSyncEnabled':True,
+ 'syncOptions':{'initialSyncBehavior':'overwrite-destination',
+                'includeAllSubFolders':False,'disableSecretDeletion':True},
+ 'destinationConfig':{'projectId':RP,'projectName':'ai-market',
+   'environmentId':RE,'environmentName':'production',
+   'serviceId':RES,'serviceName':'ai-market-connector'}}
+api('POST','/api/v1/secret-syncs/railway',body=payload)
+```
+
+Read back sync ID, source path/env, connection, target ID, auto-sync and options. If readback omits `includeAllSubFolders`, accept only this exact pinned shape plus the just-completed canary proof; unknown/enabled recursion stops. Wait for the new sync job and require the canary on resource **only**. Generate three independent `secrets.token_urlsafe(48)` values in process; write `SECRET_KEY` to `/connector-auth`, a different `SECRET_KEY` and `CONNECTOR_AUDIT_HMAC_KEY` to `/connector-resource`, each by `POST /api/v4/secrets/<name>` with `projectId`, `environment`, exact `secretPath`, `secretValue`, `skipMultilineEncoding=True`, `type='shared'`. Write one at a time, wait for the corresponding sync job to succeed, check names/fingerprints, and receipt each separately. Never change `CONNECTOR_OAUTH_SIGNING_KEYS` or its auth sync. Do not create a root sync or use local-secops' generic executor for `/connector-auth`.
+
+Remove the canary with `DELETE /api/v4/secrets/CONNECTOR_RESOURCE_CANARY_S1764`, body `{'projectId':P,'environment':E,'secretPath':'/connector-resource','type':'shared'}`. Since deletion is disabled for the sync, also delete the resource Railway canary variable by `variableDelete(input:$input)` with its introspected input shape, or `rtk railway variable delete CONNECTOR_RESOURCE_CANARY_S1764 --service <resource-id> --environment <environment-id> --json` (argv contains only the disposable name). Require source and all three Railway services to lack the name. Do not leave the canary as a permanent variable.
+
+### 2.3 Remaining variables and readback
+
+With `put()` and `skipDeploys:true`, set resource `CONNECTOR_EXPECTED_PROCESSES=4` after verifying 2 replicas × `CONNECTOR_WORKERS=2`; set `CONNECTOR_AUTH_FAILURE_MAX_IPS=10000` (documented default, integer >=1), and `OTEL_SERVICE_NAME=ai-market-connector`. Read back existing resource `CONNECTOR_AUTH_ISSUER=https://auth.ai.market`, `CONNECTOR_AUDIENCE=https://connect.ai.market/mcp`, `CONNECTOR_JWKS_URL=https://auth.ai.market/.well-known/jwks.json`; repair any drift via `put()` and record it. On **each** of backend, auth and resource, set `CONNECTOR_EARLY_ACCESS_ENFORCED=true` and `CONNECTOR_EARLY_ACCESS_USER_IDS=''` with `put()`. Verify exact values on all three and record only the count `0` and a protected in-process comparison to the SHA-256 of the empty string. Empty plus enforcement true admits nobody. Step 6 supplies UUIDs identically to all three, restarts them and proves the negative paths. Recalculate expected processes after any resource scale change.
+
+Final names-only proof: `/connector-auth` has `SECRET_KEY` and `CONNECTOR_OAUTH_SIGNING_KEYS`, but no audit key or URLs; `/connector-resource` has `SECRET_KEY` and `CONNECTOR_AUDIT_HMAC_KEY`, but no signing key or URLs. Check backend has no new connector key names, auth lacks the resource audit key, and resource lacks signing keys. In protected memory compare `hashlib.sha256(source.encode()).digest()` with each destination secret, and prove the two `SECRET_KEY` digests differ; output only `MATCH`/`DIFFERENT`, no values or hashes. Check the existing public JWKS thumbprints against `customer-mcp-connector.md`. Compare source/root names and all deployment IDs with baseline. Any unexpected name, sync scope, value mismatch or restart fails Step 2. Runtime `/readyz` and dependency reachability are Step 5 proofs.
+
+Independently export **key names only** from each connector path, following `infisical-secrets.md`'s JSON-array rule. Run the Infisical CLI as a Python subprocess with `INFISICAL_TOKEN` in its environment (never `--token`), `--domain=https://secrets.ai.market`, `--projectId=P`, `--env=prod`, `--path=/connector-auth` or `/connector-resource`, `--format=json`, `--silent`; capture stdout in memory and emit only `sorted(r['key'] for r in json.loads(stdout))`. Assert neither set contains `DATABASE_URL` or `REDIS_URL`. Do not redirect raw JSON to a file or paste it into a ticket. Compare those names with the API names and destination names. In that same protected process, apply the following exact checks without printing values:
+
+```python
+def exported_names(path):
+    env={**os.environ,'INFISICAL_TOKEN':IT,'INFISICAL_API_URL':'https://secrets.ai.market'}
+    p=subprocess.run(['/opt/homebrew/bin/infisical','export','--domain=https://secrets.ai.market',
+      '--projectId='+P,'--env=prod','--path='+path,'--format=json','--silent'],
+      env=env,capture_output=True,text=True,check=True)
+    rows=json.loads(p.stdout)
+    assert isinstance(rows,list)
+    return {r['key'] for r in rows}
+for path in ('/connector-auth','/connector-resource'):
+    keys=exported_names(path)
+    assert keys==set(folder(path)) and not keys.intersection({'DATABASE_URL','REDIS_URL'})
+    print(path,sorted(keys))
+srca=folder('/connector-auth',True); srcr=folder('/connector-resource',True)
+dst_a=rv(AUTH); dst_r=rv(RES)
+for k in ('SECRET_KEY','CONNECTOR_OAUTH_SIGNING_KEYS'):
+    assert hashlib.sha256(srca[k].encode()).digest()==hashlib.sha256(dst_a[k].encode()).digest()
+    print(AUTH,k,'MATCH')
+for k in ('SECRET_KEY','CONNECTOR_AUDIT_HMAC_KEY'):
+    assert hashlib.sha256(srcr[k].encode()).digest()==hashlib.sha256(dst_r[k].encode()).digest()
+    print(RES,k,'MATCH')
+assert hashlib.sha256(srca['SECRET_KEY'].encode()).digest()!=hashlib.sha256(srcr['SECRET_KEY'].encode()).digest()
+print('SECRET_KEY','DIFFERENT')
+assert 'CONNECTOR_OAUTH_SIGNING_KEYS' not in dst_r
+assert 'CONNECTOR_AUDIT_HMAC_KEY' not in dst_a
+del srca,srcr,dst_a,dst_r
+```
+
+### 2.4 Per-action rollback
+
+Before deletion, introspect the Railway `VariableDeleteInput` shape; if it lacks `skipDeploys`, the no-restart property of deletion is **UNVERIFIED** and requires a reviewed timing decision. With `disableSecretDeletion=true`, deleting an Infisical secret or sync does not delete its Railway copy: explicitly revoke both sides. Keep global switch/flags off throughout. If flags were later enabled, use the rollback map's global kill first.
+
+The existing `scripts/railway_watcher_credential/railway_watcher_credential.py` uses `gql('mutation($input:VariableDeleteInput!){variableDelete(input:$input)}', {'input':{'projectId':RP,'environmentId':RE,'serviceId':RES,'name':'CONNECTOR_RESOURCE_CANARY_S1764'}})` for a single name. Use the same call for the table's target service/name after introspection; it does **not** show `skipDeploys`, so treat a deletion-triggered deployment as possible. Infisical secret deletion is `api('DELETE','/api/v4/secrets/'+name,body={'projectId':P,'environment':E,'secretPath':path,'type':'shared'})`. Sync deletion is `api('DELETE','/api/v1/secret-syncs/railway/'+resource_sync_id)` only after proving the ID belongs to `railway-connector-resource-prod`. **UNVERIFIED disable endpoint:** the source scripts show sync create/delete but no reviewed pause mutation; use the Infisical UI to switch off auto-sync and read it back before deletion, or stop for a reviewed API shape. These calls remove only the named resource objects; never target the root or auth sync.
+
+| Action | Immediate rollback and proof |
+| --- | --- |
+| Restricted DSN | Delete resource `DATABASE_URL` only; names-only absence and unchanged deployment ID. Step 1 role `NOLOGIN` and grant revocation are a separate, global-kill-first rollback. |
+| Redis reference | Delete resource `REDIS_URL` only; names-only absence, backend/auth unchanged. |
+| Folder/canary | Delete source canary and any leaked Railway canary explicitly; prove name absent everywhere. Leave an empty folder if deleting it would alter sync scope. |
+| New resource sync | Disable only `railway-connector-resource-prod`, then delete its ID if the reviewed API permits; prove root/auth sync IDs, options and destinations unchanged. Separately delete already-synced resource variables. |
+| New auth `SECRET_KEY` | Delete/revoke that new source name and explicitly delete its auth Railway variable; prove signing keyset fingerprint and auth sync unchanged. If already consumed, coordinate safe replacement/redeploy with flags off. |
+| Resource `SECRET_KEY` or audit HMAC | Revoke the affected source name and explicitly delete its resource Railway variable; prove absence everywhere else. Preserve audit rows. |
+| Nonsecret settings and early-access env | Restore the exact prior value on the same service with `skipDeploys:true`, or delete a new name with verified input. Keep enforcement true with empty list on all three until Step 6; global kill first if rollback could weaken admission. |
+
+After rollback repeat names-only inventories, retained-secret in-process comparisons, sync-scope checks and deployment-ID comparison. An incomplete cleanup is an open blocker, not a Step 2 receipt. Never delete the existing signing keyset.
