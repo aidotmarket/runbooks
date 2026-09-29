@@ -184,7 +184,7 @@
 - Path: `runbooks/alerts-at-open.md`
 - Purpose: Two rules hold this together and both are load-bearing:
 - Owner: `mars`
-- Last verified: `2026-08-30`
+- Last verified: `2026-09-29`
 - Aliases: open items alerts, session open tally, ops build queue alerts
 - Error signatures: alerts unavailable
 - Status: current
