@@ -1,7 +1,7 @@
 ---
 title: allAI — Agent Intelligence Layer
 owner: unassigned
-last_verified: '2026-09-21'
+last_verified: '2026-09-29'
 aliases: []
 error_signatures: ["unexpected keyword argument 'event_bus'", "Admin access required", "AgentHost: Failed to start"]
 ---
@@ -94,10 +94,29 @@ Agent health visible at `ops.ai.market/agents`. Three data sources merged:
 | allAI Host | `GET /api/v1/allai/agents/status` | Runtime: subscriptions, event counts |
 | Health | `GET /api/v1/internal/agent-health` | Metrics, validation failures, policies |
 
+## Model provider switch (Anthropic → OpenAI Luna, S1761)
+
+Since 2026-09-29 00:44Z, every backend `claude-*` model request goes to OpenAI **`gpt-5.6-luna`**. This covers allAI chat, anonymous chat, agents, classifiers, listing enhancement and the allie proxy. Embeddings and Vertex Gemini calls are unchanged.
+
+- **Why.** Max decided this in Events f78d7174 and d1931b72: run on Luna through the OpenAI API, billed to the business key, not through his ChatGPT sign-in, because OpenAI's terms forbid making a personal account available to others. Max also disabled the Anthropic API key (incident 22db56a3: every LLM call returned 401 from 23:56Z until the switch went live at 00:44Z).
+- **Switch.** Railway-only variable `LLM_ANTHROPIC_REPLACEMENT_MODEL=gpt-5.6-luna` on `ai-market-backend` production (not in Infisical). It is read by `resolve_model()` in `app/core/llm.py`. The key is `OPENAI_API_KEY` in Infisical `ai-market-backend`/`prod`, a project-scoped `sk-proj` key.
+- **Code.** Backend PR #529 (`6a48fb59`, adapter), PR #530 (`286c9af6`, `max_output_tokens` minimum of 16) and PR #531 (`a6010def`, `reasoning.effort=none`).
+- **Revert.** Unset the variable and redeploy. This restores the Anthropic path only if the Anthropic key is re-enabled, so without that it still returns 401.
+- **Verify.**
+  - Logs show `llm_call provider=openai model=gpt-5.6-luna` and `llm_usage provider=openai`.
+  - `corpus_safety_classifier` logs `verdict=YES|NO`, not `UNAVAILABLE`.
+  - `POST /api/allai/support/anonymous/message` returns `outcome=answer`.
+- **Known gaps (Gate 3 after deploy):**
+  - Tool-loop turns drop OpenAI reasoning items (effort is `none`, so none are produced today).
+  - The anonymous `usage` SSE event still names the configured Claude model, although the cost is computed at Luna prices.
+  - Customer-visible allie proxy prices now follow Luna cost plus markup.
+
 ## When it breaks
 
 | Problem | Diagnosis | Fix |
 |---------|-----------|-----|
+| Every allAI answer fails; logs show `LLM chat failed (model=claude-...)` `401 authentication_error` | The Anthropic key is disabled and the Luna switch is unset | Set `LLM_ANTHROPIC_REPLACEMENT_MODEL=gpt-5.6-luna` on Railway (see "Model provider switch"). |
+| Logs show `Invalid 'max_output_tokens' ... Expected a value >= 16`, or a classifier `verdict=UNAVAILABLE` with `output=16` | The deployment is older than backend PR #530 or #531 | Deploy main at or after `a6010def`. |
 | Agent shows REGISTERED but not ONLINE | No heartbeat — agent registered but not started | Check `agent_host.start()` in app lifespan, check logs for startup errors |
 | Agent not responding to events | Subscription not wired | Check manifest `subscriptions` list, verify event type matches |
 | 500 on agent details endpoint | Pydantic validation error | Check Railway logs — usually schema mismatch (skills as dict vs list, datetime issues) |
