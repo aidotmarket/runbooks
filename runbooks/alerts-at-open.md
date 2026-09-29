@@ -1,7 +1,7 @@
 ---
 title: Alerts at session open (S1529)
 owner: mars
-last_verified: '2026-08-30'
+last_verified: '2026-09-29'
 aliases:
 - open items alerts
 - session open tally
@@ -90,6 +90,8 @@ python3 /Users/max/koskadeux-mcp/scripts/ground_truth_open_items.py --publish
 ```
 
 Expected shape: `https://ops.ai.market/build-queue - N open items, M alerts`. Give the operator the URL and the counts. Do not paste the list, do not summarise it, do not rank it. If the publish step fails, say so plainly on that same line and give the count from the local run.
+
+Opening only (Max directive S1765, 2026-09-29, Event 655eeb70): the line goes in the session's first message and nowhere else. Do not repeat it in end-of-round summaries or check-in rounds, even if the count changed, and do not re-run `--publish` mid-session just to report it. `infra:opening-prompt` v15 step 3 carries the same rule.
 
 Read the alerts themselves on the page, not in chat.
 
