@@ -69,7 +69,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-09-29`
 - Aliases: Railway backend deployment, FastAPI production API
-- Error signatures: APScheduler process failed, APScheduler liveness stale, was missed by, BlockingIOError
+- Error signatures: APScheduler process failed, APScheduler liveness stale, was missed by, BlockingIOError, no Process Transaction Settlements log line
 - Status: current
 
 ## ai-market-frontend — Marketplace Web App
