@@ -1144,6 +1144,10 @@
 
 - [Corpus Capture Policy - What We Keep](runbooks/corpus-capture-policy.md)
 
+## `no Process Transaction Settlements log line`
+
+- [ai-market-backend — Central Platform API](ai-market-backend.md)
+
 ## `no response written after`
 
 - [Council](runbooks/council.md)

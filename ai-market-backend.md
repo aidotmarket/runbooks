@@ -10,6 +10,7 @@ error_signatures:
 - APScheduler liveness stale
 - was missed by
 - BlockingIOError
+- no Process Transaction Settlements log line
 ---
 
 # ai-market-backend — Central Platform API
@@ -184,6 +185,8 @@ Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cl
 **Automatic recovery since backend `e14be3bc`:** A `get_next_run_time` job-store read error retries after 5 seconds. An independent monitor checks every 30 seconds and detects a stall within about 5.5 minutes, opening one SysAdmin ops-board ticket per stall; ticket-persistence failure uses the allAI escalation pipeline with Telegram fallback. Jobs default to `misfire_grace_time=300` seconds and `coalesce=True`. Check subsequent wakeups and the affected job before treating recovery as complete.
 
 **If the scheduler remains dead:** From the production-linked backend checkout (`railway status` shows environment production), run `railway redeploy -s ai-market-backend -y`, then poll `railway deployment list -e production -s ai-market-backend` for `SUCCESS`. For deployment context, see [Celery Infrastructure Deployment](celery-infrastructure-deployment.md). Confirm `last_successful_wakeup` advances and the next hourly `Process Transaction Settlements` run (minute 20 UTC) logs `executed successfully`. Do not rerun a missed settlement job by hand: the next hourly run selects eligible transactions. Failed settlements retry after 1, 4, then 24 hours from the last attempt; transactions with 4 or more failures are skipped for manual intervention.
+
+**Proving a settlement run executed:** Railway log queries can silently drop lines: on 2026-09-29, the 11:20Z and 12:20Z `Process Transaction Settlements` runs left no log lines at all, while other jobs on the same scheduler also had missing lines. Prove execution from the database with a read-only query (`PGOPTIONS=default_transaction_read_only=on`): for an eligible transaction, `transactions.last_settlement_attempt_at` advances to the run minute and `metadata->>'settlement_failures'` changes on failure. Eligibility is measured from the last attempt, so a retry due at hh:20:01 is ineligible for the hh:20:00 run. At 13:20Z, 733ded10 and ed6074fd were stamped 13:20:02Z and 13:20:03Z (failures 2→3) on Railway `338fa3ae`.
 
 **T-2026-000894 proof, 2026-09-29:** At 04:06Z, a Redis `BlockingIOError` killed the scheduler; the 04:27Z redeploy was Railway `36aa5b15`. At 07:20:10Z, the settlement run was missed by 10.04 seconds under the former 1-second grace. Fix PR [#535](https://github.com/aidotmarket/ai-market-backend/pull/535) merged as `e14be3bc0feb644d38806d55707602d88ca93ccb` and deployed as Railway `bf08c213` at 08:29Z. At 09:20Z, `Process Transaction Settlements` executed successfully with no `was missed by` line on Railway `3778ac29` (commit `66221532`, containing `e14be3bc`).
 
