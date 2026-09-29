@@ -504,6 +504,10 @@
 
 - [AIM Data gateway — operations](aim-data-gateway.md)
 
+## `DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
+
 ## `duplicate key value violates unique constraint on listings slug`
 
 - [Listing slug rename (seller-identifying slug)](listing-slug-rename.md)
@@ -1547,6 +1551,10 @@
 ## `secret_disclosure`
 
 - [Infrastructure Discovery](runbooks/infrastructure-discovery.md)
+
+## `SECRET_KEY must be set`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
 
 ## `seed: host handoff failed (details suppressed); check seed revocation result`
 
