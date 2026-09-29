@@ -804,6 +804,10 @@
 
 - [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
 
+## `insufficient available funds`
+
+- [Stripe platform balance and payouts](stripe-platform-balance-and-payouts.md)
+
 ## `insufficient_assurance`
 
 - [Customer MCP connector — build and operations](customer-mcp-connector.md)

@@ -1152,6 +1152,15 @@
 - Error signatures: A Stripe account already exists for this email address, kyc_status_absent_defaults_not_started, seller_profiles_connect_id_never_written, stripe_connect_user_update_zero_rows, two_connect_onboarding_endpoints_disagree, webhook_predicate_column_mismatch
 - Status: current
 
+## Stripe platform balance and payouts
+- Path: `stripe-platform-balance-and-payouts.md`
+- Purpose: Read the production Stripe platform balance, manage its payout schedule, and guide a human operator through adding funds when seller Transfers lack available funds. These procedures were verified on 2026-09-29 for T-2026-000891.
+- Owner: `vulcan`
+- Last verified: `2026-09-29`
+- Aliases: Stripe platform balance, platform payout schedule, Stripe top-up, add funds to Stripe, insufficient available funds
+- Error signatures: insufficient available funds
+- Status: current
+
 ## Support Ticket System — operations
 - Path: `support-ticket-system.md`
 - Purpose: **Owner surface:** ai.market support/trouble ticket engine (ai-market-backend `app/api/v1/endpoints/support.py`, `app/services/support_ticket_service.py`, `app/api/v1/dependencies/support_ticket_auth.py`, `app/tasks/scheduled.py`). One ticket system for dev, ops, and customer issues, operated by agents with human escalation on risk. **Spec source of truth:** `specs/BQ-SUPPORT-TICKET-SYSTEM-S811-GATE1.md` (Gate 1 design + Gate 2 R1 changelog + **Amendment A1 / S819** schema reconciliation). Do not relitigate the decision record in §2/§14 of that spec. **Last verified live:** 2026-06-22 (S987 — added agent management MCP tools `support_ticket_list/get/patch/message`, backend-shape verified vs `support.py`; S851 added dev-ticket/BQ taxonomy; engine MVP verified 2026-06-11/S819). Production deploy signal: the alembic fields on `api.ai.market/health` show the support + email-durability migrations at head.
