@@ -242,17 +242,27 @@ Backend PR #537, merged as `bb5ad62ad46419793962fee58f9daf33e24dc909`, moved tho
 
 D3 backend PR #538 merged as `66109cdc` and deployed as `a4bd992b`. Disabled `('tool', 'get_activity')` and `('tool', 'list_data_requests')` switch rows were inserted under T-2026-000897.
 
-D4 `ask_allai` backend PR #539 passed unanimous Gate 3 at R3 (GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`) and merged as `08000393ece9eee2ef404eefff16cf26d253b51a`. Railway `ai-market-backend` deployment `cbbcd198-fc8d-4e6d-b5d3-38a5f9dabc6e` reached `SUCCESS`. Migration `20260929_002_connector_allai_budget` (revision `s1762_connector_allai_budget`, parent `s1761_t891_payout_path`) creates `connector_allai_daily_budget`, `connector_allai_daily_calls`, and `connector_allai_reservations`; its downgrade refuses while ledger evidence exists. Mars inserted `('tool', 'ask_allai')` with `disabled=true` at 2026-09-29 18:42:55Z (actor `mars-s1764`, T-2026-000899). Backend `/health` reported Alembic current=head=`s1762_connector_allai_budget`; connector-oauth status returned `enabled:false`; POST `https://connect.ai.market/mcp` returned HTTP 503 `CONNECTOR_DISABLED`. The resource service `ai-market-connector` still runs pre-D4 code until its Gate 4 redeploy.
+D4 `ask_allai` backend PR #539 passed unanimous Gate 3 at R3 (GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`) and merged as `08000393ece9eee2ef404eefff16cf26d253b51a`. Railway `ai-market-backend` deployment `cbbcd198-fc8d-4e6d-b5d3-38a5f9dabc6e` reached `SUCCESS`. Migration `20260929_002_connector_allai_budget` (revision `s1762_connector_allai_budget`, parent `s1761_t891_payout_path`) creates `connector_allai_daily_budget`, `connector_allai_daily_calls`, and `connector_allai_reservations`; its downgrade refuses while ledger evidence exists. Under change ticket `T-2026-000899`, Mars inserted `('tool', 'ask_allai')` with `disabled=true`; Event Ledger receipt `0775c46e-3901-48b1-b20a-e6a39c3286aa` records the D4 deploy and switch row, `INSERT 0 1`, at `2026-09-29 18:42:55.67751Z` (actor `mars-s1764`). Backend `/health` reported Alembic current=head=`s1762_connector_allai_budget`; connector-oauth status returned `enabled:false`; POST `https://connect.ai.market/mcp` returned HTTP 503 `CONNECTOR_DISABLED`. The resource service `ai-market-connector` still runs pre-D4 code until its Gate 4 redeploy.
 
 ### ask_allai enable configuration (for Gate 4)
 
-Max chose `gpt-5.6-luna` in Event `c3dd857b`. Set `CONNECTOR_ALLAI_MODEL=gpt-5.6-luna` and map that exact model in `CONNECTOR_ALLAI_MODEL_PRICES_JSON`: provider `openai`; input `0.0000002`, output `0.0000012`, thinking `0.0000012`, and cache `0.0000002` USD/token; thinking bound `0`; attempts `1`. Reasoning models are refused without a mapped entry. Connector calls use the Responses API with reasoning effort `none`, `max_retries=0`, and no implicit fallback or temperature retry. Keep `CONNECTOR_ALLAI_FALLBACK_MODELS` empty.
+Max chose `gpt-5.6-luna` in Event `c3dd857b`. Use these exact process environment values for Gate 4; the JSON is one complete value for `CONNECTOR_ALLAI_MODEL_PRICES_JSON`:
 
-Defaults are 20 calls per user-client UTC day, USD 5.00 per UTC day, 512 output tokens, 10 seconds timeout, and concurrency 2 (maximum 64). `CONNECTOR_ALLAI_MAX_INPUT_TOKENS` preflight uses UTF-8 byte length as a conservative token upper bound. Enable `ask_allai` only after Gate 4 and a live priced call proof.
+```text
+CONNECTOR_ALLAI_MODEL=gpt-5.6-luna
+CONNECTOR_ALLAI_FALLBACK_MODELS=
+CONNECTOR_ALLAI_MAX_INPUT_TOKENS=16000
+CONNECTOR_ALLAI_MAX_OUTPUT_TOKENS=512
+CONNECTOR_ALLAI_CALLS_PER_USER_CLIENT_UTC_DAY=20
+CONNECTOR_ALLAI_USD_PER_UTC_DAY=5.00
+CONNECTOR_ALLAI_MODEL_PRICES_JSON={"gpt-5.6-luna":{"provider":"openai","prices":{"CONNECTOR_ALLAI_MODEL_INPUT_USD_PER_TOKEN":"0.0000002","CONNECTOR_ALLAI_MODEL_OUTPUT_USD_PER_TOKEN":"0.0000012","CONNECTOR_ALLAI_MODEL_THINKING_USD_PER_TOKEN":"0.0000012","CONNECTOR_ALLAI_MODEL_CACHE_USD_PER_TOKEN":"0.00000002"},"bounds":{"input":16000,"output":512,"thinking":0,"cache":16000},"attempts":1}}
+```
+
+The four prices are USD/token; cache `0.00000002` matches backend main `app/allai/cost_control.py` Luna cached input `0.02` USD per million tokens. At backend main `35af29cb`, `policy_from_settings()` accepts this configuration and calculates a maximum of **4,135 micro-USD (USD 0.004135) per call**, far below the **USD 5.00 connector-wide per UTC day** cap. The separate limit is **20 accepted calls per user-client per UTC day**. `CONNECTOR_ALLAI_MAX_INPUT_TOKENS` preflight compares UTF-8 bytes, a conservative upper bound on tokens. Reasoning models are refused without a mapped entry. Connector calls use the Responses API with reasoning effort `none`, `max_retries=0`, and no implicit fallback or temperature retry. Timeout defaults to 10 seconds and concurrency to 2 (maximum 64). Enable `ask_allai` only after Gate 4 and a live priced call proof.
 
 ### Early-access enforcement merged (S1764)
 
-Backend PR #540 merged as `35af29cbd36f8a8ac05776d6bc17846f62c02920` on 2026-09-29. `CONNECTOR_EARLY_ACCESS_ENFORCED` (default `true`) and `CONNECTOR_EARLY_ACCESS_USER_IDS` enforce the user allowlist at website consent, authorization-server authorize, token code exchange and refresh, and resource admission. Set both environment values identically on `ai-market-backend`, `ai-market-connector-auth`, and `ai-market-connector`; see specs erratum `b886ba76`. Enforcement becomes live on auth and resource only at their Gate 4 redeploy.
+Backend PR #540 merged as `35af29cbd36f8a8ac05776d6bc17846f62c02920` on 2026-09-29. Railway `ai-market-backend` deployment `8a31909a-5b40-40f2-96f9-d62ef6671220` reached `SUCCESS` on main `35af29cb`; Event Ledger receipt `c2479a93-9fd0-48f1-974f-749e8c12ae0a` records the #540 deploy. `CONNECTOR_EARLY_ACCESS_ENFORCED` (default `true`) and `CONNECTOR_EARLY_ACCESS_USER_IDS` enforce the user allowlist at website consent, authorization-server authorize, token code exchange and refresh, and resource admission. Set both environment values identically on `ai-market-backend`, `ai-market-connector-auth`, and `ai-market-connector`; see specs erratum `b886ba76`. Enforcement becomes live on auth and resource only at their Gate 4 redeploy.
 
 ### Signing keyset recovery: NO SUPPORTED PATH TODAY (S1757, 2026-09-27)
 
