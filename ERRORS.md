@@ -1944,6 +1944,10 @@
 
 - [E2E Video Review](runbooks/e2e-video-review.md)
 
+## `You've hit your usage limit`
+
+- [Council](runbooks/council.md)
+
 ## `zero rows`
 
 - [ai.market Trust Channel Control Plane Runbook](trust-channel.md)

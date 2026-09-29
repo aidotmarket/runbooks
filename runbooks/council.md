@@ -1,7 +1,7 @@
 ---
 title: Council
 owner: vulcan
-last_verified: '2026-09-25'
+last_verified: '2026-09-30'
 aliases:
 - Council dispatch
 - review transport
@@ -22,6 +22,7 @@ error_signatures:
 - no response written after
 - 'gemini: no response written after'
 - required reviewer missing from the live tool schema
+- You've hit your usage limit
 ---
 
 # Council
@@ -39,9 +40,9 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 > **CURRENT ROSTER - S1721, CORE §5. This block supersedes every older roster statement on this page.**
 > The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs three unanimous votes with valid participation (the voter's pinned model verified). An unusable vote is rerun once. If Gemini's vote is still unusable (no response or error), CC takes Gemini's third seat for that gate round; GLM and DeepSeek are both still required. Any other voter's unusable vote after its rerun fails the gate. The gate record must name CC as standing in for Gemini and cite both failed Gemini response stamps. A voter is never dropped from the panel except for this Gemini-only stand-in.
 > The stand-in does not apply to a CORE amendment gate, which still requires GLM, DeepSeek and Gemini plus Max's direct approval (CORE §5).
-> **CC and MP reviews are not standing Council votes.** `council_request agent=cc` and `council_request agent=mp mode=review` are explicit non-voting second opinions outside the Gemini stand-in exception: otherwise never counted as Council votes, and a directory response file cannot unlock or block completion. A separately persisted MP peer `APPROVE` keeps its pre-existing cross-review completion authority in `cross_review_gate.py`; the directory route never persists one. MP author/build dispatch remains on the minimal bridge. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
+> **CC, MP and codex2 reviews are not standing Council votes.** `council_request agent=cc`, `council_request agent=mp mode=review`, and `council_request agent=codex2 mode=review` are explicit non-voting second opinions outside the Gemini stand-in exception: otherwise never counted as Council votes, and a directory response file cannot unlock or block completion. A separately persisted MP peer `APPROVE` keeps its pre-existing cross-review completion authority in `cross_review_gate.py`; the directory route never persists one. MP author/build dispatch remains on the minimal bridge. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
-> Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc", "mp")`, live `council_request` enum `mp, glm, deepseek, gemini, cc`), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
+> Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc", "mp", "codex2")`, `council_request` enum `mp, glm, deepseek, gemini, cc, codex2` after deployment), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
 > Authority: Max S1721 - Event Ledger 47804cc4 (three voters), 51786409 (CC loses its seat, Kimi removed), c7edc37f (CC non-Council path), d3018462 (rerun once), 312e17d4 (Gemini model); Max S1751, Event Ledger 1dccefe2 (Gemini-only CC stand-in).
 > Text below that names CC as a voter, Kimi as a comparison seat, or a CC/GLM/DeepSeek panel is history. Gemini member setup: `runbooks/council.md`, section "Gemini member".
 
@@ -209,6 +210,7 @@ Chrome proof remain required before the cleanup can be called live.
 | GLM | Council gate voter | Directory exchange | Own Council directory | COMPLETE |
 | DeepSeek | Council gate voter (S1651) | Shared parameterized Codex transport and directory exchange | Dedicated `HOME`/`CODEX_HOME`; Infisical-injected DeepSeek key | REGISTERED |
 | MP | Mandatory build or explicit non-voting review | Minimal bridge for build; read-only directory exchange for review | Build workspace or `/Users/max/council/mp/` | REVIEW ROUTE ON S1738 BUILD BRANCH |
+| codex2 | Explicit non-voting second opinion; separate ChatGPT allowance from builder | Read-only directory exchange, `council_request(agent="codex2", mode="review")` | `max@kisa.cat`; persistent `/Users/max/koskadeux-state/agents/codex2/codex-home` | S1765 PR; live smoke awaits usage reset |
 | Vulcan and Mars | Trigger work; never vote | `council_request`, `dispatch_mp_build` | Governed operational scope | COMPLETE |
 
 ## How to operate
@@ -216,6 +218,10 @@ Chrome proof remain required before the cleanup can be called live.
 ### Explicit MP review (S1738; available after code deployment)
 
 Call `council_request(agent="mp", mode="review", task=<review request>)`, or supply `review_package_path=<existing file>` in place of `task`. Supply `cwd` and `dispatch_sha` when reviewing a pinned checkout so the request includes the controller's checkout context. The call returns `status=submitted` with `request_file` under `/Users/max/council/mp/` and the matching `response_file`; the response file appearing is completion. Inspect that file and its launcher log directly. `ask all` remains the three gate voters and excludes MP. Never use this path for MP author/build work or count an MP response as a gate vote. Do not send MP a candidate it authored.
+
+### Explicit codex2 review (S1765; available after code deployment)
+
+Use `council_request(agent="codex2", mode="review", task=<review request>)`, or provide `review_package_path=<existing file>`. Codex2 is an independent reviewer using the `max@kisa.cat` ChatGPT account and its separate usage allowance from the builder's `max@ai.market` account. It is non-voting unless Max changes the Council roster. Requests and responses live in `/Users/max/council/codex2/`; response-file existence is completion. The launcher sets `HOME=/Users/max/koskadeux-state/agents/codex2` and persistent `CODEX_HOME=/Users/max/koskadeux-state/agents/codex2/codex-home`, installs only the checked `config/codex2_codex/config.toml`, and leaves that home's `auth.json` untouched. It never copies or reads the builder's `~/.codex/auth.json`. The child shell's read-only profile denies `/Users/max/.codex` and the codex2 `auth.json` file. For re-login, Max enables **device code sign-in** in that account's ChatGPT **Settings → Security**, runs `CODEX_HOME=/Users/max/koskadeux-state/agents/codex2/codex-home codex login --device-auth`, and approves at `auth.openai.com/codex/device` while signed in to `max@kisa.cat`. The current usage-limit signature is `You've hit your usage limit ... try again at <date>` (observed reset: October 3, 2026, 7:10 PM); wait for the account allowance to reset before live smoke.
 
 ```yaml operate
 - id: E-01
