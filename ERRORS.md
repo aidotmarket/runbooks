@@ -372,6 +372,10 @@
 
 - [Customer MCP connector — build and operations](customer-mcp-connector.md)
 
+## `CONNECTOR_DISABLED`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
+
 ## `constitution_source_drift`
 
 - [Constitution History](runbooks/constitution-history.md)
@@ -539,6 +543,10 @@
 ## `duplicate_rows remains nonzero`
 
 - [Qdrant Sync Outbox](qdrant-sync-outbox.md)
+
+## `EARLY_ACCESS_ONLY`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
 
 ## `empty array`
 
