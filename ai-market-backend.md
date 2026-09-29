@@ -1,11 +1,15 @@
 ---
 title: ai-market-backend — Central Platform API
 owner: unassigned
-last_verified: '2026-08-27'
+last_verified: '2026-09-29'
 aliases:
 - Railway backend deployment
 - FastAPI production API
-error_signatures: []
+error_signatures:
+- APScheduler process failed
+- APScheduler liveness stale
+- was missed by
+- BlockingIOError
 ---
 
 # ai-market-backend — Central Platform API
@@ -172,6 +176,16 @@ T-2026-000240 centralized all active consumers on this contract; it did not chan
 ## Scheduled jobs (APScheduler)
 
 Jobs defined in `app/core/scheduler.py`. Include: backup triggers, stale data cleanup, briefing generation, Gmail watch renewal, deploy monitoring.
+
+### Scheduler failure and recovery
+
+**Check:** On `/health` (when `scheduler_mode=apscheduler`), read `scheduler_health.status` and `scheduler_health.last_successful_wakeup`. A missing, stopped, or stale scheduler makes the root status `degraded`, but so does `schema_drift`; inspect `scheduler_health` itself. On 2026-09-29, production reported two missing tables (`completion_principals`, `completion_sessions`) unrelated to scheduler liveness. In Railway logs, look for `APScheduler process failed`, `APScheduler liveness stale: scheduler stopped or no successful job processing for over 5 minutes`, `APScheduler liveness recovered`, and `Run time of job "..." was missed by`.
+
+**Automatic recovery since backend `e14be3bc`:** A `get_next_run_time` job-store read error retries after 5 seconds. An independent monitor checks every 30 seconds and detects a stall within about 5.5 minutes, opening one SysAdmin ops-board ticket per stall; ticket-persistence failure uses the allAI escalation pipeline with Telegram fallback. Jobs default to `misfire_grace_time=300` seconds and `coalesce=True`. Check subsequent wakeups and the affected job before treating recovery as complete.
+
+**If the scheduler remains dead:** From the production-linked backend checkout, run `railway redeploy -e production -s ai-market-backend -y`, then poll `railway deployment list -e production -s ai-market-backend` for `SUCCESS` (see [Celery Infrastructure Deployment](celery-infrastructure-deployment.md)). Confirm `last_successful_wakeup` advances and the next hourly `Process Transaction Settlements` run (minute 20 UTC) logs `executed successfully`. Do not rerun a missed settlement job by hand: the next hourly run selects eligible transactions. Failed settlements retry after 1, 4, then 24 hours from the last attempt; transactions with 4 or more failures are skipped for manual intervention.
+
+**T-2026-000894 proof, 2026-09-29:** At 04:06Z, a Redis `BlockingIOError` killed the scheduler; the 04:27Z redeploy was Railway `36aa5b15`. At 07:20:10Z, the settlement run was missed by 10.04 seconds under the former 1-second grace. Fix PR [#535](https://github.com/aidotmarket/ai-market-backend/pull/535) merged as `e14be3bc0feb644d38806d55707602d88ca93ccb` and deployed as Railway `bf08c213` at 08:29Z. At 09:20Z, `Process Transaction Settlements` executed successfully with no `was missed by` line on Railway `3778ac29` (commit `66221532`, containing `e14be3bc`).
 
 ## Public listing search relevance
 

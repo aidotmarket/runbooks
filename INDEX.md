@@ -67,9 +67,9 @@
 - Path: `ai-market-backend.md`
 - Purpose: FastAPI backend powering all of ai.market. Handles auth, listings, orders, payments, agents, CRM, fulfillment, and the allAI intelligence layer.
 - Owner: `unassigned`
-- Last verified: `2026-08-27`
+- Last verified: `2026-09-29`
 - Aliases: Railway backend deployment, FastAPI production API
-- Error signatures: none
+- Error signatures: APScheduler process failed, APScheduler liveness stale, was missed by, BlockingIOError
 - Status: current
 
 ## ai-market-frontend — Marketplace Web App
