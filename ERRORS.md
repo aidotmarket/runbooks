@@ -128,6 +128,14 @@
 
 - [Issue Channel](issue-channel.md)
 
+## `APScheduler liveness stale`
+
+- [ai-market-backend — Central Platform API](ai-market-backend.md)
+
+## `APScheduler process failed`
+
+- [ai-market-backend — Central Platform API](ai-market-backend.md)
+
 ## `archived original acceptance differs from purchase-time receipt`
 
 - [Seller paired settlement conclusion and recovery](runbooks/seller-paired-settlement-conclusion.md)
@@ -187,6 +195,10 @@
 ## `biased_synthesis`
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
+
+## `BlockingIOError`
+
+- [ai-market-backend — Central Platform API](ai-market-backend.md)
 
 ## `boot-contract test failure on the marker text`
 
@@ -1859,6 +1871,10 @@
 ## `VZ install registration auth failed (401 or 403)`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
+
+## `was missed by`
+
+- [ai-market-backend — Central Platform API](ai-market-backend.md)
 
 ## `webhook_predicate_column_mismatch`
 
