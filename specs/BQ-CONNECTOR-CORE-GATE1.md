@@ -380,7 +380,7 @@ Connector service env vars (least secret; everything else deliberately absent â€
 | `CONNECTOR_AUTH_ISSUER` | `https://auth.ai.market` (R1) |
 | `CONNECTOR_JWKS_URL` | `https://auth.ai.market/.well-known/jwks.json` (public ES256 keys only; R1, adopted Q3a) |
 | `CONNECTOR_ALLOWED_HOSTS` | `connect.ai.market` |
-| `CONNECTOR_EARLY_ACCESS_USER_IDS` | test and Max accounts during rollout (empty = everyone) |
+| `CONNECTOR_EARLY_ACCESS_USER_IDS`, `CONNECTOR_EARLY_ACCESS_ENFORCED` | Process environment on `ai-market-backend` (website consent API), `ai-market-connector-auth` and `ai-market-connector`; values must be identical on all three. `CONNECTOR_EARLY_ACCESS_ENFORCED` defaults to `true` and accepts `true`/`1`/`yes` or `false`/`0`/`no`. While enforced, only listed user UUIDs may consent, obtain or refresh tokens, or call the resource. Missing or empty list denies everyone; any malformed entry denies everyone and emits a critical log. Opening to everyone requires explicit `CONNECTOR_EARLY_ACCESS_ENFORCED=false`; emptying the list does not open access. Use test and Max accounts during rollout. Erratum for backend PR #540, DeepSeek Gate 3 Finding 1, and Max's Q8 decision (early access is a user allowlist). |
 | `CONNECTOR_AUDIT_HMAC_KEY` | new Infisical secret |
 | `CONNECTOR_WORKERS`, `CONNECTOR_MAX_CONCURRENCY` | 2, 50 per worker (draft had 200; R6, see capacity) |
 | `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `DB_STATEMENT_TIMEOUT_MS` | 5, 5, 5000 (requires parameterising `app/core/database.py:37-50`; backend defaults unchanged at 20/10) |
@@ -498,7 +498,7 @@ This is the single merge/deploy order for the three P0 connector specs (R5); any
 2. **OAUTH AS** (bq-connector-oauth) deploys on `ai-market-connector-auth` with its flags off.
 3. **Connector server** (the rest of this BQ) deploys on `ai-market-connector` with `CONNECTOR_ENABLED=false`; verify `/healthz`, `/readyz`, PRM, 503 on `/mcp`, forged-XFF probe, Host check, A23 variable check.
 4. **Enable together:** `CONNECTOR_OAUTH_ENABLED=true` (CIMD on) and `CONNECTOR_ENABLED=true` with `CONNECTOR_EARLY_ACCESS_USER_IDS` = test accounts + Max; A1â€“A3 E2E.
-5. Early-access list emptied when P1 buyer tools ship (bq-connector-buyer decides).
+5. When P1 buyer tools ship, bq-connector-buyer decides whether to open access to everyone by explicitly setting `CONNECTOR_EARLY_ACCESS_ENFORCED=false` on all three services; an empty list while enforcement remains true denies everyone.
 
 bq-connector-action-path's migrations and flag-off code land after step 1 (they need the foundation's audit table); its flags turn on only after step 4, in the order its spec gives.
 
