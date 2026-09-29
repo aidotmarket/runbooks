@@ -379,13 +379,9 @@ curl -s -o /dev/null -w "%{http_code}\n" https://api.ai.market/health
 
 ### Hotfix rollback
 
-Rollback is service-specific.
+Rollback to a previous deployment is done in the Railway dashboard (service > Deployments > previous deployment > Redeploy); the CLI `railway redeploy` only redeploys the latest deployment.
 
-```bash
-unset RAILWAY_TOKEN && railway redeploy -s ai-market-celery-worker -d <previous_deploy_id>
-unset RAILWAY_TOKEN && railway redeploy -s ai-market-celery-beat -d <previous_deploy_id>
-unset RAILWAY_TOKEN && railway redeploy -s ai-market-backend -d <previous_deploy_id>
-```
+CLI check, 2026-09-29: Railway CLI 4.30.3 (`railway --version`) exposes no command or option to select a previous deployment ID for redeployment.
 
 ### Secret rotation
 
