@@ -356,6 +356,10 @@
 
 - [Listing Summary (At a glance) Source-Fact Backfill](listing-summary-source-backfill.md)
 
+## `connector_audit_write_failed`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
+
 ## `constitution_source_drift`
 
 - [Constitution History](runbooks/constitution-history.md)
