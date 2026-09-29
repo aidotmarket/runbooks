@@ -1,4 +1,4 @@
-# BQ-REPORT-ISSUE-ALLAI-TICKET-S1761: Gate 1 design brief r2 (Vulcan S1761)
+# BQ-REPORT-ISSUE-ALLAI-TICKET-S1761: Gate 1 design brief r3 (Vulcan S1761)
 
 BQ: `build:bq-report-issue-allai-ticket-s1761` (P1). Origin: Max directive, Event 7d927a3c (2026-09-28), given while he looked at his own first real order page: "This should not open an email it should have allai walk the user through a trouble ticket report which we get in our ops console."
 
@@ -17,7 +17,17 @@ On the buyer order page, **Report Issue** is `mailto:support@ai.market?subject=I
 - **Frontend.** The allAI panel is global (`components/allai/AllAIContext.tsx`: `open()`, `sendMessage`, `page: pathname`). The anonymous surface already sends `context.page` and `context.listing_id`.
 - **Pre-existing weakness (in scope to fix, see D6).** For non-internal callers, `create_ticket` takes `requester_actor_type` and `requester_actor_id` from the request body when present (`support.py:87-88`; `requester_party_id` is already bound at :86). The same callers can also set `issue_class`, `human_required`, `links` and `probe`. And an agent API key that only has scope `support:read` can create tickets.
 
-## Proposed design (r2)
+## Proposed design (r3)
+
+r3 folds the round 2 findings. GLM REQUEST_CHANGES (response-20260929-021258-621401) raised:
+- F1 HIGH: the legacy endpoint is a second order-report path.
+- F2 MEDIUM: full TicketProbe validation must hold at the service layer.
+- F3 MEDIUM: interaction with the subject dedupe.
+- F4 NIT: 403 versus 404.
+- F5 NIT: channel for the fallback.
+
+DeepSeek (-021301-680529) and CC (-021304-708770) were APPROVE_WITH_NITS.
+
 
 r2 folds the round 1 findings:
 - GLM REQUEST_CHANGES (response-20260929-014400-835331): F1 HIGH (one trusted command for both paths), F2 HIGH (no reachable route; do not expose Brain skills), F3 MEDIUM (probe bypass), F4 MEDIUM (snapshot allowlist), F5 MEDIUM (idempotency).
@@ -27,8 +37,8 @@ r2 folds the round 1 findings:
 The main change from r1 is that there is no model-invoked write skill. One typed, authenticated server command files every order report. allAI only helps the user describe the problem.
 
 - **D1: one trusted command.** A new service command, `report_order_issue(principal, order_id, proposal_id)`, sits behind one new authenticated route: `POST /api/v1/orders/{order_id}/issue-reports`, called with an ordinary session bearer.
-  - The server resolves the principal from the session. It loads the order and requires the principal to be its buyer or seller. An unrelated user gets 404, the same as `GET /orders/{id}`.
-  - The server builds every security-relevant ticket field itself: `issue_class='customer'`, `channel='allai'` (the value already exists), requester actor, party and org (from the principal), `links={order_id, listing_id}` (from the loaded order), priority, `risk_score` (unset), `human_required`, and the snapshot.
+  - The server resolves the principal from the session. It loads the order and requires the principal to be its buyer or seller. A missing order gets 404 and an unrelated authenticated user gets 403, exactly as `GET /orders/{id}` does today (`orders.py` ~298/302). Tests cover buyer, seller, an unrelated user and a missing order.
+  - The server builds every security-relevant ticket field itself: `issue_class='customer'`, `channel` derived from the proposal's server-recorded origin (`allai` when the proposal was created in allAI report mode, `web` for the fallback form; the value already exists), requester actor, party and org (from the principal), `links={order_id, listing_id}` (from the loaded order), priority, `risk_score` (unset), `human_required`, and the snapshot.
   - The client may send only:
     - the category (an enum: payment_charge, download_delivery, not_as_described, access_account, refund_request, other)
     - a description (text, maximum 4,000 characters)
@@ -42,16 +52,18 @@ The main change from r1 is that there is no model-invoked write skill. One typed
   - allAI helps with self-service first, using the real order state (delivered-on date, downloads left, the browser note). It then drafts the category and description for the user to edit.
   - The user presses **Send report** in the UI. The frontend calls D1 with the user-confirmed fields. The model never calls a filing tool, never supplies identity, order ownership or priority, and cannot file without the user's click.
   - Ordinary tokens still cannot invoke generic Brain skills (the S1734 invariant, `allai-agents.md`). No new Brain write skill is added.
-- **D3: proposal-based idempotency.**
+- **D3: proposal-based idempotency, without losing reports.**
   - Opening report mode creates a server-held proposal: `POST /orders/{order_id}/issue-reports/proposals` returns `proposal_id`, bound to (principal, order_id) and expiring after 24h.
   - D1 files at most one ticket per `proposal_id`, enforced by a unique constraint on the stored proposal-to-ticket link inside the creating transaction.
   - A retry or a concurrent confirm with the same `proposal_id` returns the same public ref.
-  - The existing one-hour subject dedupe and the `SupportRateLimitRejected` path still apply.
+  - The subject is generated by the server and is unique per proposal: `Order <order_number>: <category label> (report <proposal short id>)`. Two different confirmed proposals therefore never collide with the existing one-hour subject dedupe. Both are filed as distinct tickets, and no report text is silently dropped.
+  - The `SupportRateLimitRejected` path still applies. When it rejects, D1 returns 429 with a clear message and keeps the proposal open, so the user can retry later without losing the text.
+  - Tests cover (a) two concurrent confirms of one proposal, which produce one ticket and the same ref, and (b) two distinct proposals for the same order and category within one hour, which produce two tickets with both texts preserved.
 - **D4: priority without fabricated probes.**
   - Every customer report is created at `medium` with no probe.
   - `payment_charge` and `refund_request` set `human_required=true`, so the ticket reaches the ops TICKETS view, and the Needs You feed when it is unassigned (`GET /api/v1/ops/needs-max`, runbook `ops-ai-market.md`).
   - No customer report ever gets high or critical priority, and no machine probe is invented.
-  - The P0/P1 probe rule moves from `TicketCreateRequest` into `create_support_ticket` itself, so every writer is covered, not only the HTTP schema (GLM F3).
+  - The P0/P1 probe rule moves from `TicketCreateRequest` into `create_support_ticket` itself, so every writer is covered, not only the HTTP schema. The service boundary reuses the complete existing `TicketProbe` model validation and allowlist; it does not only check for presence. Direct service tests reject high or critical tickets whose probe is missing, malformed, the wrong kind, on a disallowed host, or a write or DDL probe. Valid probes still pass.
 - **D5: fixed snapshot allowlist.** The payload's `order_snapshot` is built from exactly these scalar keys and nothing else:
   - `order_number`
   - `status`
@@ -79,11 +91,17 @@ The main change from r1 is that there is no model-invoked write skill. One typed
 
   User text is stored under `payload.user_report` with the key `untrusted: true`. The total payload is capped at 16 KB. Agents that read tickets treat `user_report` as data.
 - **D6: hardening the existing public endpoint.** For non-internal principals on `POST /support/tickets`:
-  - `requester_actor_type` and `requester_actor_id` are always the principal's. This is the real gap; `requester_party_id` is already bound at `support.py:86` (CC F3).
+  - `requester_actor_type` and `requester_actor_id` are always the principal's. This is the real gap; `requester_party_id` is already bound at `support.py:86`.
   - `human_required`, `probe`, `priority` above medium, `risk_score` and `org_party_id` are ignored or rejected.
   - `issue_class` is forced to customer.
+  - `channel` is forced to `web`, so a non-internal caller cannot claim `allai`.
+  - Order-report-shaped requests are rejected with 422, so D1 is the only way to create an order report:
+    - any `links` key among `order_id`, `listing_id` or `transaction_id`
+    - any `payload` key `order_snapshot` or `user_report`
+  - Other `links` and `payload` content is capped at 16 KB and stored as untrusted data, which is today's behavior apart from the cap.
   - Creation by API key requires `support:write`.
-  - Gate 2 lists current callers with evidence before changing behavior.
+  - Negative tests submit `channel="allai"`, order links, `order_snapshot` and `user_report` through `/support/tickets` and assert a 422 or server-forced values.
+  - Gate 2 lists current non-internal callers with evidence before changing behavior.
 - **D7: the fallback.** If the allAI panel is unavailable, the button opens a plain form with the same fields. The form gets a proposal and posts to D1. The mailto link on the order page is removed.
 ## Scope boundaries
 
@@ -108,12 +126,12 @@ The main change from r1 is that there is no model-invoked write skill. One typed
 - Model output never decides identity, priority or authorization.
 - The customer's text is stored as data. It is never interpreted as instructions to agents downstream (ops agents that read tickets treat the payload as untrusted).
 
-## Questions for Gate 1 reviewers (r2 delta)
+## Questions for Gate 1 reviewers (r3 delta; this is round 3 of 3 under the Tier 3 cap)
 
-1. Does D1 plus D2 close GLM F1/F2 and CC F1? Specifically: one authenticated command, the server builds every security-relevant field, the model is outside the filing path, and no Brain skill is exposed. Blocking if any path still lets a client or the model choose identity, order ownership or priority.
-2. Does D4 close GLM F3? Customer reports are always medium with no fabricated probe, and the probe rule moves into the service.
-3. Is the D5 allowlist complete and safe (GLM F4, CC F2, DS)? Name any key that should be added or removed.
-4. Does the D3 proposal id give real idempotency under concurrency (GLM F5, CC F4)?
-5. Scope, carried over from r1: should the checkout success page and the /support page get the same flow now (without order context), or later? Non-blocking.
+1. Does D6 now make D1 the only way to create an order-report ticket, closing GLM F1? Blocking if the legacy endpoint can still create an order report.
+2. Does D4 now require full `TicketProbe` validation at the service boundary (GLM F2)?
+3. Does the D3 per-proposal subject rule prevent silent loss under the existing dedupe (GLM F3)?
+4. Are the D1 403/404 statuses and the channel derivation now correct (GLM F4, F5)?
+5. Scope: checkout success and `/support` stay out of this BQ, per GLM's answer. A fast-follow BQ will cover the remaining support mailto links. Non-blocking.
 
 Tier: 3 (customer data and support identity). Full panel per d50cbd80: GLM, DeepSeek, and CC in Gemini's seat; unanimous.
