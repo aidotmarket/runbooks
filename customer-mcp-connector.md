@@ -1,9 +1,9 @@
 ---
 title: Customer MCP connector — build and operations
 owner: unassigned
-last_verified: '2026-09-28'
+last_verified: '2026-09-29'
 aliases: [customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market]
-error_signatures: [insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'", connector_audit_write_failed]
+error_signatures: [insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'", connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production]
 ---
 
 # Customer MCP connector — build and operations
@@ -193,10 +193,10 @@ FROM connector_switches WHERE scope=:'scope' AND key=:'key';
 SQL
 ```
 
-Restore one existing exact `(scope, key)` after approval (example `tool`, `get_my_account`):
+Enable one existing exact `(scope, key)` after approval (example `tool`, `get_my_account`):
 
 ```bash
-psql "$DB_URL" -v ON_ERROR_STOP=1 -v scope=tool -v key=get_my_account -v reason='ticket reason for restore' -v actor='operator identity' <<'SQL'
+psql "$DB_URL" -v ON_ERROR_STOP=1 -v scope=tool -v key=get_my_account -v reason='ticket reason for enable' -v actor='operator identity' <<'SQL'
 UPDATE connector_switches SET disabled=false, reason=:'reason', actor=:'actor', updated_at=now() WHERE scope=:'scope' AND key=:'key';
 SELECT scope, key, disabled, reason, actor, updated_at
 FROM connector_switches WHERE scope=:'scope' AND key=:'key';
@@ -221,6 +221,20 @@ Backend draft PR #528 at `b1358ba43fc660a400ccf6efb7a3269f65061816` adds this re
 For authenticated `tools/call` requests that reach the tool handler, the code attempts one `tool.call` audit row per call, including tool, scope, validation, rate-limit, and handler denials. The request edge also records an insufficient-scope denial before dispatch. The row carries request and trace IDs, principal/grant/profile/tool metadata, scopes used, error code, and latency; arguments, result, and user agent are stored only as HMAC digests. `tools/list` is not audited. HTTP 401/403 responses on `/mcp` increment an in-memory `http.auth_failure` count by client IP and minute, per process. The writer flushes completed minutes to one row per IP/minute/process, with `event_count`; this is bounded write amplification under controller ruling S1762, not database-enforced uniqueness. After `CONNECTOR_AUTH_FAILURE_MAX_IPS` distinct IPs in a minute, further new IPs are counted in one overflow `http.auth_failure` row per minute per process with `ip = NULL`; already-counted IPs keep their own counts. For analysis, `SUM(event_count)` across per-process rows for an `(ip, minute)` (CC advisory). A crash can lose or duplicate one partial window. A flush-time database failure drops that window and increments `connector_audit_write_failures_total`. A read-audit insert failure still returns the tool response, increments the same metric, and logs `connector_audit_write_failed` with request ID and event type. An auth-dependency exception logs `connector_auth_dependency_unavailable` with request ID and exception class.
 
 The code defines `connector_requests_total`, `connector_tool_latency_ms`, `connector_limiter_rejections_total`, `connector_fallback_activations_total`, `connector_switch_state`, and `connector_audit_write_failures_total`. The request metric's method labels are exactly `initialize`, `notifications/initialized`, `ping`, `tools/list`, `tools/call`, and `unknown`; outcome labels are exactly `ok`, `error`, `rate_limited`, and `denied`. Configure the audit-write-failure alert in the telemetry alerting system at more than 0.1% of tool calls over five minutes before Gate 4 enable; the draft code defines metrics but no alert rule. Custom connector trace attributes are limited to `mcp.method.name`, `mcp.tool.name`, `mcp.protocol.version`, `connector.profile`, `connector.client_id`, `connector.outcome`, `connector.error_code`, and `enduser.id_hash`. For traced POST `/mcp` requests, the request ID is the 32-character trace ID used in the response header, request log, and audit row, including when OTLP export is off.
+
+### Discovery D2 deployed, tools disabled (S1762, 2026-09-29)
+
+Backend PR #536 added `search_listings` and `get_listing`. Gate 3 R2 was a unanimous APPROVE from GLM, DeepSeek, and CC in the Gemini seat per `d50cbd80`. The PR merged as `6622153298f062b614b195f27d1e1a284484040d`. Both tools are registered for the `default`, `claude`, and `openai` profiles, require `market.read`, and have `explicit_switch_required`. A tool with this flag is hidden and uncallable unless its `connector_switches` tool row exists with `disabled=false`. A missing row, `disabled=true`, a cold process, or a failed switch read keeps it off. `get_my_account` retains the older rule: an absent row means enabled. The `openai` profile's output schemas have no price or purchase fields.
+
+Before the merge, Mars inserted `('tool', 'search_listings')` and `('tool', 'get_listing')` rows with `disabled=true` at 08:41Z through the switch administration procedure above (ticket T-2026-000895, actor `mars-s1762`). After the Gate 4 prerequisites on this page pass, use the **Enable one existing exact `(scope, key)`** block above for each tool separately, with `scope=tool` and the exact tool key. Do not enable either tool before those prerequisites pass.
+
+The first resource deployment of `66221532`, `757a160c-e73f-4d15-a7c1-486a1a959c20`, failed at startup. Its D2 import chain (`contact_scrubber` → `MediationService` → `app.core.config`) loaded backend Settings, which refuses startup without `SECRET_KEY`, `DOWNLOAD_TOKEN_SECRET_KEY`, and `INTERNAL_API_KEY`. The resource service deliberately has none of these backend secrets. Railway kept the previous deployment serving; there was no service impact. The issue channel recorded the failure about one minute after Railway's email (ticket T-2026-000896).
+
+Backend PR #537, merged as `bb5ad62ad46419793962fee58f9daf33e24dc909`, moved those imports to call time. A settings failure during a call returns `TEMPORARILY_UNAVAILABLE`. `tests/connector/test_import_isolation.py` checks that a clean-environment import does not load `app.core.config`, `mediation_service`, `listing_search_service`, `qdrant_client`, or `embedding_service`. The Dockerfile connector smoke runs under `env -i` without `SECRET_KEY`, so this startup regression fails the build. Resource deployment `c8ec9984-d0a7-43f9-82c2-6e9eb64d064c` from `bb5ad62a` reached `SUCCESS` at about 11:58 CEST. Verification returned HTTP 200 from `/healthz`, HTTP 503 from `/readyz` as expected, HTTP 200 from protected resource metadata (PRM), and HTTP 503 `CONNECTOR_DISABLED` from POST `/mcp`.
+
+**Gate 4 prerequisite for D2:** These tools need backend settings for the listing licence flag, Qdrant, and embedding at call time. Provision a connector-scoped minimal configuration without the backend's unrelated secrets, then prove both a search call and a detail call on the test host before enabling either tool.
+
+**RULE:** Never add a module-level import of `app.core.config` (or anything that imports it) to the connector resource import path; keep it at call time.
 
 ### Signing keyset recovery: NO SUPPORTED PATH TODAY (S1757, 2026-09-27)
 
