@@ -498,7 +498,7 @@ This is the single merge/deploy order for the three P0 connector specs (R5); any
 2. **OAUTH AS** (bq-connector-oauth) deploys on `ai-market-connector-auth` with its flags off.
 3. **Connector server** (the rest of this BQ) deploys on `ai-market-connector` with `CONNECTOR_ENABLED=false`; verify `/healthz`, `/readyz`, PRM, 503 on `/mcp`, forged-XFF probe, Host check, A23 variable check.
 4. **Enable together:** `CONNECTOR_OAUTH_ENABLED=true` (CIMD on) and `CONNECTOR_ENABLED=true` with `CONNECTOR_EARLY_ACCESS_USER_IDS` = test accounts + Max; A1–A3 E2E.
-5. When P1 buyer tools ship, bq-connector-buyer decides whether to open access to everyone by explicitly setting `CONNECTOR_EARLY_ACCESS_ENFORCED=false` on all three services; an empty list while enforcement remains true denies everyone.
+5. When P1 buyer tools ship, bq-connector-buyer decides whether to open access to everyone by explicitly setting `CONNECTOR_EARLY_ACCESS_ENFORCED=false` on `ai-market-backend` (website consent API), `ai-market-connector-auth` and `ai-market-connector`, then restarting all three. An empty list while enforcement remains true denies everyone (backend PR #540 early-access erratum).
 
 bq-connector-action-path's migrations and flag-off code land after step 1 (they need the foundation's audit table); its flags turn on only after step 4, in the order its spec gives.
 
