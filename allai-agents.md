@@ -98,7 +98,7 @@ Agent health visible at `ops.ai.market/agents`. Three data sources merged:
 
 Since 2026-09-29 00:44Z, every backend `claude-*` model request goes to OpenAI **`gpt-5.6-luna`**. This covers allAI chat, anonymous chat, agents, classifiers, listing enhancement and the allie proxy. Embeddings and Vertex Gemini calls are unchanged.
 
-- **Why.** Max decided this in Events f78d7174 and d1931b72: run on Luna through the OpenAI API, billed to the business key, not through his ChatGPT sign-in, because OpenAI's terms forbid making a personal account available to others. Max also disabled the Anthropic API key (incident 22db56a3: every LLM call returned 401 from 23:56Z until the switch went live at 00:44Z).
+- **Why.** Max decided this in Events f78d7174 and d1931b72: run on Luna through the OpenAI API, billed to the business key, not through his ChatGPT sign-in, because OpenAI's terms forbid making a personal account available to others. Max also disabled the Anthropic API key (incident 22db56a3: every Anthropic `claude-*` call returned 401 from 23:56Z until the switch went live at 00:44Z; Gemini and Vertex calls, including embeddings, were unaffected. Scope correction: Event 9fa5d31b).
 - **Switch.** Railway-only variable `LLM_ANTHROPIC_REPLACEMENT_MODEL=gpt-5.6-luna` on `ai-market-backend` production (not in Infisical). It is read by `resolve_model()` in `app/core/llm.py`. The key is `OPENAI_API_KEY` in Infisical `ai-market-backend`/`prod`, a project-scoped `sk-proj` key.
 - **Code.** Backend PR #529 (`6a48fb59`, adapter), PR #530 (`286c9af6`, `max_output_tokens` minimum of 16) and PR #531 (`a6010def`, `reasoning.effort=none`).
 - **Revert.** Unset the variable and redeploy. This restores the Anthropic path only if the Anthropic key is re-enabled, so without that it still returns 401.
@@ -106,6 +106,7 @@ Since 2026-09-29 00:44Z, every backend `claude-*` model request goes to OpenAI *
   - Logs show `llm_call provider=openai model=gpt-5.6-luna` and `llm_usage provider=openai`.
   - `corpus_safety_classifier` logs `verdict=YES|NO`, not `UNAVAILABLE`.
   - `POST /api/allai/support/anonymous/message` returns `outcome=answer`.
+- **Gate 3 status:** the post-deploy fold PR #533 stopped at the Tier 3 three-round cap; GLM R3 REQUEST_CHANGES, rollback cost parity (Event 90c7df7d); waiting on Max. Main still has the gaps below.
 - **Known gaps (Gate 3 after deploy):**
   - Tool-loop turns drop OpenAI reasoning items (effort is `none`, so none are produced today).
   - The anonymous `usage` SSE event still names the configured Claude model, although the cost is computed at Luna prices.
