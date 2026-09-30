@@ -780,7 +780,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-08-25`
 - Aliases: none
-- Error signatures: none
+- Error signatures: merged_undeployed after a manual restart (deployed_sha marker not written; see Restart commands)
 - Status: current
 
 ## Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)

@@ -1072,6 +1072,10 @@
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
 
+## `merged_undeployed after a manual restart (deployed_sha marker not written; see Restart commands)`
+
+- [Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle](mcp-gateway.md)
+
 ## `Metadata generation failed`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)

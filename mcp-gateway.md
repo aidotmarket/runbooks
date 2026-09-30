@@ -3,7 +3,8 @@ title: Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle
 owner: unassigned
 last_verified: '2026-08-25'
 aliases: []
-error_signatures: []
+error_signatures:
+  - 'merged_undeployed after a manual restart (deployed_sha marker not written; see Restart commands)'
 ---
 
 # Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle
@@ -84,6 +85,11 @@ cloudflared path. **Do not remove the `com.koskadeux.cloudflared` plist.**
 
 ## Restart commands
 
+**Preferred handler reload:** let `~/koskadeux-mcp/scripts/reload_when_idle.sh`
+reload when idle; it bounces the handler and records HEAD in
+`~/koskadeux-state/deployed_sha`. Coordinate with all live peers (Vulcan, Mars,
+Athena) first: a handler restart drops every instance's in-memory state.
+
 Use `launchctl kickstart -k` — NOT `pkill`. The handlers are launchd-supervised (PPID=1,
 KeepAlive=true) and respawn instantly after `pkill`, which makes the older `pkill` guidance
 unreliable (S520 correction).
@@ -118,6 +124,31 @@ NEW=$(launchctl list | awk '/com\.koskadeux\.mcp/{print $1}')
 echo "pid $OLD -> $NEW"   # MUST differ; if equal, the restart no-opped — re-run kickstart
 ```
 
+**Manual handler restart:** capture `git -C ~/koskadeux-mcp rev-parse HEAD` at
+restart time and keep that checkout unchanged until the new PID has loaded it.
+After confirming the PID changed and `curl -f http://localhost:8765/health`
+succeeds, record that captured SHA, keeping the previous marker as
+`deployed_sha.bak-<session>`:
+
+```bash
+# Before restarting (retain these values in the detached script for S807):
+LOADED_SHA=$(git -C ~/koskadeux-mcp rev-parse HEAD) || exit 1
+SESSION=S1777  # use the current session ID
+
+# Only after the new PID is healthy and has loaded LOADED_SHA:
+MARKER=~/koskadeux-state/deployed_sha
+if [ -f "$MARKER" ]; then cp -p "$MARKER" "$MARKER.bak-$SESSION" || exit 1; fi
+TMP=$(mktemp "${MARKER}.tmp.XXXXXX") || exit 1
+printf '%s\n' "$LOADED_SHA" > "$TMP" && mv "$TMP" "$MARKER"
+```
+
+Never write a SHA the running process did not load, or read HEAD from a later
+checkout to fill the marker. S1777 (2026-09-30) loaded `43c1d86e` by hand but
+left the marker stale: only `scripts/reload_when_idle.sh` writes it automatically.
+The board readers (`scripts/ground_truth_board_stages.py` and
+`scripts/ground_truth_open_items.py`) then reported `merged_undeployed` despite
+the restart. Correct the marker using the loaded SHA as above.
+
 ### Restarting/redeploying the handler FROM INSIDE a session (S807 pattern)
 
 A shell_request command executes inside the `com.koskadeux.mcp` process tree, so a deploy
@@ -140,11 +171,15 @@ restart and leaves no migration window), run migrations, `launchctl bootstrap` t
 back, then verify the PID changed and `curl :8765/health` (allow several seconds for the
 launcher's Infisical fetches before trusting a failed probe). After the handler returns,
 the live instance MUST re-run kd_session_open + kd_session_plan (in-memory session state
-is dropped). The gateway (:8767) does not need a restart for handler-code changes.
+is dropped). For a manual restart, retain the restart-time HEAD in the detached
+script and, after the new PID is healthy, back up and atomically write the deploy
+marker as shown in [Restart commands](#restart-commands). The gateway (:8767)
+does not need a restart for handler-code changes.
 
-**A handler restart drops BOTH instances' in-memory session state** → both Vulcan and Mars
-must re-open + re-plan. Never restart unilaterally while the peer is live — coordinate
-(via Max) when both reach a clean stop. (See "Known issues → restarts drop both sessions.")
+**A handler restart drops every instance's in-memory session state** → all live
+peers (Vulcan, Mars, Athena) must re-open + re-plan. Never restart unilaterally
+while a peer is live — coordinate (via Max) with all live peers first, when all
+reach a clean stop. (See "Known issues → restarts drop both sessions.")
 
 ## Session lifecycle (consolidated from the former `session-lifecycle.md`)
 
