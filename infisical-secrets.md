@@ -27,7 +27,7 @@ Before advising on secret names, project/environment selection, access, verifica
 
 **Issue-channel watcher folder (S1758, 2026-09-28):** `ISSUE_CHANNEL_RAILWAY_EVENTS_TOKEN` is in the same project, `prod`, folder `/issue-channel-watcher-railway`. A third native sync, `railway-issue-channel-watcher-events-prod`, sends that folder only (non-recursive) to Railway `issue-channel-watcher` (`d48dd44c-4541-4387-89da-50b2b1d0c8fe`); auto-sync on, `overwrite-destination`, `disableSecretDeletion` true; a canary proved the folder is outside the root sync. Any Infisical `prod` write can now trigger all three syncs. Write to this folder only through the reviewed controller described in [issue-channel.md](issue-channel.md) "Railway events credential (watcher)".
 
-**How secrets are moved / rotated / generated: the local AI.** Day-to-day credential work runs through the **Local SecOps assistant** on Titan-1 (local model + guardrailed executor; values never leave the host, no human types them). See **[local-secops.md](local-secops.md)** for full operation. It can generate/rotate owned secrets, and copy an existing value **Railway → Infisical** (`reconcile-from-railway`) when Railway has drifted ahead.
+**How secrets are moved / rotated / generated: the local AI.** Day-to-day credential work runs through the **Local SecOps assistant** on Koskadeux (local model + guardrailed executor; values never leave the host, no human types them). See **[local-secops.md](local-secops.md)** for full operation. It can generate/rotate owned secrets, and copy an existing value **Railway → Infisical** (`reconcile-from-railway`) when Railway has drifted ahead.
 
 **CAUTION (why this matters):** because the sync prioritizes Infisical, a **stale** value in Infisical for a shared key will be pushed over a good Railway value on the next sync. This took prod down once (S1125: stale `GITHUB_TOKEN` + `GCP_SERVICE_ACCOUNT_JSON` clobbered working Railway creds). Before enabling/triggering a sync, ensure Infisical is not stale for shared keys — use `reconcile-from-railway`. Railway-managed vars (e.g. `DATABASE_URL`, `REDIS_URL`, `RAILWAY_*`) must NOT live in Infisical.
 
@@ -121,13 +121,13 @@ curl -s "https://secrets.ai.market/api/v3/secrets/raw?workspaceId=<PROJECT_ID>&e
 
 ### sysadmin-agent
 - **Identity ID**: `62f1bfac-3e07-4f4e-b15d-42f1bbcc9f5e`
-- **Purpose**: SysAdmin AI agent + unattended jobs on Titan-1 (gateway secret injection, agent skills)
+- **Purpose**: SysAdmin AI agent + unattended jobs on Koskadeux (gateway secret injection, agent skills)
 - **Org role**: Admin on all 3 projects (ai-market-backend, ai-market-frontend, koskadeux-mcp)
-- **Active auth method**: **Universal Auth** (client-id + client-secret). The identity also has a Token Auth method configured, but Universal Auth is the operative login path on Titan-1 (Last Login Method = Universal Auth). Do not assume the cached token file is a static Token-Auth token — it is a re-minted Universal-Auth JWT (below).
+- **Active auth method**: **Universal Auth** (client-id + client-secret). The identity also has a Token Auth method configured, but Universal Auth is the operative login path on Koskadeux (Last Login Method = Universal Auth). Do not assume the cached token file is a static Token-Auth token — it is a re-minted Universal-Auth JWT (below).
 - **Client ID** (non-secret): `b45b755e-455b-4b32-815c-274529edc04d`
 - **Client secret expiry**: **never** (EXPIRES = "-" in the UI; ~500+ uses). No rotation clock. If you ever rotate, add a new secret with TTL=0 / Max Uses=0, update the keychain (below), verify, then revoke the old one.
 
-#### Headless auth chain on Titan-1 (how the token file stays alive)
+#### Headless auth chain on Koskadeux (how the token file stays alive)
 The file `~/.config/infisical/sysadmin-token` is **not** a static token — it is a short-lived Universal-Auth JWT (Access Token TTL 86400s/24h) that is continuously re-minted. Do not treat it as permanent.
 
 1. Universal-auth creds live in the **macOS keychain** under account `infisical-sysadmin-agent`:
@@ -236,9 +236,9 @@ Gate 2 pre-flight task consolidates to `VERTEX_GEMINI_KEY` only, updates `launch
 
 - **App-read secrets are read from the process environment.** The historical S942 manual-sync gap was closed by the S1125 native sync. (`reconciliation-github-webhook.md` still carries the pre-S1125 wording that Infisical-only values do not reach the app; that wording is stale.) Follow Source of Truth & Propagation and Secret Rotation above; verify propagation rather than assuming a catalog write proves runtime adoption.
 
-### `INFISICAL_PROJECT_ID` on Titan-1 points at koskadeux-mcp, not the backend (S964)
+### `INFISICAL_PROJECT_ID` on Koskadeux points at koskadeux-mcp, not the backend (S964)
 
-The shell env on Titan-1 exports `INFISICAL_PROJECT_ID` = the **koskadeux-mcp** project (`0943f641…`) — gateway/council secrets like `DEEPSEEK_API_KEY`. Backend secrets (`CLOUDFLARE_API_TOKEN`, `AWS_*`, billing, etc.) live in **ai-market-backend** (`bd272d48…`). If you run `infisical secrets get FOO` without `--projectId`, you query koskadeux-mcp and a backend-only secret comes back **empty** (rc=0, len 0) — not missing, just the wrong drawer. Always pass `--projectId` explicitly for cross-project reads.
+The shell env on Koskadeux exports `INFISICAL_PROJECT_ID` = the **koskadeux-mcp** project (`0943f641…`) — gateway/council secrets like `DEEPSEEK_API_KEY`. Backend secrets (`CLOUDFLARE_API_TOKEN`, `AWS_*`, billing, etc.) live in **ai-market-backend** (`bd272d48…`). If you run `infisical secrets get FOO` without `--projectId`, you query koskadeux-mcp and a backend-only secret comes back **empty** (rc=0, len 0) — not missing, just the wrong drawer. Always pass `--projectId` explicitly for cross-project reads.
 
 ### `infisical secrets delete` defaults to `--type personal` (S964)
 

@@ -9,7 +9,7 @@ error_signatures: []
 # Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle
 
 > Canonical operations runbook for the **internal Koskadeux MCP** that the two Claude
-> instances (Vulcan + Mars, peers) drive Titan-1 through. For the **public/customer** MCP
+> instances (Vulcan + Mars, peers) drive Koskadeux through. For the **public/customer** MCP
 > that exposes marketplace tools to external LLM clients, see `aimarket-mcp-server.md` —
 > that is a different system.
 >
@@ -23,10 +23,10 @@ Never name a file or directory directly under koskadeux-mcp `scripts/` after a P
 
 ## What it is
 
-Exposes the Koskadeux MCP server on Titan-1 at `https://mcp.ai.market` so the hosted Claude
+Exposes the Koskadeux MCP server on Koskadeux at `https://mcp.ai.market` so the hosted Claude
 instances (Vulcan and Mars, equal-authority peers) can call MCP tools from a hosted
 browser session. All tool calls (`council_request`, `state_request`, `kd_session_*`,
-`shell_request`, `dispatch_mp_build`, etc.) execute locally on Titan-1 against the
+`shell_request`, `dispatch_mp_build`, etc.) execute locally on Koskadeux against the
 filesystem, agents, Council infrastructure, and Living State.
 
 - **Public hostname:** `mcp.ai.market`
@@ -38,7 +38,7 @@ filesystem, agents, Council infrastructure, and Living State.
 ```
 Claude.ai (hosted browser — Vulcan + Mars, equal-authority peers)
   → https://mcp.ai.market           [Cloudflare Tunnel — public surface]
-  → cloudflared on Titan-1          [com.koskadeux.cloudflared: `cloudflared tunnel run koskadeux`]
+  → cloudflared on Koskadeux          [com.koskadeux.cloudflared: `cloudflared tunnel run koskadeux`]
   → gateway_server.py :8767         [thin MCP-protocol proxy + OAuth]
   → HTTP POST localhost:8765/api/call
   → koskadeux_server.py :8765       [REAL handler — imports tools/agents.py]
@@ -329,7 +329,7 @@ A path failure localises by which step first stops returning 200 / active.
 ## Backup admin path
 
 Cloudflared is the only inbound path the instances have to issue tools, so when the
-gateway/handler is dead they cannot restart it themselves. Use a direct admin path to Titan-1
+gateway/handler is dead they cannot restart it themselves. Use a direct admin path to Koskadeux
 (Tailscale SSH if configured, or local/physical access) to run `launchctl kickstart -k …`
 when the public surface is healthy but the local handlers are wedged, or when the tunnel
 itself is degraded.

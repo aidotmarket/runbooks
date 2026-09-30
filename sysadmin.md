@@ -24,7 +24,7 @@ spec plus live backend code; this page is the operator map.
   `app/agents/sysadmin/skills/{railway_ops,infisical_ops,shell_ops}.py`,
   `app/api/v1/endpoints/agent_health.py`, `app/main.py`.
 - **Status (S1165):** verified live 2026-07-12 - `HEALTHY` after backend commit `02e3830f`.
-  The previous false `DEGRADED`/P0 path from a healthy Titan-1 bind probe is fixed.
+  The previous false `DEGRADED`/P0 path from a healthy Koskadeux bind probe is fixed.
 
 ## Capabilities
 
@@ -36,7 +36,7 @@ spec plus live backend code; this page is the operator map.
 | `resend_domain_status` provider read | SHIPPED | `app/services/sysadmin_resend.py` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
 | `host_inspect` read-only checkout inspection | SHIPPED | `app/agents/sysadmin/skills/shell_ops.py` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
 | `e2e_armed_window` route arming monitor with robust string-bool coercion | SHIPPED | `app/allai/agents/sysadmin/monitors.py:41` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
-| `titan1_health` Titan-1/MCP health read, 2xx only healthy | SHIPPED | `app/allai/agents/sysadmin/agent.py:636` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
+| `titan1_health` Koskadeux/MCP health read, 2xx only healthy | SHIPPED | `app/allai/agents/sysadmin/agent.py:636` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
 | `mcp_server_restart` dry-run/runbook-owned restart proposal | SHIPPED | `app/agents/sysadmin/skills/railway_ops.py` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
 | `escalation_test` route self-test | SHIPPED | `app/allai/agents/sysadmin/agent.py:679` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
 | `monitor_unavailable` check-execution failure class | SHIPPED | `app/allai/agents/sysadmin/agent.py:828` | tests/test_sysadmin_operating_model_s1086.py | 2026-07-12 |
@@ -132,12 +132,12 @@ After the 2026-09-24 repair, `/api/v1/internal/agent-compliance` reported `HEALT
 - id: E-03
   trigger: "Railway project token must be re-minted without dashboard access."
   pre_conditions:
-    - "Titan-1 account token is available through titan-1.md Railway auth."
+    - "Koskadeux account token is available through titan-1.md Railway auth."
   tool_or_endpoint: "POST https://backboard.railway.app/graphql/v2"
   argument_sourcing:
     project_id: "e81dd66f-808c-412e-b32c-f6d910f0ac5d"
     environment_id: "23e322c3-b195-45d8-9151-c4c27a998c33"
-    token_source: "source ~/bin/railway-env.sh on Titan-1"
+    token_source: "source ~/bin/railway-env.sh on Koskadeux"
   idempotency: NOT_IDEMPOTENT
   expected_success:
     shape: "project token for ai-market production environment"
@@ -195,15 +195,15 @@ project, not `ai-market-backend`, when the shipped deployment rule calls that ou
 |---|---|---|---|---|---|
 | F-01 | SysAdmin row is `DEGRADED`, `UNAVAILABLE`, or `compliant=false` | bind probe failed, dispatch probe failed, scheduler evidence stale, router unavailable, or core capability disabled | Start with `/agent-compliance`; inspect `disabled_capabilities`, `probe_errors`, `dispatch_probe_errors`, and `contracts.<id>.last_result` | G-01 | CONFIRMED |
 | F-02 | `contracts.<id>.last_result.failure_class=monitor_unavailable` | runner raised, timed out, failed `CapabilityOutput` validation, or called a disabled capability | Read `contract_id`, `runner_name`, `error_type`, `error`, `condition_status`, and `monitored_failure_class`; `condition_status=unknown` means the monitored condition was not observed | G-02 | CONFIRMED |
-| F-03 | Contract result has `ok=false` without runner exception | genuine domain alert such as unhealthy Titan-1, over-armed E2E route, provider failure, or escalation route failure | Scope by contract: `railway_status`, `infisical_metadata`, `resend_domain_status`, `host_inspection`, `e2e_armed_window`, `titan1_health`, or `escalation_route`; confirm `failure_class` is not `monitor_unavailable` | G-03 | CONFIRMED |
-| F-04 | Titan-1 or MCP page says `mcp_server_unhealthy` | Titan-1 health endpoint returned non-2xx, or the MCP restart dry run saw Titan-1 unhealthy | Check `titan1_health` evidence `endpoint` and `status_code`; 2xx is healthy, 3xx redirect is misconfiguration, and non-2xx is a domain failure | G-04 | CONFIRMED |
+| F-03 | Contract result has `ok=false` without runner exception | genuine domain alert such as unhealthy Koskadeux, over-armed E2E route, provider failure, or escalation route failure | Scope by contract: `railway_status`, `infisical_metadata`, `resend_domain_status`, `host_inspection`, `e2e_armed_window`, `titan1_health`, or `escalation_route`; confirm `failure_class` is not `monitor_unavailable` | G-03 | CONFIRMED |
+| F-04 | Koskadeux or MCP page says `mcp_server_unhealthy` | Koskadeux health endpoint returned non-2xx, or the MCP restart dry run saw Koskadeux unhealthy | Check `titan1_health` evidence `endpoint` and `status_code`; 2xx is healthy, 3xx redirect is misconfiguration, and non-2xx is a domain failure | G-04 | CONFIRMED |
 | F-05 | Escalation did not retry after a failed page attempt | pre-S1165 fingerprint was burned before send, or a new regression marked fingerprint before successful page | Grep for CRITICAL `Failed to escalate SysAdmin contract`; confirm the fingerprint is not in `escalated_fingerprints` until page success | G-05 | CONFIRMED |
 | F-06 | Production E2E route alarm mentions `e2e_routes_over_armed` | route flag truly armed beyond window, unparsable armed timestamp, or pre-S1165 string-bool parsing false alarm | Inspect `route_flag_enabled`, `armed_at`, allowlist counts, and `condition_status`; string `"false"` must coerce to false through `_settings_bool` | G-06 | CONFIRMED |
 | F-07 | `runbook router unavailable: runbook hash mismatch for <topic>` and `capability disabled: <name>` for all capabilities | A SysAdmin runbook changed without its `TOPIC-ROUTER.json` integrity hash | Compare the named runbook's UTF-8 SHA-256 with its `integrity_hash`; inspect `/agent-compliance` disabled capabilities | G-07 | CONFIRMED |
 
 For `monitor_unavailable`, stop before diagnosing the domain. For example,
 `monitored_failure_class=e2e_routes_over_armed` does not mean E2E routes are armed, and
-`monitored_failure_class=mcp_server_unhealthy` does not mean Titan-1 is down. Use `runner_name` to
+`monitored_failure_class=mcp_server_unhealthy` does not mean Koskadeux is down. Use `runner_name` to
 find the broken capability binding or runtime dependency. S1165 records these fields in
 `app/allai/agents/sysadmin/agent.py:824`.
 
@@ -242,9 +242,9 @@ Do not use AgentHost registry presence as proof of SysAdmin health.
 - id: G-04
   symptom_ref: F-04
   component_ref: Health contracts
-  root_cause: "Titan-1 health endpoint returned non-2xx, or the MCP restart dry run could not verify health."
+  root_cause: "Koskadeux health endpoint returned non-2xx, or the MCP restart dry run could not verify health."
   repair_entry_point: "app/allai/agents/sysadmin/agent.py:_titan1_probe"
-  change_pattern: "Fix Titan-1 or mcp.ai.market health endpoint behavior. Treat redirects as misconfiguration, not health. Use mcp_server_restart only through dry-run, authorization, and verify flow."
+  change_pattern: "Fix Koskadeux or mcp.ai.market health endpoint behavior. Treat redirects as misconfiguration, not health. Use mcp_server_restart only through dry-run, authorization, and verify flow."
   rollback_procedure: "Rollback the endpoint/tunnel/deploy change that introduced non-2xx behavior, then verify health."
   integrity_check: "`titan1_health` evidence shows HTTP 2xx and contract ok=true."
 - id: G-05
@@ -328,7 +328,7 @@ capability names, contract IDs, failure classes, and escalation context fields.
 
 #### runtime dependency
 
-Runtime dependencies are Railway, Infisical, Resend, Titan-1/mcp.ai.market, the host checkout,
+Runtime dependencies are Railway, Infisical, Resend, Koskadeux/mcp.ai.market, the host checkout,
 Telegram/allAI escalation plumbing, backend settings, and the runbook router.
 
 #### config default
@@ -404,7 +404,7 @@ scenario_set:
   - id: I-07
     type: isolate
     refs: [F-04]
-    scenario: "Titan-1 returned HTTP 302."
+    scenario: "Koskadeux returned HTTP 302."
     expected_answers:
       - kind: classification
         label: "misconfiguration; not healthy"
@@ -422,11 +422,11 @@ scenario_set:
   - id: I-09
     type: repair
     refs: [G-04]
-    scenario: "Titan-1 health is a real non-2xx domain failure."
+    scenario: "Koskadeux health is a real non-2xx domain failure."
     expected_answers:
       - kind: human_action
         verb: "repair"
-        object: "Titan-1 or mcp.ai.market health endpoint"
+        object: "Koskadeux or mcp.ai.market health endpoint"
         target: "titan1_health contract"
     weight: 0.08333333333333333
   - id: I-10

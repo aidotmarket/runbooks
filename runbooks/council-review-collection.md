@@ -51,7 +51,7 @@ Backing-code paths are relative to the koskadeux-mcp repository root.
 | CC reviewer | council dispatch path, agentic | structured_payload in receipt | repo checkout at SHA | raw structured_payload is authoritative over legacy coercion |
 | Gate recorder | `state_request(action=bq_update)` | build:bq-* entities, Event Ledger | Living State | Set `gate_status_update=true` to update `body.gateN.status`; see E-02. |
 | Peer bus | peer_msg_send and peer_msg_inbox | peer_messages table | both instances | silent dedupe on (from, to, kind, ref_entity); see E-03 |
-| MP builder lane | dispatch_mp_build | MP mutex, Living State claims | single Codex CLI on Titan-1 | one lane; claim on the bus before dispatch and use the live required payload; see E-03 |
+| MP builder lane | dispatch_mp_build | MP mutex, Living State claims | single Codex CLI on Koskadeux | one lane; claim on the bus before dispatch and use the live required payload; see E-03 |
 
 Canonical live-roster reference: `state_request(action=get, key=infra:council-comms)`. Read it before any Council work in a session; this runbook does not restate roster, model pins, or cost caps.
 

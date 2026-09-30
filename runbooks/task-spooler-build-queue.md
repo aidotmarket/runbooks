@@ -27,7 +27,7 @@ error_signatures:
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Task Spooler binary installed on Titan-1 | SHIPPED | `/opt/homebrew/bin/ts` | Smoke-proven S1488, Homebrew formula task-spooler 1.0.4 | 2026-08-09 |
+| Task Spooler binary installed on Koskadeux | SHIPPED | `/opt/homebrew/bin/ts` | Smoke-proven S1488, Homebrew formula task-spooler 1.0.4 | 2026-08-09 |
 | Immediate job handle on enqueue | SHIPPED | `/opt/homebrew/bin/ts` | Two enqueues returned ids in 0.284s wall including server start | 2026-08-09 |
 | Server drains with no caller attached | SHIPPED | `/opt/homebrew/bin/ts` | Caller exited, two jobs ran to completion unattended | 2026-08-09 |
 | Independent queue per repository | SHIPPED | `koskadeux_mcp/tsp_queue.py` | Two sockets ran concurrently, smoke-proven S1488 | 2026-08-09 |
@@ -311,7 +311,7 @@ Homebrew formula `task-spooler` 1.0.4, binary `ts`. No broker, no daemon of ours
 
 ### H.6 Adjudication
 
-Queue behaviour questions are settled by reading Task Spooler's own documentation and by measurement on Titan-1, not by writing new rules. Correctness of any change to this surface is adjudicated at Gate 3 by the Council, per CORE S4. Where this runbook and `builder-controls.md` overlap, builder-controls is authoritative for what happens after the builder starts and this runbook is authoritative for how the job got there.
+Queue behaviour questions are settled by reading Task Spooler's own documentation and by measurement on Koskadeux, not by writing new rules. Correctness of any change to this surface is adjudicated at Gate 3 by the Council, per CORE S4. Where this runbook and `builder-controls.md` overlap, builder-controls is authoritative for what happens after the builder starts and this runbook is authoritative for how the job got there.
 
 ## Acceptance criteria
 
@@ -364,13 +364,13 @@ scenario_set:
       - kind: human_action
         verb: verify
         object: whether a job or a moved branch already exists before re-dispatching
-        target: Titan-1
+        target: Koskadeux
     weight: 0.15
   - id: I-05
     type: isolate
     refs:
       - F-03
-    scenario: A new operator runs tsp -l on Titan-1 and gets command not found.
+    scenario: A new operator runs tsp -l on Koskadeux and gets command not found.
     expected_answers:
       - kind: classification
         label: WRONG_BINARY_NAME
@@ -435,7 +435,7 @@ scenario_set:
       - kind: human_action
         verb: distinguish
         object: a slow live build from a stalled one before killing anything
-        target: Titan-1
+        target: Koskadeux
     weight: 0.05
 ```
 

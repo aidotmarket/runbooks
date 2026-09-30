@@ -31,7 +31,7 @@ error_signatures:
 |---|---|---|---|---|
 | Gmail OAuth refresh-token storage and use | SHIPPED | `ai-market-backend gmail_tokens table + GmailService/GmailWatchService` | Exercised by briefing send and drop-pipeline watch paths | 2026-06-01 |
 | OAuth consent screen = External, publishing status In production (customer Google sign-in works; Gmail refresh tokens do not expire) | SHIPPED | `Google Auth Platform > Audience > User type (project aimarket-prod)` | Found NOT Internal on 2026-09-21 despite the 2026-06-01 check; Max set it to Internal 2026-09-21 (S1734), which blocked every non-ai.market customer at Google sign-in (`Error 403: org_internal`, first customer sergey@eolymp.com, 2026-09-22); Max set it to External + In production 2026-09-22 (S1736). Verified after the change: max@ and finance@ refresh tokens refresh and read Gmail | 2026-09-22 |
-| gcloud CLI session auth (Pub/Sub and GCP admin) | SHIPPED | `gcloud CLI on Titan-1` | Verified via gcloud auth list and pubsub list | 2026-06-01 |
+| gcloud CLI session auth (Pub/Sub and GCP admin) | SHIPPED | `gcloud CLI on Koskadeux` | Verified via gcloud auth list and pubsub list | 2026-06-01 |
 | Pub/Sub gmail-push topic and subscription | SHIPPED | `GCP Pub/Sub gmail-push -> api.ai.market gmail webhook` | Verified via gcloud pubsub topics/subscriptions list | 2026-06-01 |
 | Vertex AI Gemini API-key auth | SHIPPED | `ai-market-backend app.core.config Settings.VERTEX_GEMINI_KEY` | Verified via Infisical key-prefix check expecting AQ. | 2026-06-01 |
 | AIM Data gateway TEST KMS project (`aimarket-gw-test-s1741`, Ed25519 SOFTWARE key) | SHIPPED | `GCP project aimarket-gw-test-s1741, key ring gateway-a0-test (us-central1)` | Live A0 probe S1741 (Event f831ffb3): signature verified in Python and Go, tampering rejected; re-signed identically with `gcloud kms asymmetric-sign` 2026-09-24 | 2026-09-24 |
@@ -45,7 +45,7 @@ GCP authentication for ai.market spans four independent auth paths. Gmail OAuth 
 |---|---|---|---|---|
 | Gmail OAuth | `GmailService / GmailWatchService` | `gmail_tokens (Railway Postgres)` | Gmail API, briefing, drop pipeline, draft sending | Refresh tokens non-expiring while the consent screen is In production (External or Internal); they expire in 7 days under Testing |
 | OAuth Consent Screen | `GCP Console OAuth consent (project aimarket-prod)` | GCP project config | Gmail OAuth and customer Google sign-in | MUST be External + In production; Internal locks customers out, Testing expires tokens |
-| gcloud CLI | `gcloud on Titan-1` | local gcloud config | Pub/Sub admin, GCP admin tasks | Interactive browser login only; Vulcan cannot do it headlessly |
+| gcloud CLI | `gcloud on Koskadeux` | local gcloud config | Pub/Sub admin, GCP admin tasks | Interactive browser login only; Vulcan cannot do it headlessly |
 | Pub/Sub | `gmail-push topic + gmail-push-sub` | GCP Pub/Sub | Gmail watch to `https://api.ai.market/api/v1/webhooks/gmail` | Drives the inbound drop pipeline |
 | Vertex AI Gemini | `genai.Client(vertexai=True, api_key=...)` | `VERTEX_GEMINI_KEY (Infisical)` | Gemini embeddings and chat | API-key auth (AQ. prefix); embed calls MUST pass output_dimensionality |
 | Trust Channel KMS | `configure_gcp_credentials` then `get_kms_client` | `GCP_SERVICE_ACCOUNT_JSON (Infisical -> Railway)` | GCP KMS keyring `ai-market-trust` | Runtime identity is `kms-trust-agent@aimarket-prod.iam.gserviceaccount.com`; private credential material must never be printed or persisted outside approved secret-backed transfer. |
@@ -82,7 +82,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
 ```yaml operate
 - id: E-01
   trigger: Routine verification that GCP auth is healthy for Gmail, Pub/Sub, and the active gcloud account.
-  pre_conditions: [gcloud CLI installed on Titan-1, max@ai.market is the intended active account, project aimarket-prod is the intended project]
+  pre_conditions: [gcloud CLI installed on Koskadeux, max@ai.market is the intended active account, project aimarket-prod is the intended project]
   tool_or_endpoint: gcloud auth list; gcloud config get-value project; gcloud pubsub topics list; gcloud pubsub subscriptions list
   argument_sourcing:
     account: expect max@ai.market as the active account
@@ -97,8 +97,8 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   next_step_failure: Isolate using When it breaks-03 for account/project mismatch.
 - id: E-02
   trigger: Gmail-dependent jobs (briefing, drop pipeline, draft sending) stopped because refresh tokens expired.
-  pre_conditions: [OAuth consent screen confirmed External + In production, GOOGLE_OAUTH_CREDENTIALS_JSON available in Railway env, railway CLI authenticated on Titan-1]
-  tool_or_endpoint: python3 scripts/setup_gmail_auth.py <address> run by Max on Titan-1 with GOOGLE_OAUTH_CREDENTIALS_JSON from the backend service env and DATABASE_URL set to the Postgres service's DATABASE_PUBLIC_URL (both read via the Railway account token from Infisical, never printed); the script writes gmail_tokens directly. Max signs in in the browser AS the target account. Done this way 2026-09-21 (S1734) for finance@ and max@; no redeploy was needed.
+  pre_conditions: [OAuth consent screen confirmed External + In production, GOOGLE_OAUTH_CREDENTIALS_JSON available in Railway env, railway CLI authenticated on Koskadeux]
+  tool_or_endpoint: python3 scripts/setup_gmail_auth.py <address> run by Max on Koskadeux with GOOGLE_OAUTH_CREDENTIALS_JSON from the backend service env and DATABASE_URL set to the Postgres service's DATABASE_PUBLIC_URL (both read via the Railway account token from Infisical, never printed); the script writes gmail_tokens directly. Max signs in in the browser AS the target account. Done this way 2026-09-21 (S1734) for finance@ and max@; no redeploy was needed.
   argument_sourcing:
     credentials: GOOGLE_OAUTH_CREDENTIALS_JSON sourced from Railway env (no local secret files)
     emails: every live gmail_tokens account - max@ai.market (crm_briefing) and finance@ai.market (allai_operations; allai@ai.market is an alias of finance@, not an account). There is no ally@ai.market account; its gmail_tokens row is a dead leftover that nothing authenticates (Max, 2026-09-21).
@@ -112,7 +112,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   next_step_failure: Apply Repair-01 to fix the consent screen before re-issuing tokens.
 - id: E-03
   trigger: Verify the Vertex AI Gemini API key is the correct Express key type before or after a rotation.
-  pre_conditions: [infisical CLI authenticated on Titan-1, project id bd272d48-c5a1-4b52-9d24-12066ae4403c reachable]
+  pre_conditions: [infisical CLI authenticated on Koskadeux, project id bd272d48-c5a1-4b52-9d24-12066ae4403c reachable]
   tool_or_endpoint: infisical secrets get VERTEX_GEMINI_KEY --projectId bd272d48-c5a1-4b52-9d24-12066ae4403c --env prod --plain --silent --domain https://secrets.ai.market | head -c 4
   argument_sourcing:
     secret_name: VERTEX_GEMINI_KEY (canonical uppercase name; no aliases in production)
@@ -125,7 +125,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   next_step_failure: Isolate using When it breaks-04 and re-create the key scoped to the Vertex AI API.
 - id: E-04
   trigger: Verify Trust Channel KMS authentication and key-purpose readiness before or after a credential recovery.
-  pre_conditions: [infisical and railway CLIs authenticated on Titan-1, production project aimarket-prod selected, read-only GCP KMS access available]
+  pre_conditions: [infisical and railway CLIs authenticated on Koskadeux, production project aimarket-prod selected, read-only GCP KMS access available]
   tool_or_endpoint: Compare non-secret credential metadata in Infisical and Railway; inspect both KMS public keys and algorithms; then run the Trust Channel E-05 live probe.
   argument_sourcing:
     credential: GCP_SERVICE_ACCOUNT_JSON from Infisical ai-market-backend/prod synchronized to Railway production
@@ -139,8 +139,8 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   next_step_success: Keep the credential secret-backed and record only service-account identity, key id, algorithms, deployment identity, and probe result.
   next_step_failure: Keep Trust Channel registration fail-closed; repair the exact credential, IAM, key name, or algorithm mismatch without exporting any KMS private key.
 - id: E-05
-  trigger: The gcloud session on Titan-1 has expired and an agent needs it for a GCP admin task while Max is reachable only through a browser (S1741).
-  pre_conditions: [Max available to sign in to Google in any browser as max@ai.market, an agent shell on Titan-1]
+  trigger: The gcloud session on Koskadeux has expired and an agent needs it for a GCP admin task while Max is reachable only through a browser (S1741).
+  pre_conditions: [Max available to sign in to Google in any browser as max@ai.market, an agent shell on Koskadeux]
   tool_or_endpoint: gcloud auth login max@ai.market --no-launch-browser, started in the background with its stdin read from a named pipe (mkfifo) so the verification code can be written into it later.
   argument_sourcing:
     url: the sign-in URL gcloud prints; give it to Max
@@ -151,7 +151,7 @@ Only Max can perform the interactive gcloud browser login and change the OAuth c
   expected_failures:
     - {signature: "code expired or reused", cause: the code was entered too late or twice; restart the command and get a new URL}
   next_step_success: Continue the GCP task; the sign-in itself stays Max's (H.1 invariant).
-  next_step_failure: Ask Max to run gcloud auth login on Titan-1 directly.
+  next_step_failure: Ask Max to run gcloud auth login on Koskadeux directly.
 - id: E-06
   trigger: A build or probe needs a TEST Cloud KMS Ed25519 key for the AIM Data gateway (S1741 A0; the gateway permission and listing keys use Ed25519 at the SOFTWARE level, Gate 2 Amendment A).
   pre_conditions: [E-01 passes as max@ai.market, use only the TEST project aimarket-gw-test-s1741, never aimarket-prod]
@@ -203,7 +203,7 @@ To tell which account is dead, refresh each `gmail_tokens` row directly against 
   symptom_ref: F-02
   component_ref: gcloud CLI
   root_cause: The interactive gcloud session expired.
-  repair_entry_point: gcloud CLI on Titan-1
+  repair_entry_point: gcloud CLI on Koskadeux
   change_pattern: Run gcloud auth login --account=max@ai.market in an interactive terminal (Max only; cannot be done headlessly).
   rollback_procedure: None; re-login is non-destructive.
   integrity_check: gcloud auth list shows max@ai.market as active.
@@ -211,7 +211,7 @@ To tell which account is dead, refresh each `gmail_tokens` row directly against 
   symptom_ref: F-03
   component_ref: gcloud CLI
   root_cause: gcloud is pointed at the wrong account or project.
-  repair_entry_point: gcloud CLI on Titan-1
+  repair_entry_point: gcloud CLI on Koskadeux
   change_pattern: Run gcloud config set account max@ai.market and gcloud config set project aimarket-prod.
   rollback_procedure: Restore the prior account/project with gcloud config set if the change was unintended.
   integrity_check: gcloud config get-value project returns aimarket-prod and the active account is max@ai.market.

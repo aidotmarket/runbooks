@@ -26,7 +26,7 @@ error_signatures:
 
 | Dependency | What it provides | Where it lives | Owning service |
 |---|---|---|---|
-| Run recordings | The video of each browser journey, the primary evidence this whole mechanism reads | `/Users/max/Downloads/testvideos` on Titan-1, Max-specified. VOLATILE by design - Max deletes old ones and macOS may clear Downloads | e2e-harness |
+| Run recordings | The video of each browser journey, the primary evidence this whole mechanism reads | `/Users/max/Downloads/testvideos` on Koskadeux, Max-specified. VOLATILE by design - Max deletes old ones and macOS may clear Downloads | e2e-harness |
 | Step transcript | The agent's own declared intent and actions per step. Without it the acceptance gate cannot tell a tester fault from a product fault | e2e-harness run artifacts | e2e-browser-runner.md |
 | Playwright trace | DOM snapshots and network activity. NOT fed raw - see H.6 decision log entry 3 | e2e-harness run artifacts | e2e-browser-runner.md |
 | Coverage catalog | The 30 journeys. Answers the owner's flow question, which a video model cannot | `docs/coverage.json` in e2e-harness | e2e-programme-integrity.md |
@@ -51,7 +51,7 @@ error_signatures:
 
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Recorder | e2e-harness browser journey runner | video files on Titan-1 | run report, tickets | Must fail soft. A recording problem must never change a run's outcome. Must create its directory at write time, every run. |
+| Recorder | e2e-harness browser journey runner | video files on Koskadeux | run report, tickets | Must fail soft. A recording problem must never change a run's outcome. Must create its directory at write time, every run. |
 | Evidence assembler | not yet built | — | transcript, trace, catalog | Builds the single object both the model and the gate read. Load-bearing and currently UNDEFINED - see When it breaks-02. |
 | Video model | Gemini via the existing Vertex connection | — | evidence assembler | Sees roughly one frame per second. Cannot read a binary archive. Cannot see the agent's intent unless the assembler gives it. |
 | Acceptance gate | not yet built | — | findings, tickets | Decides accepted, accepted-with-review, or demoted. Never discards. |
@@ -66,7 +66,7 @@ Prose: a run produces a video, a step transcript and a trace. An assembler turns
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan/Mars | Read the decision log before changing anything here | this runbook H.7 | none | COMPLETE |
-| Vulcan/Mars | Settle the open pass-structure question by measurement | `shell_request` on a real recording | Titan-1 | PARTIAL — cannot be settled until a real recording exists |
+| Vulcan/Mars | Settle the open pass-structure question by measurement | `shell_request` on a real recording | Koskadeux | PARTIAL — cannot be settled until a real recording exists |
 | Vulcan/Mars | Put a proposed change to independent challengers before building | `council_request(agent=<glm\|deepseek\|gemini>, mode=open_response, task=..., cwd=...)` | Council dispatch | COMPLETE — three historical rounds are recorded in H.6; current calls use the deployed role/schema projection |
 | CC | Provide an explicit-name non-Council second opinion | `council_request agent=cc mode=review` | Read-only non-Council dispatch | COMPLETE — preserve the result separately; it never counts in a gate |
 | GLM / DeepSeek / Gemini | Review or analyse under the current voter roster | `council_request mode=review` | Read-only Council dispatch | COMPLETE — all three are required for a gate |
@@ -251,7 +251,7 @@ What an accepted finding MEANS: a real problem, evidenced, correctly attributed 
 
 #### runtime dependency
 
-The Titan-1 recording folder, the existing Google Cloud connection, and the support ticket API.
+The Koskadeux recording folder, the existing Google Cloud connection, and the support ticket API.
 
 #### config default
 

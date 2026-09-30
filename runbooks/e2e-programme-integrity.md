@@ -72,12 +72,12 @@ Prose: the catalog defines the 30 journeys. A charter claims some of them and ca
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan/Mars | Run the integrity audit (How to operate-01) | `shell_request` + `state_request` | Titan-1 + Living State read | COMPLETE — run it before trusting any coverage number |
-| Vulcan/Mars | Author or amend a charter against H.1 | `shell_request` edit + Council review | Titan-1 shell | COMPLETE |
-| Vulcan/Mars | Reconcile the queue against committed charters (How to operate-03) | `shell_request` | Titan-1 shell | COMPLETE — the guard cannot do this yet |
+| Vulcan/Mars | Run the integrity audit (How to operate-01) | `shell_request` + `state_request` | Koskadeux + Living State read | COMPLETE — run it before trusting any coverage number |
+| Vulcan/Mars | Author or amend a charter against H.1 | `shell_request` edit + Council review | Koskadeux shell | COMPLETE |
+| Vulcan/Mars | Reconcile the queue against committed charters (How to operate-03) | `shell_request` | Koskadeux shell | COMPLETE — the guard cannot do this yet |
 | MP (Codex) | Build charters and guard changes | `council_request mode=build` | Council dispatch | COMPLETE — its summaries over-claim; diff-inspect at file:line every time |
 | GLM / DeepSeek / Gemini | Review charters for safety and coverage honesty when gate review is required | `council_request(agent=<glm\|deepseek\|gemini>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — CC is available only by explicit name for a non-Council second opinion |
-| launchd nightly | Execute the queue and publish | plist + `scripts/run-nightly.sh` | Titan-1 | COMPLETE |
+| launchd nightly | Execute the queue and publish | plist + `scripts/run-nightly.sh` | Koskadeux | COMPLETE |
 
 ## How to operate
 
@@ -86,7 +86,7 @@ Prose: the catalog defines the 30 journeys. A charter claims some of them and ca
   trigger: Prove the testing programme is actually working. Run this before quoting ANY coverage number to Max, after any harness change, and whenever the Test page looks quiet
   pre_conditions:
     - Living State reachable
-    - Titan-1 shell available
+    - Koskadeux shell available
   tool_or_endpoint: "the six-point integrity audit below, in order, all six"
   argument_sourcing:
     record: state_request get on infra:e2e-test-status

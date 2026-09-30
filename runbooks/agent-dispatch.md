@@ -405,12 +405,12 @@ XAI uses `PARTIAL` coverage here only because Agent capabilities coverage status
   tool_or_endpoint: shell + launchctl bootout/bootstrap + council_request(agent=mp, mode=open_response, task=<smoke_task>, cwd=<smoke_cwd>)
   argument_sourcing:
     plist_path: ~/Library/LaunchAgents/com.koskadeux.council-hall.plist (the dispatch process; NOT com.koskadeux.mcp.plist)
-    domain: gui/$(id -u) where uid is the active user (typically 501 on Titan-1)
+    domain: gui/$(id -u) where uid is the active user (typically 501 on Koskadeux)
     smoke_cwd: any path under /Users/max/Projects/* (e.g. ai-market-backend) — MUST exercise _should_route_to_laptop() routing decision; DEFAULT_CWD bypasses the check and false-positives the verification
     smoke_task: "short prompt that returns hostname + env var value (verbatim shell echo); response time and absence of laptop-side error (\"node: No such file or directory\") is the diagnostic"
   idempotency: IDEMPOTENT_WITH_KEY
   idempotency_key: hash(plist_sha256 + env_var_state)
-  expected_success: {shape: "smoke response returns Titan-1 hostname (Koskadeux.local) + env var value \"1\" + no SSH-to-laptop error", verification: "ps -E -p <NEW_PID> shows env var in running process, AND launchctl print shows env var in canonical \"environment\" Dict (not only \"inherited environment\")"}
+  expected_success: {shape: "smoke response returns Koskadeux hostname (Koskadeux.local) + env var value \"1\" + no SSH-to-laptop error", verification: "ps -E -p <NEW_PID> shows env var in running process, AND launchctl print shows env var in canonical \"environment\" Dict (not only \"inherited environment\")"}
   expected_failures:
     - {signature: env_var_in_inherited_only, cause: bootout+bootstrap was not run; the user-domain launchctl setenv inheritance is propagating the var but the plist EnvironmentVariables Dict does not contain it; logout/reboot will lose the fix}
     - {signature: default_cwd_false_positive, cause: smoke called council_request without an explicit cwd under /Users/max/Projects/*; routing decision bypassed; verification meaningless}
@@ -1267,7 +1267,7 @@ Reference the COMMITTED spec path at a pinned commit SHA — never a bare path, 
 4. Untruncated-read proof: demand the exact first and last line of the file verbatim.
 5. Explicit stop condition.
 
-/goal prefix is optional: the goals feature is stable+enabled on Titan-1 Codex 0.139.0 and /goal-prefixed prompts are accepted via `codex exec`, but goal-LOOP engagement (multi-turn autonomy to a stop condition) in non-interactive exec is UNVERIFIED on long builds. Do not rely on loop autonomy until a long-build dispatch demonstrates it; the load-bearing, proven element is path@SHA + wrapper.
+/goal prefix is optional: the goals feature is stable+enabled on Koskadeux Codex 0.139.0 and /goal-prefixed prompts are accepted via `codex exec`, but goal-LOOP engagement (multi-turn autonomy to a stop condition) in non-interactive exec is UNVERIFIED on long builds. Do not rely on loop autonomy until a long-build dispatch demonstrates it; the load-bearing, proven element is path@SHA + wrapper.
 
 Evidence: S827 probe — MP read specs/BQ-ALLAI-ACTIVATION-S826-GATE1.md @ 4e9cfec6 via git show, exact first+last lines verbatim, accurate §-citations, zero file modifications, 66s.
 

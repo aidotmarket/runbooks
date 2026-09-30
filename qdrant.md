@@ -29,7 +29,7 @@ error_signatures:
 |---|---|---|---|---|
 | Qdrant service | Railway svc 6f7211f0; public https://qdrant-production-470c.up.railway.app, internal RAILWAY_SERVICE_QDRANT_URL :6333 | Railway volume | backend, allAI embedding pipeline | API-key enforced since S1081 |
 | Backend Qdrant client | app/core/qdrant_client.py | n/a | Qdrant | reads QDRANT_HOST, QDRANT_API_KEY from env |
-| Backup watchdog | runbooks/scripts/s3_backup_watchdog.sh (Titan-1 launchd com.aimarket.s3-backup-watchdog) | S3 aimarket-backups-prod/qdrant/ | Telegram alert | checks qdrant/ prefix freshness |
+| Backup watchdog | runbooks/scripts/s3_backup_watchdog.sh (Koskadeux launchd com.aimarket.s3-backup-watchdog) | S3 aimarket-backups-prod/qdrant/ | Telegram alert | checks qdrant/ prefix freshness |
 | SysAdmin backup monitor | app/allai/agents/sysadmin/backup_monitor.py _evaluate_s3_qdrant_collections | Redis history; S3 | /backup-status endpoint | cross-checks live collection list vs S3 snapshots |
 
 ### Architecture & interactions.1 Source of truth vs derived index (READ FIRST)
@@ -46,7 +46,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | SysAdmin | report backup freshness | backup_status / backup_verify skills | internal API key | COMPLETE |
-| SysAdmin | run qdrant snapshot | runbooks/scripts/backup_qdrant.py (Titan-1) | AWS backup-writer + Qdrant api-key | PARTIAL — only knowledge_base today; extend to all live collections per Repair G-02 |
+| SysAdmin | run qdrant snapshot | runbooks/scripts/backup_qdrant.py (Koskadeux) | AWS backup-writer + Qdrant api-key | PARTIAL — only knowledge_base today; extend to all live collections per Repair G-02 |
 
 ## How to operate
 

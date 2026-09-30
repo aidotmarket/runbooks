@@ -16,7 +16,7 @@ If any check is `critical` the workflow opens a GitHub issue titled `Health Chec
 
 ## How to read an issue
 
-Each critical line is `**<check name>** (<category>): <message>`. Open the linked workflow run for the full JSON report. Reproduce one check headless from Titan-1 without printing the key:
+Each critical line is `**<check name>** (<category>): <message>`. Open the linked workflow run for the full JSON report. Reproduce one check headless from Koskadeux without printing the key:
 
     curl -s -H "X-Internal-API-Key: $INTERNAL_API_KEY" \
       https://api.ai.market/api/v1/internal/health/railway-volumes | python3 -m json.tool
@@ -37,7 +37,7 @@ If a volume check goes `warning` or `critical` now, it is real:
 
 ### `railway_alert_parity` critical: `key=infra:railway-alert-parity reason=<code> age_seconds=<n>`
 
-Added 2026-09-28 (backend PR #521, BQ-RAILWAY-ALERT-PARITY-S1757 §3.3). It is the independent monitor for the Titan-1 parity job: CRITICAL when the record is `absent`, unreadable (`http_error`, `transport_error`), malformed (`malformed_json`, `malformed_record`, `missing_last_success`, `invalid_last_success`), `future_last_success`, or `stale` (last success older than 2 hours; the job runs every 15 minutes). Diagnose the job, not this check: follow [issue-channel.md](issue-channel.md) "Railway alert parity job (Titan-1)". A stale result usually means Titan-1 was off or the launchd job is failing.
+Added 2026-09-28 (backend PR #521, BQ-RAILWAY-ALERT-PARITY-S1757 §3.3). It is the independent monitor for the Koskadeux parity job: CRITICAL when the record is `absent`, unreadable (`http_error`, `transport_error`), malformed (`malformed_json`, `malformed_record`, `missing_last_success`, `invalid_last_success`), `future_last_success`, or `stale` (last success older than 2 hours; the job runs every 15 minutes). Diagnose the job, not this check: follow [issue-channel.md](issue-channel.md) "Railway alert parity job (Koskadeux)". A stale result usually means Koskadeux was off or the launchd job is failing.
 
 ### `gmail_login_<name>` critical: "saved Gmail login is not working"
 

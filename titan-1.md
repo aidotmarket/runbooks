@@ -1,12 +1,12 @@
 ---
-title: Titan-1 — the Mac Studio (dev workstation + local AI council + MCP host)
+title: Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)
 owner: unassigned
 last_verified: '2026-07-17'
 aliases: []
 error_signatures: []
 ---
 
-# Titan-1 — the Mac Studio (dev workstation + local AI council + MCP host)
+# Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)
 
 Canonical map of the physical machine the whole operation runs from. Live source of the same data: `state_get("infra:titan-1")` (kept in sync with this doc). Related: `connectivity.md` (network), `mcp-gateway.md` (gateway/tunnel detail), `backup-and-recovery.md` (the scheduled jobs), `infisical-secrets.md` (machine-identity creds).
 
@@ -31,12 +31,12 @@ Canonical map of the physical machine the whole operation runs from. Live source
 Codex CLI is installed system-wide via Homebrew (`/opt/homebrew/bin/codex`, on PATH for all accounts via `/etc/paths.d/homebrew`); OpenAI login state is per-account under `~/.codex/`. Verified S1260: `kdbrowser` Codex is logged in (ChatGPT auth, `~kdbrowser/.codex/auth.json`). CAVEAT: the kd-browser runner (`127.0.0.1:8790`) launches jobs with a minimal launchd env - job requests must pass `env.PATH` including `/opt/homebrew/bin` or `codex` fails with `env: node: No such file or directory`.
 
 ## Role in the ecosystem
-Titan-1 is where **the company is actually built and operated**:
+Koskadeux is where **the company is actually built and operated**:
 - **Local AI council** — the model servers Vulcan/Mars dispatch to (AG/Gemini, DeepSeek, XAI/Grok bridge) run here.
 - **MCP orchestration** — the Koskadeux MCP server + gateway run here and are the tool interface both instances use.
 - **Local marketplace dev environment** — AIM Data and a local ai-market backend run here in Docker (see Docker stack).
 - **Backup origin** — every nightly S3 backup + the watchdog is a launchd job on this machine.
-- **Our own data** — our own AIM Data / vectorAIz dev data lives in the local Docker Postgres/Qdrant here, covered by Titan-1's local + physically-separate backup (not S3; customer data is non-custodial).
+- **Our own data** — our own AIM Data / vectorAIz dev data lives in the local Docker Postgres/Qdrant here, covered by Koskadeux's local + physically-separate backup (not S3; customer data is non-custodial).
 
 ## Services & ports
 | Service | Port | Process | Autostart (LaunchAgent) | Purpose |
@@ -73,7 +73,7 @@ nightly main-DB backup, Qdrant backup, Railway-config export, Cloudflare export,
 codex 0.138.0 · gemini 0.45.2 · claude 2.1.169 · gh 2.93.0 · grok 1.1.4 · infisical 0.43.91 · aws 2.34.62 · railway 4.30.3 · age 1.3.1 · python3 3.14.5
 
 ## Railway auth / env (machine credential)
-Titan-1 reaches Railway (CLI, GraphQL, and the local CLI-backed Railway MCP) with **one account-scoped, non-expiring API token** — minted `titan-1-koskadeux` (Workspace = **No workspace**). It lives **only in Infisical**: project **`koskadeux-mcp`** (projectId `0943f641-faee-4324-b337-0d50c276e4a9`), env `prod`, path `/`, secret name `RAILWAY_API_TOKEN`. Nothing is written to disk. Migrated off Doppler in S993; project/env verified S994.
+Koskadeux reaches Railway (CLI, GraphQL, and the local CLI-backed Railway MCP) with **one account-scoped, non-expiring API token** — minted `titan-1-koskadeux` (Workspace = **No workspace**). It lives **only in Infisical**: project **`koskadeux-mcp`** (projectId `0943f641-faee-4324-b337-0d50c276e4a9`), env `prod`, path `/`, secret name `RAILWAY_API_TOKEN`. Nothing is written to disk. Migrated off Doppler in S993; project/env verified S994.
 
 - **Source it, don't exec it:** `source ~/bin/railway-env.sh`. It refreshes the Infisical machine identity (`infisical_auth_refresh.sh`), fetches `RAILWAY_API_TOKEN`, exports it, and **unsets `RAILWAY_TOKEN`**. `launch_mcp_server.sh` sources it via one guarded line; `railway_client._token()` prefers `RAILWAY_API_TOKEN`, then legacy `RAILWAY_TOKEN`, then `~/.railway/config.json`.
 - **Account-scope, NOT workspace-scope:** the token must be account-scoped. Workspace-scoped tokens **403 on CLI account operations** — that was the historical CLI flakiness, and the old workspace-scoped tokens were deleted in S993.
@@ -91,7 +91,7 @@ _Maintained alongside `infra:titan-1` in Living State. Last live inventory: 2026
 
 ## Incident record — 2026-07-04 reboot outage (S1118) + cold-start canary rule
 
-**What happened:** Apple OS patch rebooted Titan-1. All com.koskadeux.* LaunchAgents are
+**What happened:** Apple OS patch rebooted Koskadeux. All com.koskadeux.* LaunchAgents are
 correctly RunAtLoad+KeepAlive and restarted — but the gateway crash-looped (exit 1):
 `gateway_server.py` imports `ContentBlock`/`Icon` from `mcp.types`, and the venv held
 `mcp==1.8.1` (silently downgraded/reinstalled ~Jul 3 12:36 local, source unattributed;

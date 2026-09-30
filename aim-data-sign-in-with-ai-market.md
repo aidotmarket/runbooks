@@ -146,7 +146,7 @@ Defaults-flip source pins (merged, with nits folded): backend `8e71de70f497d9f20
 
 | Gate 4 live proof | Status |
 | --- | --- |
-| Deployed A/B identities, active `s1665_aim_data_oauth_activate` seed, C release version/digest and effective defaults | PASS 2026-09-08 (backend a7541416 then 1c96b257, frontend 943429b5, image v1.23.0 `sha256:281e5a6a…` at proof time, now v1.23.1 `sha256:b783f7cb…`; status route `enabled:true`). Evidence: Titan-1 `/Users/max/koskadeux-state/s1665/gate4/EVIDENCE.md`. |
+| Deployed A/B identities, active `s1665_aim_data_oauth_activate` seed, C release version/digest and effective defaults | PASS 2026-09-08 (backend a7541416 then 1c96b257, frontend 943429b5, image v1.23.0 `sha256:281e5a6a…` at proof time, now v1.23.1 `sha256:b783f7cb…`; status route `enabled:true`). Evidence: Koskadeux `/Users/max/koskadeux-state/s1665/gate4/EVIDENCE.md`. |
 | AC1/AC2 provider-only fresh install; AC3 2FA, confirmation/Cancel and identity/registration | AC1 PASS 2026-09-08 12:45 UTC (Google-only max@kisa.cat, fresh install port 8080; grant + reserved session in production, local user row matched, stores 0600). AC2 GitHub-only carried by Max decision a4ea061c (no GitHub-only identity). AC3 pending. Evidence: `/Users/max/koskadeux-state/s1665/gate4/EVIDENCE.md`. |
 | AC4 fallback fresh/upgrade/reload/rotation; local operator key/cookie parity | pending |
 | AC6 Docker/browser chain at 8080/8099/18081; wrong/occupied port and remote/origin refusal | pending |

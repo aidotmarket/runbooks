@@ -14,7 +14,7 @@ Canonical runbook for everything Cloudflare-fronted at ai.market and vectoraiz.c
 
 - The two Cloudflare zones we own (`ai.market`, `vectoraiz.com`) and every live DNS record in them
 - The four production Cloudflare Workers and where each one's source-of-truth lives (or doesn't — see drift)
-- The `mcp.ai.market` Cloudflare Tunnel that fronts the local Koskadeux MCP gateway on Titan-1
+- The `mcp.ai.market` Cloudflare Tunnel that fronts the local Koskadeux MCP gateway on Koskadeux
 - Secrets, deploy commands, verification, and troubleshooting for each piece
 - Five drift items discovered during the S688 audit that need separate follow-up (see §Drift at the bottom)
 
@@ -47,7 +47,7 @@ Records as of S688 (2026-05-22). To refresh: see §Verification quick reference.
 | `api.ai.market` | DNS-only | `97vz1cfo.up.railway.app` | ai-market-backend |
 | `ops.ai.market` | Proxied | `ufvvklxz.up.railway.app` | ops-ai-market |
 | `secrets.ai.market` | Proxied | `jjpiwqgb.up.railway.app` | Infisical (self-hosted on Railway) |
-| `mcp.ai.market` | Proxied | `007ddc34-de07-474c-adbc-a648663b9c78.cfargotunnel.com` | Cloudflare Tunnel → Titan-1 (see §Tunnel) |
+| `mcp.ai.market` | Proxied | `007ddc34-de07-474c-adbc-a648663b9c78.cfargotunnel.com` | Cloudflare Tunnel → Koskadeux (see §Tunnel) |
 | `mcp.vectoraiz.com.ai.market` | Proxied | same tunnel as above | **Drift item — looks like a typo creating a 4-label FQDN; cleanup candidate** |
 | `get.ai.market` (AAAA `100::`) | Proxied | `get-ai-market` Worker | Installer hub for AIM Data + AIM Node (see §Workers) |
 | `pm-bounces.ai.market` | DNS-only | `pm.mtasv.net` | Postmark bounce handler |
@@ -259,7 +259,7 @@ When the DMS breaks:
 
 ## Cloudflare Tunnel — mcp.ai.market
 
-**This is the live transport for `mcp.ai.market`.** Despite earlier docs claiming a Tailscale Funnel migration, the active path today is Cloudflare's `cloudflared` tunnel running on Titan-1.
+**This is the live transport for `mcp.ai.market`.** Despite earlier docs claiming a Tailscale Funnel migration, the active path today is Cloudflare's `cloudflared` tunnel running on Koskadeux.
 
 | Field | Value |
 |-------|-------|
@@ -299,7 +299,7 @@ This is a separate public surface on the Tailscale-issued hostname. It's availab
 
 ### Tunnel operations
 
-    # Status from Titan-1
+    # Status from Koskadeux
     cloudflared tunnel list                       # find the koskadeux tunnel
     cloudflared tunnel info koskadeux             # connection details
 
@@ -392,7 +392,7 @@ List active Workers:
 - **2026-04-09** — `get-ai-market` Worker shipped (repo `aidotmarket/cf-get-worker`); canonical installer hub for AIM Data + AIM Node.
 - **Pre-S572** — Resource registry + `mcp-gateway.md` claim Tailscale Funnel replaced Cloudflare Tunnel for `mcp.ai.market`. **Migration did not complete** — cloudflared remains the active transport (S688 verification).
 - **S688 (2026-05-22)** — Live audit; this runbook authored. Five drift items filed.
-- **S964 (2026-06-20)** — Apex `ai.market` SPF deduped: a triplicate `include:_spf.google.com` (≈10–12 nested lookups, at/over the RFC 7208 limit → permerror risk) collapsed to a single include (`v=spf1 include:_spf.google.com ~all`). Verified live at the authoritative NS. `send.ai.market` (amazonses) unchanged. Original backed up on Titan-1. Also confirmed the token carries Workers-KV edit scope.
+- **S964 (2026-06-20)** — Apex `ai.market` SPF deduped: a triplicate `include:_spf.google.com` (≈10–12 nested lookups, at/over the RFC 7208 limit → permerror risk) collapsed to a single include (`v=spf1 include:_spf.google.com ~all`). Verified live at the authoritative NS. `send.ai.market` (amazonses) unchanged. Original backed up on Koskadeux. Also confirmed the token carries Workers-KV edit scope.
 - **2026-09-23** — `connect.ai.market` created for the public customer MCP connector: empty Railway service `ai-market-connector`, custom domain attached, DNS-only CNAME plus `_railway-verify` TXT added through the API (procedure: §Adding a Railway-hosted subdomain).
 - **2026-09-23** — `auth.ai.market` created the same way for the connector's authorization server (Railway service `ai-market-connector-auth`), after the connector's Gate 1 split the authorization server from the MCP service.
 
@@ -421,7 +421,7 @@ Procedure used for `connect.ai.market` on 2026-09-23. Railway issues the CNAME t
 
 ## References
 
-- `mcp-gateway.md` — Tailscale Funnel + Koskadeux MCP process tree on Titan-1. Cross-reference for tool-call path debugging.
+- `mcp-gateway.md` — Tailscale Funnel + Koskadeux MCP process tree on Koskadeux. Cross-reference for tool-call path debugging.
 - `ai-market-backend/docs/core/INFRASTRUCTURE.md` — formerly held the partial Cloudflare table; should be reduced to a one-line pointer to this runbook.
 - `cloudflare-worker.md` — legacy runbook; content is fully subsumed here. Mark deprecated.
 - `infisical-secrets.md` — patterns for fetching `CLOUDFLARE_API_TOKEN` and Worker-secret mirrors.

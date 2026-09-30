@@ -72,7 +72,7 @@ The four programme-level preconditions before Phase D may run at all (tracker `w
 2. **S757** reconciler-git fix in prod.
 3. **WS3 dashboard production-stable** — 72h clean validation telemetry, then the operating instance flips
    `ws3_dashboard_production_stable=True` (Gate 0 §8 Step 1). *S1097: the hourly comparator is now
-   genuinely scheduled — Titan-1 launchd `com.koskadeux.ws3-comparator` runs
+   genuinely scheduled — Koskadeux launchd `com.koskadeux.ws3-comparator` runs
    `tools/dashboard/comparator_job.py` hourly; run evidence accrues on Living State entity
    `infra:heartbeat:ws3-dual-read-comparator` plus `mismatch_log` rows on divergence. Clean clock
    started 2026-07-02; earliest honest flip ≈ 2026-07-05. Both mirror SQL predicates were corrected

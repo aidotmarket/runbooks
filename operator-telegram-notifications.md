@@ -18,7 +18,7 @@ error_signatures: []
 | Bot | Process / repo | Token source | Sends | Disposition |
 |-----|----------------|--------------|-------|-------------|
 | `@allai_agent_bot` | Backend `app/services/telegram_relay.py` (`telegram_service`), Railway | `TELEGRAM_BOT_TOKEN` (Railway, backend env) + admin `chat_id` | HITL/human-in-the-loop requests, operator alerts | **KEEP** (sole operator channel) |
-| `@koskadeux_bot` | Titan-1 dispatch/health daemon: `koskadeux-mcp/kd_notifier.py` + `kd_sentinel.py` | `TELEGRAM_BOT_TOKEN` (`826276…`) + `TELEGRAM_CHAT_ID` in `/Users/max/koskadeux-mcp/.env` | CRITICAL dispatch/health alerts: review-ready, blocked, drift, budget-halt, system-health | **KILL** Telegram (keep local macOS notifications) |
+| `@koskadeux_bot` | Koskadeux dispatch/health daemon: `koskadeux-mcp/kd_notifier.py` + `kd_sentinel.py` | `TELEGRAM_BOT_TOKEN` (`826276…`) + `TELEGRAM_CHAT_ID` in `/Users/max/koskadeux-mcp/.env` | CRITICAL dispatch/health alerts: review-ready, blocked, drift, budget-halt, system-health | **KILL** Telegram (keep local macOS notifications) |
 
 Both are distinct bot accounts (verified via `getMe`): the daemon token resolves to `@koskadeux_bot`, the backend to `@allai_agent_bot`.
 

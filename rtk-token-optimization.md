@@ -18,7 +18,7 @@ CLI proxy that reduces LLM token consumption by 60-90% on common dev commands. I
 | Host | S1227 observation | Codex global configuration | Telemetry configuration |
 |---|---|---|---|
 | maxbookpro | Verified RTK v0.43.0, installed via Homebrew | `~/.codex/AGENTS.md` contains the RTK rule inline; `~/.codex/RTK.md` is the canonical global reference | Disabled in `~/Library/Application Support/rtk/config.toml`; no `~/.zshrc` override |
-| Titan-1 | Observed RTK v0.34.3 by the S1227 builder | `~/.codex/AGENTS.md` still uses the legacy `@RTK.md` include | A `~/.zshrc` telemetry override exists |
+| Koskadeux | Observed RTK v0.34.3 by the S1227 builder | `~/.codex/AGENTS.md` still uses the legacy `@RTK.md` include | A `~/.zshrc` telemetry override exists |
 
 These paths are host-local. For Codex configuration on either host, inspect
 that host's home directory; do not look for the global `AGENTS.md` or `RTK.md`
@@ -50,7 +50,7 @@ Biggest wins for our workflow:
 ### MP (Codex CLI) — AGENTS.md instructions
 - maxbookpro: `~/.codex/AGENTS.md` contains the RTK instructions directly;
   `~/.codex/RTK.md` is the canonical global reference copy.
-- Titan-1: `~/.codex/AGENTS.md` still uses `@RTK.md`. This legacy include is
+- Koskadeux: `~/.codex/AGENTS.md` still uses `@RTK.md`. This legacy include is
   known configuration debt and is not changed by this docs-only fold.
 - These are home-directory global configuration paths on each host. Inspect
   the active host's home directory, not the current project repository.
@@ -74,8 +74,8 @@ On maxbookpro, telemetry is disabled in RTK config:
 enabled = false
 ```
 
-No separate `~/.zshrc` override is used on maxbookpro. Titan-1 has a
-`~/.zshrc` telemetry override; inspect it on Titan-1 when troubleshooting that
+No separate `~/.zshrc` override is used on maxbookpro. Koskadeux has a
+`~/.zshrc` telemetry override; inspect it on Koskadeux when troubleshooting that
 host.
 
 ### Tee (full output recovery)
@@ -156,14 +156,14 @@ inspect the active host's home directory, not the current project repository.
    override has been introduced.
 4. Restart Codex after correcting the global configuration.
 
-#### Titan-1
+#### Koskadeux
 
-1. Check `~/.codex/AGENTS.md` and its legacy `@RTK.md` include from Titan-1's
+1. Check `~/.codex/AGENTS.md` and its legacy `@RTK.md` include from Koskadeux's
    home directory. Do not search for the include in the project repository.
-2. Check the existing `~/.zshrc` telemetry override alongside Titan-1's RTK
+2. Check the existing `~/.zshrc` telemetry override alongside Koskadeux's RTK
    config.
 3. Treat the legacy include as remaining configuration debt; this docs-only
-   fold does not authorize changing Titan-1 configuration.
+   fold does not authorize changing Koskadeux configuration.
 4. Restart Codex only after a separately authorized configuration correction.
 
 On both hosts, MP compliance depends on the model following instructions and
@@ -177,10 +177,10 @@ is not guaranteed.
   reference copy. Verification covered `rtk --version`, `rtk git status`, the
   global reference file, and `rtk gain --history`. Confirmed telemetry is
   disabled in RTK config without a separate zshrc override. The S1227 builder
-  also observed RTK v0.34.3 on Titan-1, where `~/.codex/AGENTS.md` still uses
-  `@RTK.md` and a `~/.zshrc` telemetry override exists. Titan-1's legacy include
-  remains configuration debt; this docs-only fold did not change Titan-1.
-- **S388 (original Titan-1 rollout):** Recorded RTK v0.34.3 on
-  Titan-1, enabled for CC, AG, and MP, with telemetry disabled and tee enabled
+  also observed RTK v0.34.3 on Koskadeux, where `~/.codex/AGENTS.md` still uses
+  `@RTK.md` and a `~/.zshrc` telemetry override exists. Koskadeux's legacy include
+  remains configuration debt; this docs-only fold did not change Koskadeux.
+- **S388 (original Koskadeux rollout):** Recorded RTK v0.34.3 on
+  Koskadeux, enabled for CC, AG, and MP, with telemetry disabled and tee enabled
   for failure output recovery. Rationale: 60-90% token savings on agent shell
   commands, especially pytest and git operations during AIM-NODE-CORE builds.

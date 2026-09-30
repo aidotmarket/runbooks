@@ -23,7 +23,7 @@ error_signatures:
 
 | Dependency | What it provides | Where it lives | Owning service |
 |---|---|---|---|
-| `aidotmarket/e2e-harness` | The publisher and manifest: `src/e2e_harness/status_publisher.py`, `docs/coverage.{json,md}`, the runtime call site | Titan-1 clone `~/Projects/ai-market/e2e-harness`; main at `ed33a10` (c6 v1, S1314) | GitHub `aidotmarket/e2e-harness` |
+| `aidotmarket/e2e-harness` | The publisher and manifest: `src/e2e_harness/status_publisher.py`, `docs/coverage.{json,md}`, the runtime call site | Koskadeux clone `~/Projects/ai-market/e2e-harness`; main at `ed33a10` (c6 v1, S1314) | GitHub `aidotmarket/e2e-harness` |
 | Living State key `infra:e2e-test-status` | The single published record: last run, recent-run ring, per-item coverage, and the coverage catalog. Read-only to everyone but the harness | Living State (Koskadeux); `STATE_KEY` in `status_publisher.py` | Koskadeux MCP / backend state API |
 | Backend state API `/api/v1/allai/state/{key}` | The GET/PUT/PATCH transport the publisher uses, with optimistic version locking | ai-market-backend (production) | ai-market-backend |
 | `E2E_STATE_API_URL` + the internal state credential | The two config values that build `StateTransport`. Absent either one, `publisher_from_config` returns a publisher with `transport=None` and publishing is dormant | harness environment via `scripts/harness-env.sh` (S1201); the credential is fetched from Infisical at runtime, never written to the plist or repo | e2e-harness config |
@@ -63,11 +63,11 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
 | Vulcan/Mars | Read and verify the published status | `state_request(action=get, key=infra:e2e-test-status)` | Living State read | COMPLETE |
-| Vulcan/Mars | Run a harness charter that then publishes | `shell_request` on Titan-1: `e2e-harness run` under the sanctioned env | Titan-1 shell | COMPLETE |
-| Vulcan/Mars | Edit the coverage manifest and map a charter | `shell_request` edit `docs/coverage.json` (+`.md`), then Council review | Titan-1 shell + Council dispatch | COMPLETE |
+| Vulcan/Mars | Run a harness charter that then publishes | `shell_request` on Koskadeux: `e2e-harness run` under the sanctioned env | Koskadeux shell | COMPLETE |
+| Vulcan/Mars | Edit the coverage manifest and map a charter | `shell_request` edit `docs/coverage.json` (+`.md`), then Council review | Koskadeux shell + Council dispatch | COMPLETE |
 | MP (Codex) | Build publisher/manifest changes | `council_request mode=build` against a dedicated worktree | Council dispatch | COMPLETE — diff-inspect at file:line; commit messages over-claim |
 | GLM / DeepSeek / Gemini | Review publisher/manifest changes when gate review is required | `council_request(agent=<glm\|deepseek\|gemini>, mode=review)` (builder excluded) | Read-only Council dispatch at the exact SHA | COMPLETE — CC is available only by explicit name for a non-Council second opinion |
-| launchd (`com.ai-market.e2e-harness.nightly`) | Nightly run that publishes, at 02:15 local | plist + `scripts/run-nightly.sh` (sources `harness-env.sh`, which activates publishing) | Titan-1 | COMPLETE — the nightly is the routine writer of the record |
+| launchd (`com.ai-market.e2e-harness.nightly`) | Nightly run that publishes, at 02:15 local | plist + `scripts/run-nightly.sh` (sources `harness-env.sh`, which activates publishing) | Koskadeux | COMPLETE — the nightly is the routine writer of the record |
 
 ## How to operate
 
@@ -143,7 +143,7 @@ Prose: after a harness run assembles its report, the runtime constructs a publis
   symptom_ref: F-01
   component_ref: Publisher
   root_cause: publishing was dormant because the state URL or credential was absent
-  repair_entry_point: scripts/harness-env.sh on Titan-1
+  repair_entry_point: scripts/harness-env.sh on Koskadeux
   change_pattern: run the harness through scripts/run-nightly.sh, or source scripts/harness-env.sh first; that is what sets E2E_STATE_API_URL and fetches the internal credential from Infisical at runtime. NEVER hardcode the state URL or paste the credential into the plist, a dotenv file or a charter - dormant-by-default is a safety property, not a bug
   rollback_procedure: n/a - not sourcing the env leaves the publisher dormant, which is the safe resting state
   integrity_check: re-run a charter; last_run_id advances and the harness log no longer prints the "publishing is disabled" warning

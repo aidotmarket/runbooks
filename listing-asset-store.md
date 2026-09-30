@@ -33,7 +33,7 @@ error_signatures:
 
 ## Verified 2026-09-16 (S1717)
 
-From Titan-1 with the Railway-mirrored credentials (values never printed): `ListObjectsV2` on the bucket → 0 objects; `PutObject` → `GetObject` → `DeleteObject` of `_healthcheck/s1717.txt` all succeeded; `ListObjectsV2` on `ai-market-e2e-r2-test` with the same token → `AccessDenied` (token is bucket-scoped as intended).
+From Koskadeux with the Railway-mirrored credentials (values never printed): `ListObjectsV2` on the bucket → 0 objects; `PutObject` → `GetObject` → `DeleteObject` of `_healthcheck/s1717.txt` all succeeded; `ListObjectsV2` on `ai-market-e2e-r2-test` with the same token → `AccessDenied` (token is bucket-scoped as intended).
 
 ## Procedures
 
@@ -51,4 +51,4 @@ From Titan-1 with the Railway-mirrored credentials (values never printed): `List
 | --- | --- | --- |
 | `sample_store_unavailable` (publish/upload refused) | backend cannot reach the bucket or the credentials are missing/rotated | re-verify as above; check Infisical → Railway sync; rotate if `AccessDenied` on the own bucket |
 | `listing_asset_access_denied` | token no longer scoped to the bucket, or bucket renamed | dashboard token scope; `LISTING_ASSET_BUCKET` value |
-| `ConnectTimeoutError` from Titan-1 only | IPv6 path to the R2 endpoint | force IPv4 (see script); production (Railway) is unaffected |
+| `ConnectTimeoutError` from Koskadeux only | IPv6 path to the R2 endpoint | force IPv4 (see script); production (Railway) is unaffected |

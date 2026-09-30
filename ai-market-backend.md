@@ -119,7 +119,7 @@ Why it went: the gate was a blanket 403 keyed on `onboarding_completed`, and the
 
 ## Database
 
-PostgreSQL on Railway. The app connects via `DATABASE_URL` (internal Railway hostname `postgres.railway.internal`, not reachable externally). To reach production from an external host (Titan-1, the laptop), use the public TCP proxy exposed as `DATABASE_PUBLIC_URL` on the **Postgres** service — see "Customer data: where it lives, and how to delete or reset an account" below for the exact connect snippet.
+PostgreSQL on Railway. The app connects via `DATABASE_URL` (internal Railway hostname `postgres.railway.internal`, not reachable externally). To reach production from an external host (Koskadeux, the laptop), use the public TCP proxy exposed as `DATABASE_PUBLIC_URL` on the **Postgres** service — see "Customer data: where it lives, and how to delete or reset an account" below for the exact connect snippet.
 
 **Alembic migrations:** All migrations must be idempotent using existence checks (`DO $$ BEGIN ... EXCEPTION WHEN duplicate_object`). Railway runs `alembic upgrade head` on every deploy.
 
@@ -246,7 +246,7 @@ When a held inquiry remains on **Submitting...** even though `message_audit` alr
 
 All customer and account data lives in the **PostgreSQL `Postgres` service** of the `ai-market` Railway project (production environment). That is the single source of truth for customer identity. Qdrant and Redis hold only derived or transient data, and raw seller data never leaves the seller's own AIM Data install.
 
-**Connecting to production Postgres from an external host (Titan-1, laptop):** the internal `DATABASE_URL` host (`postgres.railway.internal`) is not reachable externally. Use the public TCP proxy, exposed as `DATABASE_PUBLIC_URL` on the **Postgres** service:
+**Connecting to production Postgres from an external host (Koskadeux, laptop):** the internal `DATABASE_URL` host (`postgres.railway.internal`) is not reachable externally. Use the public TCP proxy, exposed as `DATABASE_PUBLIC_URL` on the **Postgres** service:
 
 ```sh
 PUB=$(railway variables -s Postgres --json | python3 -c 'import json,sys;print(json.load(sys.stdin)["DATABASE_PUBLIC_URL"])')
