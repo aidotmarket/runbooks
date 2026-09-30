@@ -1524,7 +1524,7 @@ Before: record the resource's current deployment ID, `CONNECTOR_TRUSTED_PROXY_CI
 
 ### 3.4 Probe and pass criteria
 
-For each window: confirm `/readyz` 200; run `edge_probe.py --label CLOUD --window Pn` from the cloud workspace and then `run_window.sh Pn` on Titan-1 (MAC probe plus readback) within 30 seconds; wait 65 seconds before the next window so earlier keys expire. Every probe response must be 503 with `CONNECTOR_DISABLED` (`all_connector_disabled: true`), or the window is void and rerun. Counts are exact.
+For each window: confirm `/readyz` 200; run `edge_probe.py --label CLOUD --window Pn > receipts/Pn-CLOUD-probe.json` from the cloud workspace (copy that file into `koskadeux-state/s1786/receipts/` on Titan-1 before §3.6) and then `run_window.sh Pn` on Titan-1 (MAC probe plus readback) within 30 seconds; wait 65 seconds before the next window so earlier keys expire. Every probe response must be 503 with `CONNECTOR_DISABLED` (`all_connector_disabled: true`), or the window is void and rerun. Counts are exact.
 
 | Window | `X-Forwarded-For` sent | Pass |
 | --- | --- | --- |
