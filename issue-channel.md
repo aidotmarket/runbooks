@@ -191,7 +191,7 @@ Known live refusals and meaning:
 - `fresh healthy watcher mirror cycle unproved`: no new healthy watcher mirror within 15 minutes after the mutation; check the watcher deployment and snapshot freshness before retrying.
 - `attributable Infisical sync jobs unproved`: the expected sync job did not complete; stop, record it, and do not relax the check without review.
 
-<a id="railway-alert-parity-job-koskadeux"></a>
+<a id="railway-alert-parity-job-titan-1"></a><a id="railway-alert-parity-job-koskadeux"></a>
 
 ### Railway alert parity job (Koskadeux)
 
