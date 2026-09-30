@@ -396,17 +396,19 @@ Before executing the block, bind and review `delete_proof_child_folder()`, `disa
 
 Run order: §2.0 definitions → §2.0.1 definitions → §2.0.1 setup → §2.0 proof block (guarded lifecycle).
 
-Run these definitions after §2.0's import/definition blocks and before its preflight calls, then run the guarded lifecycle once in the **same protected interpreter** (`set +x`, `umask 077`; no helper file, raw output, debug logging or credential-bearing traceback). No live API verification is claimed here. **UNVERIFIED — operator must pin by live read-only call or UI readback before use; refuse on mismatch** applies to every `REVIEWED_*` entry: populate it in memory after independent review, never by automatically copying the current response. Pins contain schema names/types, response key/type shapes and the `/api/status` version only; record those and source/version in the ticket.
+Run these definitions after §2.0's import/definition blocks and before its preflight calls, then run the guarded lifecycle once in the **same protected interpreter** (`set +x`, `umask 077`; no helper file, raw output, debug logging or credential-bearing traceback). No live API verification is claimed here. **UNVERIFIED — operator must pin by live read-only call or UI readback before use; refuse on mismatch** applies to every `REVIEWED_*` entry: populate it in memory after independent review, never by automatically copying the current response. Pins contain schema names/types, response key/type shapes and the exact Railway Infisical image only; record those and source/version in the ticket.
 
-Sources: [owner query and DSN](../customer-mcp-connector.md#connector-switch-administration-p0-runbook-sql) (lines 155–157), [owner retrieval](../schema-migration.md#s7a-s1163-schema-classification-tooling-operator-reference), [Infisical credentials/target](../infisical-secrets.md#safe-cli-verification), and `koskadeux-mcp/scripts/connector_keyset/connector_signing_keyset.py` (`Client.secrets`, `Client.syncs`, `require_no_connector_subfolders`, `run`: secret/folder GET, folder POST). Upstream [folder DELETE](https://infisical.com/docs/api-reference/endpoints/folders/delete), [Railway sync PATCH](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/update) and [sync DELETE/removeSecrets](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/delete) describe the proposed shapes, **not** this self-hosted version; pin against `https://secrets.ai.market/api/status` and its version-matched API docs/UI before use. Railway [GraphQL connections](https://docs.railway.com/integrations/api/graphql-overview) and [project/service creation](https://docs.railway.com/integrations/api/api-cookbook) establish examples; the exact endpoint/schema, `projectDelete` and raw `variables(unrendered)` remain **UNVERIFIED** until live introspection. `variableCollectionUpsert` is sourced by §2.0's schema receipt and `customer-mcp-connector.md:46`, rechecked below.
+Sources: [owner query and DSN](../customer-mcp-connector.md#connector-switch-administration-p0-runbook-sql) (lines 155–157), [owner retrieval](../schema-migration.md#s7a-s1163-schema-classification-tooling-operator-reference), [Infisical credentials/target](../infisical-secrets.md#safe-cli-verification), and `koskadeux-mcp/scripts/connector_keyset/connector_signing_keyset.py` (`Client.secrets`, `Client.syncs`, `require_no_connector_subfolders`, `run`: secret/folder GET, folder POST). Upstream [folder DELETE](https://infisical.com/docs/api-reference/endpoints/folders/delete), [Railway sync PATCH](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/update) and [sync DELETE/removeSecrets](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/delete) describe the proposed shapes, **not** this self-hosted version; pin the status shape at `https://secrets.ai.market/api/status` and the instance image via read-only Railway GraphQL before use. The upstream Infisical API docs for v0.161.11 are the reference for pinning the HTTP shapes. Railway [GraphQL connections](https://docs.railway.com/integrations/api/graphql-overview) and [project/service creation](https://docs.railway.com/integrations/api/api-cookbook) establish examples; the exact endpoint/schema, `projectDelete` and raw `variables(unrendered)` remain **UNVERIFIED** until live introspection. `variableCollectionUpsert` is sourced by §2.0's schema receipt and `customer-mcp-connector.md:46`, rechecked below.
 
 ```python
 import os, re, time, urllib.parse
 assert __debug__, 'Do not run this session with Python -O'
 os.umask(0o077)
 REVIEWED_GQL={}  # (type_name, field_name): exact schema_field() tuple; names/types only
-REVIEWED_HTTP={} # operation: (version, (method, endpoint_template, shape(body), shape(query)), shape(response))
-REVIEWED_STATUS=None  # (shape(api GET /api/status), version_field_name, exact_version)
+REVIEWED_HTTP={} # operation: (infisical_image, (method, endpoint_template, shape(body), shape(query)), shape(response))
+REVIEWED_STATUS=None  # (shape(api GET /api/status), None, None); status has no version field
+REVIEWED_INFISICAL_IMAGE=None  # exact independently reviewed image: 'infisical/infisical:v0.161.11'
+INFISICAL_SERVICE_ID='9eb06593-afca-46df-baa3-df755391a65b'
 REVIEWED_DB_IDENTITY=None  # (database, owner_role, server_address), pinned by the credentialed owner session
 
 def require(ok, reason):
@@ -602,13 +604,25 @@ def wait_proof_quiet(sync_id,observe=90): return quiet(sync_id,observe)
 def wait_proof_service_quiet(observe=90): return quiet(None,observe)
 
 def instance_version():
-    # UNVERIFIED status response: pin version field and key/type shape by read-only GET/UI.
+    # Status GET uses api()'s User-Agent: connector-step2/1.0 (required by this host).
     require(isinstance(REVIEWED_STATUS,tuple) and len(REVIEWED_STATUS)==3, 'UNVERIFIED /api/status')
     data=safe(api,'GET','/api/status')
     expected,field,version=REVIEWED_STATUS
-    require(isinstance(data,dict) and shape(data)==expected and data.get(field)==version
-        and isinstance(version,str) and bool(version), 'Infisical instance version/shape drift')
-    return version
+    require(isinstance(data,dict) and shape(data)==expected and field is None and version is None,
+        'Infisical status shape drift')
+    require(isinstance(REVIEWED_INFISICAL_IMAGE,str) and bool(REVIEWED_INFISICAL_IMAGE), 'UNVERIFIED Infisical image')
+    f=pin_field('Query','service')
+    require(dict(f[2]).get('id')=='String!', 'Service query drift')
+    instances=base_type(pin_field(base_type(f),'serviceInstances'))
+    edge=base_type(pin_field(instances,'edges')); node=base_type(pin_field(edge,'node'))
+    source=base_type(pin_field(node,'source')); pin_field(source,'image')
+    data=safe(gql,'query($id:String!){service(id:$id){serviceInstances{edges{node{source{image}}}}}}',
+        {'id':INFISICAL_SERVICE_ID})
+    rows=data['service']['serviceInstances']['edges']
+    require(isinstance(rows,list) and len(rows)==1, 'Infisical instance missing/duplicate')
+    image=rows[0]['node']['source']['image']
+    require(image==REVIEWED_INFISICAL_IMAGE, 'Infisical instance image drift')
+    return image
 
 def http_mutation(operation,method,path,body=None,query=None,created_key=None):
     # UNVERIFIED self-hosted mutation: reviewed version + request shape + expected response shape required BEFORE use.
@@ -744,13 +758,25 @@ def verify_infisical_absence():
     require(not any(r['id']==created.get('folder') or r['name']=='s1764-proof' for r in proof_folders('/')), 'Proof folder remains')
 
 def proof_project_by_name():
-    # Caller-scoped projects query: https://docs.railway.com/integrations/api/manage-projects
-    f=pin_field('Query','projects')
-    edge=base_type(pin_field(base_type(f),'edges')); node=base_type(pin_field(edge,'node'))
+    # Workspace-scoped, complete inventory; RP is the positive visibility control.
+    f=pin_field('Query','project')
+    require(dict(f[2]).get('id')=='String!', 'Project query drift')
+    pin_field(base_type(f),'workspaceId')
+    project=safe(gql,'query($id:String!){project(id:$id){workspaceId}}',{'id':RP})['project']
+    workspace=text_id(project['workspaceId'])
+    f=pin_field('Query','projects'); args=dict(f[2])
+    require(args.get('workspaceId')=='String' and args.get('first')=='Int', 'Projects query drift')
+    connection=base_type(f)
+    edge=base_type(pin_field(connection,'edges')); node=base_type(pin_field(edge,'node'))
     for name in ('id','name'): pin_field(node,name)
-    rows=safe(gql,'query{projects{edges{node{id name}}}}',{})['projects']['edges']
+    page=base_type(pin_field(connection,'pageInfo')); pin_field(page,'hasNextPage')
+    inventory=safe(gql,'query($w:String!){projects(workspaceId:$w,first:100){edges{node{id name}} pageInfo{hasNextPage}}}',
+        {'w':workspace})['projects']
+    rows=inventory['edges']
     require(isinstance(rows,list) and all(isinstance(r,dict) and isinstance(r.get('node'),dict)
         and set(r['node'])=={'id','name'} for r in rows), 'Project inventory drift')
+    require(inventory['pageInfo']['hasNextPage'] is False and any(r['node']['id']==RP for r in rows),
+        'Project listing not authoritative')
     matches=[r['node'] for r in rows if r['node']['name']==PROOF_NAME]
     require(len(matches)<=1, 'Duplicate proof project name; deletion refused')
     if matches: require(text_id(matches[0]['id'])!=RP, 'Production project refused')
@@ -874,9 +900,8 @@ finally:
                 'environment_id':globals().get('PROOF_ENV_ID'),'environment_name':globals().get('PROOF_ENV_NAME'),
                 'service_name':'proof','service_id':created.get('service'),
                 'image_digest':IMAGE_DIGEST if re.fullmatch(r'sha256:[0-9a-f]{64}',IMAGE_DIGEST) else None},
-            'schema_api_pins':{'infisical_status_version':REVIEWED_STATUS[2]
-                if isinstance(REVIEWED_STATUS,tuple) and len(REVIEWED_STATUS)==3
-                and isinstance(REVIEWED_STATUS[2],str) and bool(REVIEWED_STATUS[2]) else None,
+            'schema_api_pins':{'infisical_image':REVIEWED_INFISICAL_IMAGE
+                if isinstance(REVIEWED_INFISICAL_IMAGE,str) and bool(REVIEWED_INFISICAL_IMAGE) else None,
                 'railway_gql_fields':[{'type_name':t,'field_name':n} for t,n in sorted(REVIEWED_GQL)]},
             'operations':operations,'teardown':[r for r in receipt if r['operation'].startswith('teardown-')],
             'dispositions':dispositions,'teardown_failed':teardown_failed}
