@@ -2,14 +2,18 @@
 title: Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)
 owner: unassigned
 last_verified: '2026-07-17'
-aliases: []
+aliases:
+- Titan-1
+- titan-1.md
 error_signatures:
-- launchd user jobs exit 78 after a Titan-1 reboot
+- launchd user jobs exit 78 after a Koskadeux reboot
 ---
 
 # Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)
 
 Canonical map of the physical machine the whole operation runs from. Live source of the same data: `state_get("infra:titan-1")` (kept in sync with this doc). Related: `connectivity.md` (network), `mcp-gateway.md` (gateway/tunnel detail), `backup-and-recovery.md` (the scheduled jobs), `infisical-secrets.md` (machine-identity creds).
+
+**Former name.** This machine was wrongly labelled "Titan-1" in older pages; that name is retired (Max, S1715 and 2026-10-01) and must not be used in new text. Some live identifiers still carry the old name until BQ-KOSKADEUX-RENAME-S1715 renames the objects themselves; quote them exactly as they are today: Living State key `infra:titan-1`, Railway token `titan-1-koskadeux`, Infisical secret `TITAN_KDBROWSER_PASSWORD`, Infisical identity `titan1-unattended-backup`, AWS IAM user `svc-titan-vulcan`, SysAdmin contract `titan1_health` / `TITAN1_HEALTH_URL`, and the stale Tailscale node `titan-1` (see `connectivity.md`). Historical records (audits, receipts, approved specs) keep the name they were written with.
 
 ## Identity & hardware
 | | |
@@ -115,8 +119,8 @@ higher. Local: `curl 127.0.0.1:{8765,8767}/health`; kickstart:
 
 ## When it breaks
 
-### launchd user jobs exit 78 after a Titan-1 reboot (2026-09-30)
+### launchd user jobs exit 78 after a Koskadeux reboot (2026-09-30)
 
-Symptom: launchd user jobs exit 78 after a Titan-1 reboot; `/var/tmp/koskadeux` is recreated owned by root, mode 0744. Cause: stale root LaunchDaemons `ai.market.s1426.s1422.r3` and `ai.market.s1426.s1422.r4` recreated the directory at boot. Fix: chown `/var/tmp/koskadeux` back to `max`, remove both `/Library/LaunchDaemons/ai.market.s1426.s1422.r3.plist` and `/Library/LaunchDaemons/ai.market.s1426.s1422.r4.plist`, verify both are absent, and reload the affected user jobs.
+Symptom: launchd user jobs exit 78 after a Koskadeux reboot; `/var/tmp/koskadeux` is recreated owned by root, mode 0744. Cause: stale root LaunchDaemons `ai.market.s1426.s1422.r3` and `ai.market.s1426.s1422.r4` recreated the directory at boot. Fix: chown `/var/tmp/koskadeux` back to `max`, remove both `/Library/LaunchDaemons/ai.market.s1426.s1422.r3.plist` and `/Library/LaunchDaemons/ai.market.s1426.s1422.r4.plist`, verify both are absent, and reload the affected user jobs.
 
 Use the reboot-outage incident record and cold-start canary rule above for restart failures; no broader repair procedure is defined.

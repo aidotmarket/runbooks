@@ -147,7 +147,7 @@ Use Railway variable references on `issue-channel-watcher` so the service consum
 
 The watcher is to read Railway project `events` (Deployment crashed/failed) with a dedicated workspace token, because its project token is refused on `events` (Events `4982f9e3`, `477a5087`; spec `specs/BQ-RAILWAY-ALERT-PARITY-S1757.md` §3.1). Railway tokens have no read-only scope: this token can change anything in the workspace if stolen. Max accepted that risk (Event `477a5087`). The watcher code must use it only for `RailwayProjectEvents`.
 
-Status (2026-09-28, Mars S1758): the events adapter is live. `RailwayProjectEvents` merged in koskadeux-mcp PR #278 as `5a8a0198ae9624dc4084fffb6bb2c585202083ac` (Gate 3 GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`; folds re-reviewed by raisers). Watcher deployment `6a1d3be2-fca9-4f3a-b020-722814a0069d` reached `SUCCESS` at 11:35Z. The first mirror cycle after it showed `ai-market:<project>:events` in both `expected_resources` and `observed_resources` of `sources.railway`, with `status` `ok` and `observation_complete` `true`, and the events path recorded the 2026-09-27 watcher `CRASHED` deployment. Railway emails stay on until the parity job (spec §3.3, installed 2026-09-28, see [Railway alert parity job (Koskadeux)](#railway-alert-parity-job-titan-1)) shows 7 clean days (§3.4).
+Status (2026-09-28, Mars S1758): the events adapter is live. `RailwayProjectEvents` merged in koskadeux-mcp PR #278 as `5a8a0198ae9624dc4084fffb6bb2c585202083ac` (Gate 3 GLM, DeepSeek, CC in the Gemini seat per `d50cbd80`; folds re-reviewed by raisers). Watcher deployment `6a1d3be2-fca9-4f3a-b020-722814a0069d` reached `SUCCESS` at 11:35Z. The first mirror cycle after it showed `ai-market:<project>:events` in both `expected_resources` and `observed_resources` of `sources.railway`, with `status` `ok` and `observation_complete` `true`, and the events path recorded the 2026-09-27 watcher `CRASHED` deployment. Railway emails stay on until the parity job (spec §3.3, installed 2026-09-28, see [Railway alert parity job (Koskadeux)](#railway-alert-parity-job-koskadeux)) shows 7 clean days (§3.4).
 
 To check events coverage, run `jq '.snapshot.sources.railway | {status, observation_complete, events: (.observed_resources | map(select(endswith(":events"))))}' /Users/max/koskadeux-state/issue-channel/snapshot.json`: expect `status` `ok`, `observation_complete` `true` and `ai-market:e81dd66f-808c-412e-b32c-f6d910f0ac5d:events` listed. This is Railway-source coverage only; check `.snapshot.sources.watcher` separately for overall watcher health. A recognized crash or failure event that cannot be resolved to a known service or deployment marks the observation incomplete by design.
 
@@ -191,7 +191,7 @@ Known live refusals and meaning:
 - `fresh healthy watcher mirror cycle unproved`: no new healthy watcher mirror within 15 minutes after the mutation; check the watcher deployment and snapshot freshness before retrying.
 - `attributable Infisical sync jobs unproved`: the expected sync job did not complete; stop, record it, and do not relax the check without review.
 
-<a id="railway-alert-parity-job-titan-1"></a>
+<a id="railway-alert-parity-job-koskadeux"></a>
 
 ### Railway alert parity job (Koskadeux)
 

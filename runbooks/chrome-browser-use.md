@@ -43,7 +43,7 @@ This runbook covers the normal authorized operator Chrome identity used for inte
 | Native-host manifest diagnosis | SHIPPED | `/Users/max/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/check-native-host-manifest.js` | S1605 reported manifest exists and is correct | 2026-08-24 |
 | Effective config and managed-requirements reads | SHIPPED | `/Applications/ChatGPT.app/Contents/Resources/codex` | S1605 app-server probe returned both reads successfully and requirements null | 2026-08-24 |
 | Extension-backed DOM control after transport recovery | SHIPPED | `/Users/max/.codex/plugins/cache/openai-bundled/chrome/latest/scripts/browser-client.mjs` | S1588 confirmed reinstall recovery; S1605 confirmed operator-window recovery and live Build Queue DOM proof | 2026-08-24 |
-| Operator and synthetic-browser identity separation | SHIPPED | `titan-1.md` | Koskadeux inventory identifies kdbrowser as the isolated browser-test account | 2026-08-24 |
+| Operator and synthetic-browser identity separation | SHIPPED | `koskadeux.md` | Koskadeux inventory identifies kdbrowser as the isolated browser-test account | 2026-08-24 |
 
 ## Architecture & interactions
 

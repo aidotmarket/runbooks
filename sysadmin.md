@@ -132,7 +132,7 @@ After the 2026-09-24 repair, `/api/v1/internal/agent-compliance` reported `HEALT
 - id: E-03
   trigger: "Railway project token must be re-minted without dashboard access."
   pre_conditions:
-    - "Koskadeux account token is available through titan-1.md Railway auth."
+    - "Koskadeux account token is available through koskadeux.md Railway auth."
   tool_or_endpoint: "POST https://backboard.railway.app/graphql/v2"
   argument_sourcing:
     project_id: "e81dd66f-808c-412e-b32c-f6d910f0ac5d"
