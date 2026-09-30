@@ -1141,7 +1141,14 @@ def require_current_syncs(after=False):
         assert dest.get('projectName')=='ai-market' and dest.get('environmentName')=='production'
         assert dest.get('serviceId')==service_id and dest.get('serviceName')==service_name
         include=opts.get('includeAllSubFolders','omitted')
-        assert include is False or (include=='omitted' and name!='railway-connector-resource-prod')
+        # S1771: self-hosted Infisical v0.161.11 does not return includeAllSubFolders for Railway syncs, even when
+        # created with False. For the resource sync, omission is accepted only with a flat source (no child folders);
+        # root non-recursion into /connector-resource is proven by the §2.5b canary forced-sync.
+        if include=='omitted' and name=='railway-connector-resource-prod':
+            children=api('GET','/api/v2/folders',{'projectId':P,'environment':E,'path':'/connector-resource'})['folders']
+            assert after and isinstance(children,list) and not children
+        else:
+            assert include is False or include=='omitted'
     return by_name
 
 def reconcile_active_sync_values(after=False):
@@ -1190,7 +1197,7 @@ assert deployment_snapshot()==BASE_DEPLOYMENTS
 closed_stage('after-resource-sync-create')
 ```
 
-Read back sync ID, source path/env, connection, target ID, auto-sync and options. Require explicit `includeAllSubFolders:false` on the new sync; omission or enabled recursion stops. Wait for its first successful job; then assert `DATABASE_URL` and `REDIS_URL` remain present on `rv(RES)` (names only) and canary absent everywhere. Generate three independent `secrets.token_urlsafe(48)` values in process; write `SECRET_KEY` to `/connector-auth`, a different `SECRET_KEY` and `CONNECTOR_AUDIT_HMAC_KEY` to `/connector-resource`, each by `POST /api/v4/secrets/<name>` with `projectId`, `environment`, exact `secretPath`, `secretValue`, `skipMultilineEncoding=True`, `type='shared'`. Run `reconcile_active_sync_values(after=True)` before each write. Write one at a time, wait for the corresponding sync job to succeed, check names/fingerprints, run `closed_stage()` and compare deployment IDs, and receipt each separately. Never change `CONNECTOR_OAUTH_SIGNING_KEYS` or its auth sync. Do not create a root sync or use local-secops' generic executor for `/connector-auth`.
+Read back sync ID, source path/env, connection, target ID, auto-sync and options. Create the new sync with explicit `includeAllSubFolders:false`. Enabled recursion stops. Infisical v0.161.11 omits this field on readback for every Railway sync (S1771), so omission is accepted only while `/connector-resource` has no child folders; the §2.5b canary proves the root sync does not reach this folder. Wait for its first successful job; then assert `DATABASE_URL` and `REDIS_URL` remain present on `rv(RES)` (names only) and canary absent everywhere. Generate three independent `secrets.token_urlsafe(48)` values in process; write `SECRET_KEY` to `/connector-auth`, a different `SECRET_KEY` and `CONNECTOR_AUDIT_HMAC_KEY` to `/connector-resource`, each by `POST /api/v4/secrets/<name>` with `projectId`, `environment`, exact `secretPath`, `secretValue`, `skipMultilineEncoding=True`, `type='shared'`. Run `reconcile_active_sync_values(after=True)` before each write. Write one at a time, wait for the corresponding sync job to succeed, check names/fingerprints, run `closed_stage()` and compare deployment IDs, and receipt each separately. Never change `CONNECTOR_OAUTH_SIGNING_KEYS` or its auth sync. Do not create a root sync or use local-secops' generic executor for `/connector-auth`.
 
 Require `require_current_syncs(after=True)`, all four flag values and the global switch still off, no canary on any destination, the two resource Railway URL names still present, and all four tracked deployment IDs unchanged. No canary may remain as a permanent variable.
 
