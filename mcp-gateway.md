@@ -9,8 +9,8 @@ error_signatures:
 
 # Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle
 
-> Canonical operations runbook for the **internal Koskadeux MCP** that the two Claude
-> instances (Vulcan + Mars, peers) drive Koskadeux through. For the **public/customer** MCP
+> Canonical operations runbook for the **internal Koskadeux MCP** that all live
+> peers drive Koskadeux through. For the **public/customer** MCP
 > that exposes marketplace tools to external LLM clients, see `aimarket-mcp-server.md` —
 > that is a different system.
 >
@@ -20,12 +20,14 @@ error_signatures:
 > there. Until then this central runbook is authoritative. Filename kept as `mcp-gateway.md`
 > deliberately so that gated relocation owns the rename.
 
+**Active peers:** Vulcan, Mars and Athena are equal-authority peers; the roster comes from `config:instance-registry` (see `session-open-protocol.md`).
+
 Never name a file or directory directly under koskadeux-mcp `scripts/` after a Python standard-library module; see [the S1753 incident](customer-mcp-connector.md#s1753-incident-python-standard-library-shadowing-2026-09-27).
 
 ## What it is
 
-Exposes the Koskadeux MCP server on Koskadeux at `https://mcp.ai.market` so the hosted Claude
-instances (Vulcan and Mars, equal-authority peers) can call MCP tools from a hosted
+Exposes the Koskadeux MCP server on Koskadeux at `https://mcp.ai.market` so all live
+peers can call MCP tools from a hosted
 browser session. All tool calls (`council_request`, `state_request`, `kd_session_*`,
 `shell_request`, `dispatch_mp_build`, etc.) execute locally on Koskadeux against the
 filesystem, agents, Council infrastructure, and Living State.
@@ -37,7 +39,7 @@ filesystem, agents, Council infrastructure, and Living State.
 ## Architecture
 
 ```
-Claude.ai (hosted browser — Vulcan + Mars, equal-authority peers)
+Hosted clients (all live peers, equal authority)
   → https://mcp.ai.market           [Cloudflare Tunnel — public surface]
   → cloudflared on Koskadeux          [com.koskadeux.cloudflared: `cloudflared tunnel run koskadeux`]
   → gateway_server.py :8767         [thin MCP-protocol proxy + OAuth]
@@ -179,27 +181,27 @@ does not need a restart for handler-code changes.
 **A handler restart drops every instance's in-memory session state** → all live
 peers (Vulcan, Mars, Athena) must re-open + re-plan. Never restart unilaterally
 while a peer is live — coordinate (via Max) with all live peers first, when all
-reach a clean stop. (See "Known issues → restarts drop both sessions.")
+reach a clean stop. (See "Known issues → restarts drop all live peers' sessions.")
 
 ## Session lifecycle (consolidated from the former `session-lifecycle.md`)
 
-Vulcan and Mars are equal-authority peers. Session lifecycle state is keyed by instance:
-either peer may open first, and each opens, plans, operates, and closes independently. There
+All live peers have equal authority. Session lifecycle state is keyed by instance:
+any peer may open first, and each opens, plans, operates, and closes independently. There
 are no role-based lanes, lifecycle slots, parent-session dependency, or close ordering.
 
 ```
-kd_session_open(session_id, instance=vulcan|mars)
+kd_session_open(session_id, instance=vulcan|mars|athena)
   → returns CORE.md + that instance's handoff + BQ status + service health
   → registers only the named instance's session
 kd_session_plan(session_id, tool_budget, objectives, delegation_strategy)
   → transitions that session's boot gate PLANNING → OPERATIONAL
-kd_session_close(session_id, instance=vulcan|mars, reason, summary, handoff_content)
-  → closes only the named instance and preserves the peer's session and handoff
+kd_session_close(session_id, instance=vulcan|mars|athena, reason, summary, handoff_content)
+  → closes only the named instance and preserves other peers' sessions and handoffs
 ```
 
 The local registry `sessions` table is authoritative for active-session resolution. A peer
-open or close must not mutate the other peer's registry row or boot-gate state. Coordinate a
-handler restart because it affects both live connections, but after restart each peer
+open or close must not mutate other peers' registry rows or boot-gate state. Coordinate a
+handler restart because it affects all live peers' connections, but after restart each peer
 re-opens and re-plans independently.
 
 ### Historical S733-S852 role-slot implementation record (retired)
@@ -207,9 +209,8 @@ re-opens and re-plans independently.
 The material below preserves the former role-slot and ordered-close implementation as a
 historical record. It is not current operating guidance.
 
-The MCP hosts the session lifecycle for the two cooperating Claude instances. They are
-**peers** — one holds the "primary" lifecycle slot, one the "worker" slot; that decides
-only **close order** (worker releases first), NOT authority.
+The retired implementation hosted session lifecycle in "primary" and "worker" slots.
+Those historical slots decided only **close order** (worker releases first), NOT authority.
 
 **Open** (one per instance, back-to-back):
 
@@ -328,10 +329,10 @@ A path failure localises by which step first stops returning 200 / active.
 
 ## Known issues
 
-- **Restarts drop both instances' in-memory session.** A handler restart re-instantiates the
-  server; both peers must re-open + re-plan independently. The disk-backed registry preserves
+- **Restarts drop all live peers' in-memory sessions.** A handler restart re-instantiates the
+  server; all live peers must re-open + re-plan independently. The disk-backed registry preserves
   PLANNING/OPERATIONAL + session rows, but the gate still requires a fresh open+plan.
-  Coordinate restarts — never restart unilaterally while the peer is live.
+  Coordinate restarts — never restart unilaterally while any peer is live.
 - **Response cross-talk under concurrent peer calls.** Observed S734 ~15:00 UTC: a
   `state_request` PATCH executed correctly server-side (the write landed) but the response
   handed back to the caller was a *different* concurrent command's output; the next call
@@ -383,8 +384,8 @@ itself is degraded.
   was left behind and is now dead/stale, slated for retirement (Unit D). Boot-gate/session
   persistence legitimately uses the local registry `sessions` table so a restart doesn't lose
   PLANNING/OPERATIONAL.
-- **Peer model (no primary-over-worker authority):** the two slots only order close (worker
-  first); both instances have equal authority over shell, git, dispatch, and Living State.
+- **Peer model (no primary-over-worker authority):** the historical two slots only ordered
+  close (worker first); all live peers have equal authority over shell, git, dispatch, and Living State.
 
 ## In-flight: gate-hardening reform (seam-hardening, not a rewrite)
 
@@ -405,7 +406,7 @@ not rewrite. Units + ownership:
   described above + the session-suite harness reconcile so the session test gate ships green.
 
 **Caution:** the `session.py` fixes for Unit B are merged to `main` but are **NOT live until
-the next coordinated MCP restart** — and a restart drops both sessions, so it is coordinated
+the next coordinated MCP restart** — and a restart drops all live peers' sessions, so it is coordinated
 via Max, not done unilaterally.
 
 ## History
