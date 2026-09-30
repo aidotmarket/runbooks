@@ -11,7 +11,9 @@ error_signatures: []
 > **Built**: S1115 (2026-07-04)
 > **Host**: Koskadeux / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB)
 > **Location on disk**: `/Users/max/local-secops/`
-> **Purpose**: Rotate / update / expire / generate credentials with a fully-local model, so secret values never leave Koskadeux and no human has to type them.
+> **Purpose**: Rotate / update / expire / generate credentials so secret values never leave Koskadeux and no human has to type them.
+>
+> **Proposer retired (2026-08-18).** Ollama and `llama3.3:70b` were uninstalled; `secops_propose.py` fails with `ConnectionRefusedError` (127.0.0.1:11434). The operator writes the plan JSON by hand; `secops_execute.py` is unchanged and still enforces every guardrail. Model and Ollama details below are history.
 > **Owner**: Vulcan/Mars (operator-invoked); registered in Living State at `infra:local-secops`.
 
 ---
@@ -91,12 +93,8 @@ Secret NAME must match `^[A-Z0-9_]{2,64}$`. `env` must be in the per-project all
 
 **Standard rotation of a secret we own (e.g., an internal API key / HMAC key):**
 
-1. Propose (nothing runs):
-   ```bash
-   cd /Users/max/local-secops
-   ./secops_propose.py "rotate INTERNAL_API_KEY on ai-market-backend and note it reaches prod via a Railway redeploy"
-   ```
-2. Vulcan reviews the emitted JSON: confirm `intent`, each `command`, `reversible`/`risk` flags, and that no step prints a value. Save the vetted plan to a file (e.g. `approved_plan.json`).
+1. Write the plan JSON by hand (same shape as `/Users/max/local-secops/approved_plan.json`: `intent`, `steps[]` with `description`, `command`, `reversible`, `risk`, `handles_secret_value`, plus `destructive`, `rollback`, `notes`). For a self-generated value use the literal placeholder `<VALUE_FROM_OPERATOR>` in the `set` command. Keep plans out of the repo (e.g. `~/koskadeux-state/<session>/`).
+2. Before any `ai-market-backend` `prod` write, run the flag-drift check in [infisical-secrets.md](infisical-secrets.md) (the next sync pushes the whole set). Export the token first: `export INFISICAL_TOKEN=$(cat ~/.config/infisical/sysadmin-token)`.
 3. Dry-run the executor (previews only):
    ```bash
    ./secops_execute.py approved_plan.json
@@ -132,10 +130,10 @@ Secret NAME must match `^[A-Z0-9_]{2,64}$`. `env` must be in the per-project all
 ## When it breaks
 
 - **"REFUSED: ..." on execute** — expected guardrail behaviour, not a bug. Read the reason (off-list command, non-allow-listed projectId, bad NAME, shell metacharacter, HALT present, unresolved placeholder). Fix the plan, don't loosen the executor.
-- **Proposer returns non-JSON / invents a flag** — check that `PLAYBOOK.md` still matches reality (Infisical flag shapes, project IDs). The proposer is only as correct as its grounding; drift in PLAYBOOK.md is the usual root cause.
+- **(history) Proposer returns non-JSON / invents a flag** — check that `PLAYBOOK.md` still matches reality (Infisical flag shapes, project IDs). The proposer is only as correct as its grounding; drift in PLAYBOOK.md is the usual root cause.
 - **`get` round-trip fails after a `set` that returned rc=0** — check the Infisical token validity (`~/.config/infisical/sysadmin-token`) and that the project/env are correct.
 - **`delete` returns a non-zero rc** — CLI delete is unreliable under this identity; the executor already uses the raw REST API path. A transient non-200 (rc=98/curl error) can occur; re-run and confirm via a follow-up `get` that the key is gone. (audit.log shows historical rc=98 followed by a clean rc=0 delete.)
-- **Ollama unreachable (`127.0.0.1:11434`)** — check the LaunchAgent: `brew services list | grep ollama`. If stopped, `brew services start ollama`.
+- **`secops_propose.py` raises `ConnectionRefusedError`** — expected: the local model was removed 2026-08-18. Write the plan by hand (How to operate, step 1).
 - **Nothing executes at all** — check for a stray `HALT` file in the dir.
 
 Every run and refusal is in `audit.log` (JSONL, values redacted) — read it first when diagnosing.
