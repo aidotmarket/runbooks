@@ -1309,6 +1309,8 @@ assert replicas==2 and rv(RES).get('CONNECTOR_WORKERS','2')=='2', 'Resource proc
 PRIOR_NAMES={s:sorted(k for k in rv(s) if k in {'LISTING_LICENSES_ENABLED','TERMS_1_1_EFFECTIVE_AT','X402_ENABLED',
     'CONNECTOR_EXPECTED_PROCESSES','CONNECTOR_AUTH_FAILURE_MAX_IPS','OTEL_SERVICE_NAME',
     'CONNECTOR_EARLY_ACCESS_ENFORCED','CONNECTOR_EARLY_ACCESS_USER_IDS'}) for s in (RES,AUTH,BACK)}
+# Protected-memory raw prior values for §2.4 exact restore (absent names = remove on rollback). Never printed or saved.
+PRIOR_VALUES={s:{k:raw_reference(s,k) for k in names} for s,names in PRIOR_NAMES.items()}
 put(RES,{'LISTING_LICENSES_ENABLED':'true','TERMS_1_1_EFFECTIVE_AT':backend_terms,'X402_ENABLED':'false'})
 del backend_terms
 put(RES,{'CONNECTOR_EXPECTED_PROCESSES':'4','CONNECTOR_AUTH_FAILURE_MAX_IPS':'10000','OTEL_SERVICE_NAME':'ai-market-connector'})
@@ -1475,4 +1477,4 @@ require(all(w['state']=='completed' for w in window), 'Window journal incomplete
 print('Step 2 complete; connect /readyz:',http_status('https://connect.ai.market/readyz'))
 ```
 
-Save `window` and `PRIOR_NAMES` (names/IDs only) with the Step 2 receipt.
+Save `window` and `PRIOR_NAMES` (names/IDs only) with the Step 2 receipt. `PRIOR_VALUES` stays in the protected interpreter for §2.4 restoration (names in `PRIOR_NAMES` restore their exact raw prior value; other §2.5a names are removed) until Step 2 is complete or rolled back; keep admission closed during any restore.
