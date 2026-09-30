@@ -1,9 +1,9 @@
 ---
 title: Customer MCP connector — build and operations
 owner: unassigned
-last_verified: '2026-09-29'
+last_verified: '2026-09-30'
 aliases: [customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market]
-error_signatures: [insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'", connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED]
+error_signatures: ["You are being ratelimited. Please try again later", insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'", connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED]
 ---
 
 # Customer MCP connector — build and operations
@@ -264,6 +264,18 @@ The four prices are USD/token; cache `0.00000002` matches backend main `app/alla
 
 Backend PR #540 merged as `35af29cbd36f8a8ac05776d6bc17846f62c02920` on 2026-09-29. Railway `ai-market-backend` deployment `8a31909a-5b40-40f2-96f9-d62ef6671220` reached `SUCCESS` on main `35af29cb`; Event Ledger receipt `c2479a93-9fd0-48f1-974f-749e8c12ae0a` records the #540 deploy. `CONNECTOR_EARLY_ACCESS_ENFORCED` (default `true`) and `CONNECTOR_EARLY_ACCESS_USER_IDS` enforce the user allowlist at website consent, authorization-server authorize, token code exchange and refresh, and resource admission. Set both environment values identically on `ai-market-backend`, `ai-market-connector-auth`, and `ai-market-connector`; see specs erratum `b886ba76`. Enforcement becomes live on auth and resource only at their Gate 4 redeploy.
 
+### Gate 4 Step 2 done: connector variables and secrets (S1771, 2026-09-30)
+
+Mars ran Step 2 on production in a restart window Max approved, following `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` §2.1, §2.5 and the §2.3 final readback (Event `7340d351`; restricted receipt `koskadeux-state/s1771/step2-receipt.json`). Flags and the global switch stayed off throughout.
+
+- **Resource Railway variables** (`skipDeploys`): restricted `DATABASE_URL` for `connector_runtime`; `REDIS_URL=${{Redis.REDIS_URL}}` (same Redis as the backend); the licensing trio equal to the backend; `CONNECTOR_EXPECTED_PROCESSES=4`, `CONNECTOR_AUTH_FAILURE_MAX_IPS=10000`, `OTEL_SERVICE_NAME=ai-market-connector`.
+- **Early access:** `CONNECTOR_EARLY_ACCESS_ENFORCED=true` and an empty `CONNECTOR_EARLY_ACCESS_USER_IDS` on backend, auth and resource. Nobody is admitted until Step 6 adds UUIDs.
+- **Infisical:** a new `/connector-resource` folder and native sync `railway-connector-resource-prod` (`29c333cf-82e8-4237-82a9-bb9066bbb225`) to `ai-market-connector` only. `/connector-auth` holds `CONNECTOR_OAUTH_SIGNING_KEYS` and its own `SECRET_KEY`. `/connector-resource` holds a different `SECRET_KEY` and `CONNECTOR_AUDIT_HMAC_KEY`. Destination fingerprints match their sources.
+- **Non-recursion:** a canary in `/connector-resource` did not reach backend, auth, resource or watcher after forced runs of all three existing syncs. The canary was then deleted.
+- **Health after the window:** `api.ai.market/health` 200, `auth.ai.market/readyz` 200, `connect.ai.market/healthz` 200, `/readyz` 200, `/mcp` 503 `CONNECTOR_DISABLED`.
+
+What the no-deploy proof showed (S1771): a Railway `variableCollectionUpsert` with `skipDeploys:true` does not redeploy, but every Infisical native Railway sync job (create, forced run, or a secret write in a synced folder) redeploys its destination service. Plan any Infisical write to a synced folder as a restart of that service. Self-hosted Infisical v0.161.11 does not return `includeAllSubFolders` on Railway sync readback.
+
 ### Signing keyset recovery: NO SUPPORTED PATH TODAY (S1757, 2026-09-27)
 
 The only copy of `CONNECTOR_OAUTH_SIGNING_KEYS` is Infisical `ai-market-backend`/`prod` `/connector-auth` and its synced Railway variable on `ai-market-connector-auth`. The 2026-09-27 03:04Z Infisical backup does not contain it (checked S1757). If both are lost, the keys cannot be restored, and there is no reviewed procedure to regenerate them. The provisioning tool's `generate` needs a canary proof that matches the live root sync (`connector_signing_keyset.py` `valid_canary_proof`), and `canary` refuses to mint a new one once the `railway-connector-auth-prod` sync exists (`require_syncs`). The S1753 proof saved as a local scratch receipt (`/Users/max/koskadeux-state/secrets/s1753/canary-proof.json`) still validated against the live root sync on 2026-09-27 at about 19:30 CEST (GLM read-only check), but it becomes invalid on any root-sync change and is not a reviewed or durable recovery route. Do not delete or recreate syncs, hand-write a proof, or create the secret by any other route. A lost keyset therefore means the authorization server stays down until a separately reviewed recovery or rotation procedure exists. Building that procedure is a pre-enable requirement of BQ-CONNECTOR-OAUTH. When it exists, record it here, including how to compare RFC 7638 thumbprints computed from the JWKS `kty`, `crv`, `x` and `y` members (JWKS itself publishes only `kid` and the public members). Any regenerated keyset invalidates every token signed with the old keys, so every connected client must reconnect.
@@ -294,6 +306,7 @@ Current rollback is `deploymentRemove` on the affected bad deployment. Once an e
 
 ## When it breaks
 
+- `You are being ratelimited. Please try again later` (Railway CLI) or HTTP 429 from `backboard.railway.app`: the account API token allows 1,000 requests per hour (`x-ratelimit-reset` gives the reset time). Guarded provisioning scripts spend it fast: each `railway variables` call and each deployment poll counts. Stop at a safe point, wait for the reset, poll every 30 s, and read variables through one GraphQL `variables` query rather than the CLI.
 - `Config as Code is deprecated`: Railway refused a per-service config file. Keep the service source unattached and apply the settings above through `serviceInstanceUpdate`; deploy the backend archive with `railway up`.
 - A service starts the backend app or runs Alembic: check whether repository source or the root Dockerfile command replaced the service start command. Restore the recorded `startCommand` and use the archive upload procedure.
 - `/healthz` stops returning HTTP 200, or `/readyz` remains HTTP 503 after Gate 4: inspect the Railway deployment and its applied start command, health check path, variables, and connector table reachability. Successful health checks are not proof of a working customer release.

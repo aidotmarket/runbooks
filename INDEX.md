@@ -526,9 +526,9 @@
 - Path: `customer-mcp-connector.md`
 - Purpose: This page records the verified connector deployment state. Mars verified the Chunk 2 infrastructure in S1753 on 2026-09-26. The auth service runs the OAuth authorization server with all four connector flags off: JWKS is published, while OAuth metadata and endpoints are closed. Since S1757 the backend consent API and the website consent and Connected apps pages are deployed, also with flags off. The Chunk 3 resource request edge was deployed in S1762 on 2026-09-28, with flags off and datastore readiness pending. Neither service is a working customer release.
 - Owner: `unassigned`
-- Last verified: `2026-09-29`
+- Last verified: `2026-09-30`
 - Aliases: customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market
-- Error signatures: insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, module 'secrets' has no attribute 'token_bytes', connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED
+- Error signatures: You are being ratelimited. Please try again later, insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, module 'secrets' has no attribute 'token_bytes', connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED
 - Status: current
 
 ## Daily CRM Briefing — First Real-Content Verification
