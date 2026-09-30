@@ -776,11 +776,11 @@
 
 ## Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle
 - Path: `mcp-gateway.md`
-- Purpose: Canonical operations runbook for the **internal Koskadeux MCP** that the two Claude instances (Vulcan + Mars, peers) drive Koskadeux through. For the **public/customer** MCP that exposes marketplace tools to external LLM clients, see `aimarket-mcp-server.md` — that is a different system. Consolidates the former `session-lifecycle.md` (now a stub pointing here). A future Overview–§K-conformant, possibly repo-local edition is tracked by the runbook-decentralization and autonomous-operations BQs; the central-vs-service location + final name are decided there. Until then this central runbook is authoritative. Filename kept as `mcp-gateway.md` deliberately so that gated relocation owns the rename.
+- Purpose: Canonical operations runbook for the **internal Koskadeux MCP** that all live peers drive Koskadeux through. For the **public/customer** MCP that exposes marketplace tools to external LLM clients, see `aimarket-mcp-server.md` — that is a different system. Consolidates the former `session-lifecycle.md` (now a stub pointing here). A future Overview–§K-conformant, possibly repo-local edition is tracked by the runbook-decentralization and autonomous-operations BQs; the central-vs-service location + final name are decided there. Until then this central runbook is authoritative. Filename kept as `mcp-gateway.md` deliberately so that gated relocation owns the rename.
 - Owner: `unassigned`
 - Last verified: `2026-08-25`
 - Aliases: none
-- Error signatures: none
+- Error signatures: merged_undeployed after a manual restart (deployed_sha marker not written; see Restart commands)
 - Status: current
 
 ## Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)
