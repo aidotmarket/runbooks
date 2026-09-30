@@ -72,7 +72,7 @@ either account's `auth.json`.
 | Vulcan/Mars | Dispatch MP build/review/author | council_request (agent=mp) | Koskadeux session (X-Agent-Caller, open session required) | COMPLETE |
 | Vulcan/Mars | Poll background task | council_request (action=check_build, task_id) | same | COMPLETE |
 | Vulcan/Mars | Convenience background build | dispatch_mp_build | same | COMPLETE |
-| MP | Build/commit/push on Titan-1 repos | Codex CLI (codex exec) via bridge | Max's local git + gh credentials | COMPLETE |
+| MP | Build/commit/push on Koskadeux repos | Codex CLI (codex exec) via bridge | Max's local git + gh credentials | COMPLETE |
 | MP | Honor READ-ONLY in reviews | prompt-level only | — | PARTIAL — advisory, not enforced (S452); see When it breaks-06. Closes via prompt prefix + post-review `git status` check. |
 | CC (Claude Code) | Trouble-ticket fixes ONLY | council_request (agent=cc) | Max ruling S1148 (ledger dedupe_key=s1148-cc-ticket-dispatch-ruling) | COMPLETE — NOT a BQ build path; that remains MP. |
 
@@ -80,7 +80,7 @@ either account's `auth.json`.
 
 ```yaml operate
 - id: E-01
-  trigger: A BQ chunk or ticket fix needs a code build in a Titan-1 repo
+  trigger: A BQ chunk or ticket fix needs a code build in a Koskadeux repo
   pre_conditions:
     - open Koskadeux session (kd_session_open + kd_session_plan done)
     - relevant runbook page and heading read directly when one covers the work
@@ -190,7 +190,7 @@ either account's `auth.json`.
 - id: E-07
   trigger: MP must build in a repository the minimal bridge does not know yet (precedent: aidotmarket/aim-data-gateway in S1741, since registered by PR #233); dispatch refuses with minimal_bridge_repo_unresolved
   pre_conditions:
-    - the repo exists on GitHub and is cloned on Titan-1 at its canonical checkout path (usually /Users/max/Projects/ai-market/<name>; the existing entries in _MINIMAL_BRIDGE_REPO_PATHS show the exceptions)
+    - the repo exists on GitHub and is cloned on Koskadeux at its canonical checkout path (usually /Users/max/Projects/ai-market/<name>; the existing entries in _MINIMAL_BRIDGE_REPO_PATHS show the exceptions)
     - the peer is idle or closed before the handler reload (Repair entry for model swaps has the restart rule)
   tool_or_endpoint: add one line '"aidotmarket/<name>": "<full checkout path>"' to _MINIMAL_BRIDGE_REPO_PATHS in koskadeux-mcp tools/agents.py, merge it through the normal koskadeux-mcp PR path (precedent PR #233, commit 821f5aa1), then reload the handler with launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp
   argument_sourcing:
@@ -203,7 +203,7 @@ either account's `auth.json`.
     verification: check_build on that task reaches clean_exit and report.json names the expected branch and a pushed head
   expected_failures:
     - signature: 'minimal bridge has no configured checkout for repo'
-      cause: map entry missing, handler not reloaded since the merge, or the path is not a directory on Titan-1
+      cause: map entry missing, handler not reloaded since the merge, or the path is not a directory on Koskadeux
   next_step_success: dispatch the real build
   next_step_failure: check the running handler's start time against the merge commit; reload again when the peer is idle
 ```
@@ -223,7 +223,7 @@ either account's `auth.json`.
 | F-10 | All MP dispatches fail after a model/config change | Model string not served on auth tier; or partial swap left mismatched EXPECTED_MODELS / adapters | smoke dispatch asserting model_actual; full-tree grep for old string | Repair-05 | CONFIRMED |
 | F-11 | MP verdict/manifest claims don't match reality (files, line numbers, test counts) | Builder messages over-claim; also spec-over-prompt: MP follows the committed spec over a diverging dispatch prompt (S530 — usually MP is RIGHT) | manual diff inspection at file:line (mandatory on every fold); compare prompt vs spec text |  | CONFIRMED |
 | F-12 | Canonical repo checkout found on detached HEAD after an MP review; a peer-held branch checkout silently abandoned | Review dispatched WITHOUT cwd: MP falls back to the canonical checkout and `git checkout <dispatch_sha>` moves its HEAD (S1175: Mars's spec branch checkout detached during vulcan's T-115 review; no data lost — branch was committed+pushed) | `git worktree list` + `git reflog -3` in the canonical checkout ("checkout: moving from <branch> to <sha>") | Repair-10 | CONFIRMED |
-| F-13 | Every MP dispatch 400s with `invalid_request_error`; `model_requested` shows an unintended model | Handler process predates a model-config rollback on disk: env is loaded at process start, so `~/.codex/config.toml` + `.env MP_MODEL` being correct on disk is NOT sufficient (S1184/S1185, incident 9180928d) | Model identity smoke (Repair-11 step 1); compare handler `ps lstart` (LOCAL time — Titan-1 is CEST=UTC+2, convert before comparing to Z timestamps) against the config-change time | Repair-11 | CONFIRMED |
+| F-13 | Every MP dispatch 400s with `invalid_request_error`; `model_requested` shows an unintended model | Handler process predates a model-config rollback on disk: env is loaded at process start, so `~/.codex/config.toml` + `.env MP_MODEL` being correct on disk is NOT sufficient (S1184/S1185, incident 9180928d) | Model identity smoke (Repair-11 step 1); compare handler `ps lstart` (LOCAL time — Koskadeux is CEST=UTC+2, convert before comparing to Z timestamps) against the config-change time | Repair-11 | CONFIRMED |
 | F-14 | All Codex sessions 401 Unauthorized on wss endpoints; `codex login status` = Not logged in | `~/.codex/auth.json` missing or its refresh-token chain burned ("refresh token was already used") — stale backups do NOT recover it because refresh tokens rotate | `ls ~/.codex/auth.json` + `codex login status` | Repair-12 | CONFIRMED (S1185) |
 | F-15 | MP repeatedly introduces new defects while fixing prior ones on a hard/safety-critical component (fix N creates defect N+1) | Default reasoning effort too low for the component's complexity | Count audit rounds: ≥2 REVISE rounds where the fix itself introduced a NEW defect (S1186 escalation spine: uuid4 dedup regression, ack leaks, benign-false storms) | Repair-13 | CONFIRMED (S1186) |
 | F-16 | Any git push refused with "GUARDRAIL: refusing malformed pre-push record" | Stale pre-push hook installed in that repository. The pre-fix copy rejects the local ref `HEAD`, so the ordinary `git push origin HEAD:refs/heads/<branch>` form is misread as a corrupted record. The message points at git or at credentials rather than at the hook's own field validation, which is why it reads like a security refusal (T-2026-000556, S1441) | `shasum -a 256 <repo>/.git/hooks/pre-push` against `koskadeux-mcp/githooks/pre-push`; any mismatch is a stale install. The fixed hook names the rejected field on refusal, the stale one does not | Repair-14 | CONFIRMED (S1441) |
@@ -327,7 +327,7 @@ either account's `auth.json`.
   component_ref: Codex CLI ChatGPT OAuth credential (~/.codex/auth.json)
   root_cause: credential file lost or refresh-token rotation chain broken; deletion vector undetermined S1185 (no koskadeux code touches the file)
   repair_entry_point: Max interactive re-login (AI instances CANNOT do this - browser OAuth on Max ChatGPT account)
-  change_pattern: '1) Do NOT restore old auth.json backups as a fix: rotated refresh tokens fail with "refresh token was already used", and a stale file makes codex login status lie - remove any stale copy so status honestly reads Not logged in. 2) Ask Max to run on Titan-1: codex logout, then codex login, completing the browser sign-in. 3) Verify: codex login status = Logged in using ChatGPT; direct smoke: cd ai-market-backend && echo "Reply with exactly: SMOKE_OK" | codex exec --model gpt-5.6-sol -; then the G-11 handler smoke.'
+  change_pattern: '1) Do NOT restore old auth.json backups as a fix: rotated refresh tokens fail with "refresh token was already used", and a stale file makes codex login status lie - remove any stale copy so status honestly reads Not logged in. 2) Ask Max to run on Koskadeux: codex logout, then codex login, completing the browser sign-in. 3) Verify: codex login status = Logged in using ChatGPT; direct smoke: cd ai-market-backend && echo "Reply with exactly: SMOKE_OK" | codex exec --model gpt-5.6-sol -; then the G-11 handler smoke.'
   rollback_procedure: n/a
   integrity_check: direct smoke returns SMOKE_OK on the intended model AND handler smoke shows model_matched=true (real readback post-S1205; see G-11)
 - id: G-14

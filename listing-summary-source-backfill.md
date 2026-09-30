@@ -23,7 +23,7 @@ It is safe to repeat: unchanged listings get no writes.
 
 Writing facts for a listing fires the existing source trigger, which invalidates that listing's current summary record. A pending draft simply regenerates on the seller's next visit. An APPROVED summary is withdrawn from the public page until the seller approves again. Step 2 below sizes this; if any approved summary would be hit, stop and put the decision to Max before step 3.
 
-## Procedure (headless, from Titan-1)
+## Procedure (headless, from Koskadeux)
 
 `DATABASE_URL` is the ONLY thing that selects the target database. Production is selected explicitly, never through the checkout's Railway link (`ai-market-backend.md`, Deployment): `railway variables` passes `-e production`; `railway status` has no `-e` flag, so its JSON (which lists every environment) is filtered on the environment named `production`. Use bash (step 2 uses process substitution). Never echo the URL. Run the three steps as three separate pastes in the SAME persistent bash session (variables carry over); do not join them.
 
@@ -109,8 +109,8 @@ Then the seller opens the listing editor, regenerates or previews At a glance, a
 
   | Check | Result | Where recorded |
   |---|---|---|
-  | Dry run before apply | `{"derived_facts": 229, "listings": 63, "listings_with_missing_facts": 59, "mode": "dry-run"}` | Titan-1 `/var/tmp/koskadeux/backfill-dryrun-s1719.jsonl`, sha256 `12d0c3e1381419da5aee121d0780a4d3108a186e15e12cc05f7513cf86122dc2` |
-  | Apply | `{"derived_facts": 229, "listings": 63, "listings_with_missing_facts": 59, "mode": "apply"}` | Titan-1 `/var/tmp/koskadeux/backfill-apply-s1719.jsonl`, sha256 `bea59203e9c226cec03fde46ed57413402e9cf63558d98a6ce2c81528dc980e6` |
+  | Dry run before apply | `{"derived_facts": 229, "listings": 63, "listings_with_missing_facts": 59, "mode": "dry-run"}` | Koskadeux `/var/tmp/koskadeux/backfill-dryrun-s1719.jsonl`, sha256 `12d0c3e1381419da5aee121d0780a4d3108a186e15e12cc05f7513cf86122dc2` |
+  | Apply | `{"derived_facts": 229, "listings": 63, "listings_with_missing_facts": 59, "mode": "apply"}` | Koskadeux `/var/tmp/koskadeux/backfill-apply-s1719.jsonl`, sha256 `bea59203e9c226cec03fde46ed57413402e9cf63558d98a6ce2c81528dc980e6` |
   | Confirming dry run | `{"derived_facts": 0, "listings": 63, "listings_with_missing_facts": 0, "mode": "dry-run"}` | session transcript only (not written to a file) |
   | `listing_summary_records` by state before apply | `pending 2`, no `approved` | session transcript only |
   | Same query, re-run 2026-09-18 after apply | `invalidated 2` | re-queried while writing this page |

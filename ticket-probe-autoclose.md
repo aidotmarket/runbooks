@@ -30,7 +30,7 @@ error_signatures:
 | Daily canary probe-rot -> unreachable + alarm, blocks auto-close | SHIPPED | `tools/lifecycle/ticket_probe_reconciler.py` | `tests/unit/test_ticket_probe_reconciler.py` | 2026-07-05 |
 | Unreachable alarm (peer bus + Event Ledger) with per-ticket 1h dedup | SHIPPED | `tools/lifecycle/ticket_probe_reconciler.py` | `tests/unit/test_ticket_probe_reconciler.py` | 2026-07-05 |
 | Triggers: post-deploy hook + hourly launchd heartbeat, behind flag | SHIPPED | `kd_scheduler.py` | `tests/unit/test_ticket_probe_reconciler.py` | 2026-07-05 |
-| Steady-state enabled on Titan-1 (flag in .env; launchd loaded; lock DSN via Infisical launcher) | SHIPPED | `scripts/launch_ticket_probe_reconciler.sh` | — | 2026-07-05 |
+| Steady-state enabled on Koskadeux (flag in .env; launchd loaded; lock DSN via Infisical launcher) | SHIPPED | `scripts/launch_ticket_probe_reconciler.sh` | — | 2026-07-05 |
 | http probes require backend TICKET_PROBE_HTTP_ALLOWLIST (Railway env) or create 422s | PARTIAL | `app/schemas/support_ticket.py` | `tests/test_bq_ttpa_s1126_c1.py` | 2026-07-05 |
 
 ## Architecture & interactions
@@ -50,7 +50,7 @@ error_signatures:
 |---|---|---|---|---|
 | vulcan | Author/attach a probe to a ticket | backend PATCH /api/v1/support/tickets/{ref} (internal) | internal (INTERNAL_API_KEY) | COMPLETE |
 | vulcan | Run a manual reconcile pass | koskadeux-mcp kd_scheduler.py --ticket-probe-reconcile | internal + lock DSN | COMPLETE |
-| vulcan | Enable/disable steady-state | .env TICKET_PROBE_RECONCILER_ENABLED + launchctl bootout/bootstrap | Titan-1 shell | COMPLETE |
+| vulcan | Enable/disable steady-state | .env TICKET_PROBE_RECONCILER_ENABLED + launchctl bootout/bootstrap | Koskadeux shell | COMPLETE |
 | mars | Same operations (equal authority) | as above | as above | COMPLETE |
 | sysadmin | Respond to an unreachable/probe-rot alarm | peer bus alert -> this runbook When it breaks/Repair | operational | COMPLETE |
 
@@ -98,7 +98,7 @@ error_signatures:
 - id: E-03
   trigger: Turn the feature on or off for steady state
   pre_conditions:
-    - on Titan-1 with launchctl access
+    - on Koskadeux with launchctl access
   tool_or_endpoint: 'edit .env TICKET_PROBE_RECONCILER_ENABLED (true|false); launchctl bootstrap|bootout gui/$(id -u) ~/Library/LaunchAgents/com.koskadeux.ticket-probe-reconciler.plist'
   argument_sourcing:
     flag: .env TICKET_PROBE_RECONCILER_ENABLED
@@ -219,11 +219,11 @@ Backend: TicketProbe (kind/target/assert_broken) validation; TicketPatchRequest 
 
 #### runtime dependency
 
-Railway Postgres (support_ticket via backend), the advisory-lock DB (AUTHOR_DISPATCH_DATABASE_URL via Infisical), a readonly probe DB (TICKET_PROBE_DATABASE_URL), peer bus + Event Ledger, launchd on Titan-1.
+Railway Postgres (support_ticket via backend), the advisory-lock DB (AUTHOR_DISPATCH_DATABASE_URL via Infisical), a readonly probe DB (TICKET_PROBE_DATABASE_URL), peer bus + Event Ledger, launchd on Koskadeux.
 
 #### config default
 
-TICKET_PROBE_RECONCILER_ENABLED default false. On Titan-1 it is set true in koskadeux-mcp .env (S1128). TICKET_PROBE_HTTP_ALLOWLIST is unset by default (http probes require it on the backend).
+TICKET_PROBE_RECONCILER_ENABLED default false. On Koskadeux it is set true in koskadeux-mcp .env (S1128). TICKET_PROBE_HTTP_ALLOWLIST is unset by default (http probes require it on the backend).
 
 ### H.6 Adjudication
 
@@ -260,7 +260,7 @@ scenario_set:
     type: operate
     refs:
       - E-03
-    scenario: Enable steady-state on Titan-1 via the flag and launchd job.
+    scenario: Enable steady-state on Koskadeux via the flag and launchd job.
     expected_answers:
       - kind: human_action
         tool: launchctl

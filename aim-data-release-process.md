@@ -140,7 +140,7 @@ irm https://get.ai.market/aim-data/windows | iex            # Windows
 
 ## Repos
 
-**Branches are not how work is preserved here.** The remote carries exactly one branch, `main`; everything ships from tags, and finished-with branches are archived as `archive/s<session>/<branch-name>` tags and then deleted from the remote. S1500 archived 32 that way. S1532 archived a further 17 that predated the convention and existed only on Titan-1, then cut the local clone back to `main`. If you are looking for old work, look at the tags, not the branches — and note that `git branch -r --contains <sha>` will not find it, because a tag is not a remote branch.
+**Branches are not how work is preserved here.** The remote carries exactly one branch, `main`; everything ships from tags, and finished-with branches are archived as `archive/s<session>/<branch-name>` tags and then deleted from the remote. S1500 archived 32 that way. S1532 archived a further 17 that predated the convention and existed only on Koskadeux, then cut the local clone back to `main`. If you are looking for old work, look at the tags, not the branches — and note that `git branch -r --contains <sha>` will not find it, because a tag is not a remote branch.
 
 The AIM Data product split off from the vectoraiz monorepo. Release machinery now lives in the product repo itself — decoupled from the vectoraiz repo (S751). Product code, customer-facing installers, and the published Docker image live in the standalone repo.
 

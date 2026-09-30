@@ -249,7 +249,7 @@ yet deployed, that capability is a gap owned by S1210.
 
 ### S1605 production browser proof receipt
 
-On 2026-08-25 at 18:31:33Z, the isolated Titan 1 `kdbrowser` runner used the
+On 2026-08-25 at 18:31:33Z, the isolated Koskadeux `kdbrowser` runner used the
 approved secret-backed synthetic buyer-01 identity and real headed Chrome against
 backend deployment `f21c7daa-6928-4ca8-a7c1-62004de2cf32` at
 `bab65d9177fc4e7de464c033c1346ca56800e29c`. The browser generated a distinct

@@ -42,7 +42,7 @@ P2 production fact: revision `s1163_p2_quarantine` moved 21 tables from `public`
 |---|---|---|---|---|
 | Classification tooling | `scripts/schema_classification_s1163.py:main` | `specs/evidence/schema-classification-s1163/snapshot-N.json`; `specs/evidence/schema-classification-s1163.json`; `specs/evidence/schema-classification-s1163.md` | Production Postgres read-only DSN from Infisical project `bd272d48-c5a1-4b52-9d24-12066ae4403c`; backend/koskadeux/frontend repo scans | Captures two write-stat snapshots, validates stats reset/window, counts rows, scans models/raw SQL/dependencies, and emits KEEP / KEEP-ROADMAP / OWNED-ELSEWHERE / QUARANTINE. |
 | P2 quarantine migration | `alembic/versions/20260711_001_s1163_p2_quarantine_one_shot.py:upgrade` | Postgres schemas `public`, `quarantine`, `mcp_safe`; Alembic revision `s1163_p2_quarantine` | Alembic one-shot execution against production; backup health; Council review gates | Requires `RUN_ONE_SHOT_S1163_P2=1`, checks down-revision parent, creates `quarantine`, drops affected `mcp_safe` mirror views, asserts no external blockers, locks/counts/moves each candidate. |
-| Quarantine monitor | `psql:pg_stat_user_tables` | `quarantine` schema stats; Railway deployment logs; Titan-1 `/var/tmp/koskadeux/*.log` and `~/Library/Logs/aimarket_*.log` | Railway GraphQL API; Infisical-sourced `DATABASE_PUBLIC_URL`; Titan local logs | Runs during the 3-day window; any quarantined-table hit is a miss requiring immediate move-back and reclassification. |
+| Quarantine monitor | `psql:pg_stat_user_tables` | `quarantine` schema stats; Railway deployment logs; Koskadeux `/var/tmp/koskadeux/*.log` and `~/Library/Logs/aimarket_*.log` | Railway GraphQL API; Infisical-sourced `DATABASE_PUBLIC_URL`; Koskadeux local logs | Runs during the 3-day window; any quarantined-table hit is a miss requiring immediate move-back and reclassification. |
 | P3 drop migration | `alembic/versions/<pending>_s1163_p3_drop_quarantined_tables.py:upgrade` | Postgres `quarantine` schema; Alembic revision after `s1163_p2_quarantine`; migration history in git | UNANIMOUS Council, backup health, `mcp_safe` mirror view precedent, Max roadmap rulings | Drops only the quiet quarantined set; retains schema history in Alembic/git; must mirror P2 empty-only and one-shot guard design. |
 | Backup gate | `state_request:get infra:backup-health` | Living State key `infra:backup-health` | `backup-and-recovery.md`; Railway backup job | P2 and P3 cannot run unless ai-market Postgres backup is green within 24h. |
 
@@ -54,7 +54,7 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
 |---|---|---|---|---|
 | vulcan/mars | Refresh classification evidence | backend shell + Infisical CLI + read-only Postgres connection | Infisical backend prod secret read; read-only DB session | COMPLETE |
 | vulcan/mars | Execute P2/P3 one-shot migration | backend shell with Alembic and explicit one-shot env guard | Production DB DDL; requires backup green and review gates | COMPLETE |
-| vulcan/mars | Monitor quarantine window | psql, Railway GraphQL, local Titan grep | read-only DB, Railway read logs, local log read | COMPLETE |
+| vulcan/mars | Monitor quarantine window | psql, Railway GraphQL, local Koskadeux grep | read-only DB, Railway read logs, local log read | COMPLETE |
 | MP (Codex) | Build/review migration code | `council_request` build/review | backend repo branch; no prod credentials | COMPLETE |
 | AG/DS/XAI | Independent schema-risk review | `council_request` review | read-only code/spec review | COMPLETE |
 | Max | Business roadmap checkpoint and final P3 approval | Owner ruling | Product owner authority over KEEP-ROADMAP exclusions | COMPLETE |
@@ -117,7 +117,7 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
     - P2 quarantine has executed in production
     - monitoring window is still open or being closed for P3
     - quarantine_set is the exact set in Architecture & interactions, not every relation-does-not-exist string in logs
-  tool_or_endpoint: "three checks: (a) psql read-only pg_stat_user_tables; (b) Railway deploymentLogs GraphQL filtered for 'does not exist'/'UndefinedTable'; (c) Titan-1 grep /var/tmp/koskadeux/*.log and ~/Library/Logs/aimarket_*.log"
+  tool_or_endpoint: "three checks: (a) psql read-only pg_stat_user_tables; (b) Railway deploymentLogs GraphQL filtered for 'does not exist'/'UndefinedTable'; (c) Koskadeux grep /var/tmp/koskadeux/*.log and ~/Library/Logs/aimarket_*.log"
   argument_sourcing:
     DATABASE_PUBLIC_URL: "Infisical project bd272d48-c5a1-4b52-9d24-12066ae4403c env prod"
     railway_token: "Infisical/Railway operator token per titan-1.md; do not print"
@@ -178,8 +178,8 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
 | F-03 | Migration aborts with empty-only invariant failure | Candidate table has rows at execution time after lock acquisition | Read exception text for table name and row count; verify with `SELECT count(*) FROM <schema>.<table>` using read-only DSN | Repair-03 | CONFIRMED |
 | F-04 | Migration aborts on external dependencies or mcp_safe blocker | FK, view, trigger, policy, function, grant, or mcp_safe mirror still depends on target | Use exception blocker list; query `pg_depend`/`pg_constraint`; compare against P2 `MCP_SAFE_MIRROR_VIEWS` precedent | Repair-04 | CONFIRMED |
 | F-05 | Quarantine monitor finds n_live_tup or n_tup_ins/upd/del nonzero | A production writer used a quarantined table during the window | Run E-03 pg_stat query; confirm the relname is in Architecture & interactions quarantine_set | Repair-05 | CONFIRMED |
-| F-06 | Railway/Titan logs show `relation ... does not exist` or `UndefinedTable` for a quarantined table | Live code or job still references a table moved to `quarantine` | Extract relation name from the log and exact timestamp; cross-check against Architecture & interactions quarantine_set | Repair-05 | CONFIRMED |
-| F-07 | Railway/Titan logs show missing `orders` or `crm_*` relation | False-alarm class: table was never in the S1163 quarantine set; known unrelated tickets T-2026-000234/T-2026-000235 | Extract relation name and compare against Architecture & interactions quarantine_set; if absent, route to owning ticket/runbook, not S1163 move-back | N/A — repair belongs to the owning ticket/runbook (T-2026-000234 / T-2026-000235), not this runbook | CONFIRMED |
+| F-06 | Railway/Koskadeux logs show `relation ... does not exist` or `UndefinedTable` for a quarantined table | Live code or job still references a table moved to `quarantine` | Extract relation name from the log and exact timestamp; cross-check against Architecture & interactions quarantine_set | Repair-05 | CONFIRMED |
+| F-07 | Railway/Koskadeux logs show missing `orders` or `crm_*` relation | False-alarm class: table was never in the S1163 quarantine set; known unrelated tickets T-2026-000234/T-2026-000235 | Extract relation name and compare against Architecture & interactions quarantine_set; if absent, route to owning ticket/runbook, not S1163 move-back | N/A — repair belongs to the owning ticket/runbook (T-2026-000234 / T-2026-000235), not this runbook | CONFIRMED |
 | F-08 | P3 proposal includes `referral_codes`, invoices, payments, purchases, refunds, or roadmap family | Builder missed Max S1187/S1184 KEEP-ROADMAP exclusions | Inspect P3 target list and migration constants before dispatch; grep migration for excluded names | Repair-06 | CONFIRMED |
 
 ## Repair
@@ -333,7 +333,7 @@ scenario_set:
   - id: I-05
     type: isolate
     refs: [F-06]
-    scenario: Titan logs show UndefinedTable for quarantine.conversations.
+    scenario: Koskadeux logs show UndefinedTable for quarantine.conversations.
     expected_answers:
       - kind: tool_call
         tool: cross_check_relation_against_quarantine_set

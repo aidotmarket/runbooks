@@ -22,13 +22,13 @@ The backend signs verified-preview artefacts (transparency log checkpoints, prev
 | `LISTING_ENRICHMENT_INFISICAL_SECRET_PATH` | Infisical prod `/` (synced) | `/listing-enrichment-signing` |
 | `LISTING_ENRICHMENT_SIGNING_PRIVATE_KEY_PEM` | Infisical prod `/listing-enrichment-signing` only | PKCS8 PEM of the Ed25519 private key. This folder is outside the Infisical→Railway sync on purpose: the backend fetches the key from Infisical at signing time (`app/services/transparency_log_service.py`, `InfisicalEd25519Signer`) using the existing `INFISICAL_TOKEN` / `INFISICAL_PROJECT_ID`; the private key must never appear as a Railway variable |
 
-Generated private keys also exist on Titan-1 at `~/.config/aim-signing/<key_id>.pem` (mode 600) as the operator copy; delete after a rotation is confirmed.
+Generated private keys also exist on Koskadeux at `~/.config/aim-signing/<key_id>.pem` (mode 600) as the operator copy; delete after a rotation is confirmed.
 
 ## Provisioning or rotating (headless, sysadmin token)
 
 Runbook rule: `infisical-secrets.md` (raw v3 API with `~/.config/infisical/sysadmin-token`; never the bare CLI from a non-interactive shell).
 
-1. Generate a new key on Titan-1:
+1. Generate a new key on Koskadeux:
    ```bash
    umask 077; cd ~/.config/aim-signing
    ~/Projects/ai-market/ai-market-backend/.venv/bin/python - <<'PY'

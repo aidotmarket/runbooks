@@ -10,11 +10,11 @@ error_signatures: []
 
 ## What it does
 
-Tests vectorAIz Docker images locally on Titan-1 via OrbStack before promoting to stable.
+Tests vectorAIz Docker images locally on Koskadeux via OrbStack before promoting to stable.
 
 ## Setup
 
-Docker runs via OrbStack on Titan-1. Docker CLI at `~/.orbstack/bin/docker`.
+Docker runs via OrbStack on Koskadeux. Docker CLI at `~/.orbstack/bin/docker`.
 
 ## Testing an RC image
 

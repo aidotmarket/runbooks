@@ -351,12 +351,12 @@
 - Error signatures: none
 - Status: current
 
-## Chrome Browser Use on Titan 1
+## Chrome Browser Use on Koskadeux
 - Path: `runbooks/chrome-browser-use.md`
 - Purpose: This runbook covers the normal authorized operator Chrome identity used for internal operations such as `https://ops.ai.market/build-queue`. The `kdbrowser` account and its browser profile are only for isolated ai.market synthetic customer journeys. Never use a `kdbrowser` identity or profile for internal operations, and never move an internal operator tab into that identity.
 - Owner: `vulcan`
 - Last verified: `2026-08-28`
-- Aliases: browser-use, chrome-extension-native-host, chrome-native-messaging, codex-desktop-chrome, ops-ai-market-browser, titan-1-browser-use, kdbrowser-identity-boundary
+- Aliases: browser-use, chrome-extension-native-host, chrome-native-messaging, codex-desktop-chrome, ops-ai-market-browser, koskadeux-browser-use, kdbrowser-identity-boundary
 - Error signatures: The admin-enforced policy could not be verified, Cannot communicate with the ChatGPT browser extension, Browser service/config bridge stale or unavailable, Native host manifest does not exist, Browser is not available: chrome, Google Chrome running: no, installed false or enabled false, correct false, config_read_ok false, config_requirements_read_ok false, Exact operator tab not found
 - Status: current
 
@@ -398,7 +398,7 @@
 
 ## Connectivity Layer
 - Path: `connectivity.md`
-- Purpose: **Status:** CURRENT — live-verified 2026-05-31 (S738.w, Mars) against Titan-1 incl. serials + `tailscale whois`. **Owner:** SysAdmin agent / Council instances. **Last updated:** 2026-05-31.
+- Purpose: **Status:** CURRENT — live-verified 2026-05-31 (S738.w, Mars) against Koskadeux incl. serials + `tailscale whois`. **Owner:** SysAdmin agent / Council instances. **Last updated:** 2026-05-31.
 - Owner: `SysAdmin agent / Council instances.`
 - Last verified: `2026-05-31`
 - Aliases: none
@@ -605,7 +605,7 @@
 
 ## Docker Testing (VZ Local)
 - Path: `docker-testing.md`
-- Purpose: Tests vectorAIz Docker images locally on Titan-1 via OrbStack before promoting to stable.
+- Purpose: Tests vectorAIz Docker images locally on Koskadeux via OrbStack before promoting to stable.
 - Owner: `unassigned`
 - Last verified: `2026-03-06`
 - Aliases: none
@@ -776,9 +776,18 @@
 
 ## Koskadeux MCP — Gateway, Server, Transport & Session Lifecycle
 - Path: `mcp-gateway.md`
-- Purpose: Canonical operations runbook for the **internal Koskadeux MCP** that the two Claude instances (Vulcan + Mars, peers) drive Titan-1 through. For the **public/customer** MCP that exposes marketplace tools to external LLM clients, see `aimarket-mcp-server.md` — that is a different system. Consolidates the former `session-lifecycle.md` (now a stub pointing here). A future Overview–§K-conformant, possibly repo-local edition is tracked by the runbook-decentralization and autonomous-operations BQs; the central-vs-service location + final name are decided there. Until then this central runbook is authoritative. Filename kept as `mcp-gateway.md` deliberately so that gated relocation owns the rename.
+- Purpose: Canonical operations runbook for the **internal Koskadeux MCP** that the two Claude instances (Vulcan + Mars, peers) drive Koskadeux through. For the **public/customer** MCP that exposes marketplace tools to external LLM clients, see `aimarket-mcp-server.md` — that is a different system. Consolidates the former `session-lifecycle.md` (now a stub pointing here). A future Overview–§K-conformant, possibly repo-local edition is tracked by the runbook-decentralization and autonomous-operations BQs; the central-vs-service location + final name are decided there. Until then this central runbook is authoritative. Filename kept as `mcp-gateway.md` deliberately so that gated relocation owns the rename.
 - Owner: `unassigned`
 - Last verified: `2026-08-25`
+- Aliases: none
+- Error signatures: none
+- Status: current
+
+## Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)
+- Path: `titan-1.md`
+- Purpose: Canonical map of the physical machine the whole operation runs from. Live source of the same data: `state_get("infra:titan-1")` (kept in sync with this doc). Related: `connectivity.md` (network), `mcp-gateway.md` (gateway/tunnel detail), `backup-and-recovery.md` (the scheduled jobs), `infisical-secrets.md` (machine-identity creds).
+- Owner: `unassigned`
+- Last verified: `2026-07-17`
 - Aliases: none
 - Error signatures: none
 - Status: current
@@ -828,9 +837,9 @@
 - Error signatures: At a glance preview empty for a listing published before P1, ValidationError: SECRET_KEY must be set, connect() got an unexpected keyword argument 'sslmode'
 - Status: current
 
-## Local SecOps Assistant (Titan-1)
+## Local SecOps Assistant (Koskadeux)
 - Path: `local-secops.md`
-- Purpose: **Built**: S1115 (2026-07-04) **Host**: Titan-1 / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB) **Location on disk**: `/Users/max/local-secops/` **Purpose**: Rotate / update / expire / generate credentials with a fully-local model, so secret values never leave Titan-1 and no human has to type them. **Owner**: Vulcan/Mars (operator-invoked); registered in Living State at `infra:local-secops`.
+- Purpose: **Built**: S1115 (2026-07-04) **Host**: Koskadeux / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB) **Location on disk**: `/Users/max/local-secops/` **Purpose**: Rotate / update / expire / generate credentials with a fully-local model, so secret values never leave Koskadeux and no human has to type them. **Owner**: Vulcan/Mars (operator-invoked); registered in Living State at `infra:local-secops`.
 - Owner: `unassigned`
 - Last verified: `2026-07-10`
 - Aliases: none
@@ -1195,15 +1204,6 @@
 - Last verified: `2026-07-05`
 - Aliases: none
 - Error signatures: 422 http probe target host is not in TICKET_PROBE_HTTP_ALLOWLIST, 422 P0/P1 support tickets require a valid machine probe, {enabled:false}, {lock_acquired:false}, job runs but stats.enabled=false
-- Status: current
-
-## Titan-1 — the Mac Studio (dev workstation + local AI council + MCP host)
-- Path: `titan-1.md`
-- Purpose: Canonical map of the physical machine the whole operation runs from. Live source of the same data: `state_get("infra:titan-1")` (kept in sync with this doc). Related: `connectivity.md` (network), `mcp-gateway.md` (gateway/tunnel detail), `backup-and-recovery.md` (the scheduled jobs), `infisical-secrets.md` (machine-identity creds).
-- Owner: `unassigned`
-- Last verified: `2026-07-17`
-- Aliases: none
-- Error signatures: none
 - Status: current
 
 ## Transactional email from the backend (Resend)

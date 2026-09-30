@@ -97,7 +97,7 @@ Primary and Worker run as independent boot-gate slots. The fix landed at session
 - Worker may open, plan, dispatch, and close while Primary is mid-session. Primary's gate state is unaffected.
 - Primary may dispatch + commit while Worker is mid-session. Worker's gate state is unaffected.
 - Worker close path is also locally isolated (see Architecture & interactions.5): worker close writes `infra:session-status:{sid}:role=worker`, releases the worker slot on `infra:active-session-lock`, and SKIPS HANDOFF.md write / git ops / allai log / close-gate verification. Those are Primary-only.
-- Codex CLI dispatch routing (commit c1cbddf) routes by cwd: dispatches against `/Users/max/Projects/*` run on the laptop (Worker's host); dispatches against `/Users/max/koskadeux-mcp` stay on Titan-1 (Primary's host). Each instance dispatches against its own working repos; cross-host dispatch happens only when explicitly cwd-targeted.
+- Codex CLI dispatch routing (commit c1cbddf) routes by cwd: dispatches against `/Users/max/Projects/*` run on the laptop (Worker's host); dispatches against `/Users/max/koskadeux-mcp` stay on Koskadeux (Primary's host). Each instance dispatches against its own working repos; cross-host dispatch happens only when explicitly cwd-targeted.
 
 **What to verify after a gateway restart that loads new boot-gate code:**
 1. Primary opens with `instance_role="primary"`; registry shows role=primary on its session entry.

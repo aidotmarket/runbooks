@@ -23,24 +23,24 @@ error_signatures: []
 - **owner_agent:** Vulcan-Primary
 - **escalation_contact:** Max (account root owner)
 - **lifecycle_ref:** Maintenance (authoritative)
-- **authoritative_scope:** Source of truth for *how ai.market operates AWS account 948749907373*: IAM identities used by agents/services, credential-delivery path (Infisical / Titan `~/.aws`), the access-tier + guardrail model, and billing/cost controls. NOT the source of truth for the AIM Data product's S3-connector code (backend repo) or for S3 bucket specifics (see sub-runbook `aws-s3.md`).
+- **authoritative_scope:** Source of truth for *how ai.market operates AWS account 948749907373*: IAM identities used by agents/services, credential-delivery path (Infisical / Koskadeux `~/.aws`), the access-tier + guardrail model, and billing/cost controls. NOT the source of truth for the AIM Data product's S3-connector code (backend repo) or for S3 bucket specifics (see sub-runbook `aws-s3.md`).
 - **linter_version:** see §K.0 (lint not yet run)
 
 ## Capabilities
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Scoped S3 service identity `svc-titan-vulcan` | SHIPPED | IAM policy `arn:aws:iam::948749907373:policy/aimarket-s3-svc`; Titan `~/.aws` profile `aimarket` | Manual: `sts get-caller-identity` + S3 round-trip (S720) | 2026-05-28 |
-| S3 bucket/object ops on `aimarket-*` | SHIPPED | `aimarket-s3-svc`; AWS CLI `~/Library/Python/3.13/bin/aws` on Titan-1 | put/get/list/delete round-trip (S720) | 2026-05-28 |
+| Scoped S3 service identity `svc-titan-vulcan` | SHIPPED | IAM policy `arn:aws:iam::948749907373:policy/aimarket-s3-svc`; Koskadeux `~/.aws` profile `aimarket` | Manual: `sts get-caller-identity` + S3 round-trip (S720) | 2026-05-28 |
+| S3 bucket/object ops on `aimarket-*` | SHIPPED | `aimarket-s3-svc`; AWS CLI `~/Library/Python/3.13/bin/aws` on Koskadeux | put/get/list/delete round-trip (S720) | 2026-05-28 |
 | Broad operational access (PowerUser-class) for agent | SHIPPED | AWS-managed `PowerUserAccess` + customer `aimarket-guardrail-deny`, attached to `svc-titan-vulcan` | Verified S720: broad allow works; Org/CloudTrail/IAM denies refused | 2026-05-28 |
 | Connector assume-role (`role_arn` + `external_id`) | SHIPPED (staging/dogfood) | IAM role `aimarket-connector-aimdata-staging`; trust principal `ai-market-backend-sts` + ExternalId; read-only on `aimarket-aimdata-staging` | trust policy verified S740; assume+list green S722 | 2026-05-31 |
 | Billing budget + cost alarm | SHIPPED | AWS Budgets `aimarket-monthly-guardrail` ($50/mo; alerts 50/80/100% to max@ai.market) | created S720 | 2026-05-28 |
-| Backend STS identity `ai-market-backend-sts` | SHIPPED; creds wired to `ai-market-backend` + `ai-market-celery-worker` (S740, verified) | IAM user (backend-owned). Creds in Infisical `ai-market-backend`/prod: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` / `AI_MARKET_AWS_ACCOUNT_ID`. Runtime delivery: Railway env (see How to operate-07) | Titan profile `aimarket` resolves identity, verified S740 | 2026-05-31 |
+| Backend STS identity `ai-market-backend-sts` | SHIPPED; creds wired to `ai-market-backend` + `ai-market-celery-worker` (S740, verified) | IAM user (backend-owned). Creds in Infisical `ai-market-backend`/prod: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` / `AI_MARKET_AWS_ACCOUNT_ID`. Runtime delivery: Railway env (see How to operate-07) | Koskadeux profile `aimarket` resolves identity, verified S740 | 2026-05-31 |
 
 ## Architecture & interactions
 | Component | Component Entry Point | State Stores | Integrates With | Notes |
 |---|---|---|---|---|
-| Agent identity | IAM user `svc-titan-vulcan` | IAM (users/policies); Titan `~/.aws/credentials` profile `aimarket` | Titan-1 shell (`~/Library/Python/3.13/bin/aws`) | Long-lived access key, scoped by `aimarket-s3-svc`. Vulcan acts through it via the Koskadeux shell. |
-| Credential delivery | `aws configure --profile aimarket` / Infisical | Titan `~/.aws`; Infisical (secrets.ai.market) | Titan-1 | Keys NEVER transit chat. Infisical is the canonical vault for service secrets. |
+| Agent identity | IAM user `svc-titan-vulcan` | IAM (users/policies); Koskadeux `~/.aws/credentials` profile `aimarket` | Koskadeux shell (`~/Library/Python/3.13/bin/aws`) | Long-lived access key, scoped by `aimarket-s3-svc`. Vulcan acts through it via the Koskadeux shell. |
+| Credential delivery | `aws configure --profile aimarket` / Infisical | Koskadeux `~/.aws`; Infisical (secrets.ai.market) | Koskadeux | Keys NEVER transit chat. Infisical is the canonical vault for service secrets. |
 | Object storage | S3 buckets `aimarket-*` | S3 (eu-north-1) | AIM Data node; backups → sub-runbook `aws-s3.md` | Per-purpose buckets; naming convention in H.1. |
 | Product S3 connector | backend `app/models/s3_connection.py` (`S3Connection`) | DB tables `s3_connection`, `s3_scan_job`, `s3_object_metadata` | Assumes an IAM role (`role_arn`+`external_id`): seller-side in prod, ai.market-side for the staging/dogfood node | Non-custodial: in production a seller's AWS creds never leave their node. |
 | Billing / cost | AWS Budgets + Cost Explorer | AWS billing | Telegram/email alerts (PLANNED) | Guardrail against runaway spend. |
@@ -48,7 +48,7 @@ error_signatures: []
 ## Agent capabilities
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan | S3 bucket+object ops on `aimarket-*` | AWS CLI (Titan, profile `aimarket`) | `aimarket-s3-svc`: S3 on `aimarket-*` + `CreateBucket`/`ListAllMyBuckets` + `sts:GetCallerIdentity` | COMPLETE |
+| Vulcan | S3 bucket+object ops on `aimarket-*` | AWS CLI (Koskadeux, profile `aimarket`) | `aimarket-s3-svc`: S3 on `aimarket-*` + `CreateBucket`/`ListAllMyBuckets` + `sts:GetCallerIdentity` | COMPLETE |
 | Vulcan | Broad AWS operational actions ("just do it") | AWS CLI | AWS-managed **PowerUserAccess** + customer **aimarket-guardrail-deny** (denies Organizations/account/billing-write, IAM identity+key creation & AttachUserPolicy, CloudTrail StopLogging/DeleteTrail, KMS DisableKey/ScheduleKeyDeletion, Config/GuardDuty disable) | COMPLETE — verified S720 |
 | Vulcan | Create the connector assume-role | AWS CLI | scoped `iam:CreateRole`+`PutRolePolicy` on `aimarket-connector-*` only | GAP — closes via console walk-through OR a narrow IAM add-on policy |
 | Vulcan | Destructive / IAM / billing / out-of-footprint | — | CONFIRM-FIRST (operating agreement, H.1) | N/A — never auto; always surfaced to Max |
@@ -83,7 +83,7 @@ error_signatures: []
 **E-03 — Rotate the agent access key.**
 - trigger: scheduled (≤90d) or suspected exposure
 - pre_conditions: console or `iam:CreateAccessKey` access (Max action by default — IAM-write is confirm-first)
-- tool_or_endpoint: console IAM → user → create new key; `aws configure --profile aimarket` on Titan; then deactivate+delete old key
+- tool_or_endpoint: console IAM → user → create new key; `aws configure --profile aimarket` on Koskadeux; then deactivate+delete old key
 - argument_sourcing: new key from console
 - idempotency: NOT_IDEMPOTENT
 - expected_success: `sts get-caller-identity` returns same user with new key; old key deleted
@@ -111,9 +111,9 @@ error_signatures: []
 
 **E-07 — Use / wire the backend STS broker (`ai-market-backend-sts`).** *(the identity the backend assumes seller/connector roles AS, at fulfillment time)*
 - what_it_is: `app/services/sts_assumer.py:assume_seller_role()` calls `boto3.client("sts").assume_role(...)` using the **default credential chain** (no keys passed in code) — so the running process MUST have `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` in its environment. `order_service.py` is the caller (buyer-delivery path).
-- credentials (source of truth): Infisical project `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), env `prod`: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` (`eu-north-1`), `AI_MARKET_AWS_ACCOUNT_ID` (`948749907373`). Read via the SysAdmin machine-identity token at Titan `/Users/max/.config/infisical/sysadmin-token` (see `infisical-secrets.md` → "Accessing Secrets"; the CLI must be pointed at `--domain=https://secrets.ai.market` or it silently tries Infisical Cloud and fails).
+- credentials (source of truth): Infisical project `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), env `prod`: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` (`eu-north-1`), `AI_MARKET_AWS_ACCOUNT_ID` (`948749907373`). Read via the SysAdmin machine-identity token at Koskadeux `/Users/max/.config/infisical/sysadmin-token` (see `infisical-secrets.md` → "Accessing Secrets"; the CLI must be pointed at `--domain=https://secrets.ai.market` or it silently tries Infisical Cloud and fails).
 - runtime_injection: per `infisical-secrets.md`, **Railway env vars are the deploy-time injection source.** A secret in Infisical is NOT live in a service until it is ALSO set in that service's Railway variables.
-- **WIRED (S740):** these AWS vars are now set on `ai-market-backend` AND `ai-market-celery-worker` Railway services (synced from Infisical prod). Verified S740: the broker creds resolve to `…/user/ai-market-backend-sts` and successfully `assume_role` on `aimarket-connector-aimdata-staging` with the ExternalId (temp STS creds returned). Titan `~/.aws` profile `aimarket` remains the local-dogfood path. NOTE: vault `AWS_REGION=us-east-1` while buckets/roles are eu-north-1 — harmless for assume_role (region-agnostic; S3 region comes from the connection record) but confirm before relying on a default-region S3 client.
+- **WIRED (S740):** these AWS vars are now set on `ai-market-backend` AND `ai-market-celery-worker` Railway services (synced from Infisical prod). Verified S740: the broker creds resolve to `…/user/ai-market-backend-sts` and successfully `assume_role` on `aimarket-connector-aimdata-staging` with the ExternalId (temp STS creds returned). Koskadeux `~/.aws` profile `aimarket` remains the local-dogfood path. NOTE: vault `AWS_REGION=us-east-1` while buckets/roles are eu-north-1 — harmless for assume_role (region-agnostic; S3 region comes from the connection record) but confirm before relying on a default-region S3 client.
 - seller_principal: the ARN a seller (or our dogfood connector role) grants `sts:AssumeRole` to is `arn:aws:iam::948749907373:user/ai-market-backend-sts`. In AIM Data connected-mode config this is pinned via `AI_MARKET_ASSUME_ROLE_PRINCIPAL_ARN`; unset → safe default of account-root + ExternalId.
 - to_wire: read the three values from Infisical prod (token above), then `railway variables --service <svc> --set AWS_ACCESS_KEY_ID=… --set AWS_SECRET_ACCESS_KEY=… --set AWS_REGION=eu-north-1`. CONFIRM-FIRST (production credential change, H.1 #5).
 - idempotency: IDEMPOTENT_WITH_KEY (var name)
@@ -141,7 +141,7 @@ error_signatures: []
 ### H.1 Invariants
 1. **Non-custodial.** ai.market never holds a seller's AWS credentials; in production the seller's keys never leave their node. The connector uses short-lived STS role assumption only.
 2. **Least privilege for agent identities.** No `AdministratorAccess` on any agent identity. Breadth via `PowerUserAccess` + explicit deny-guardrail (Repair-05), never wildcards on IAM/Org/billing.
-3. **Long-lived keys are managed.** Any long-lived access key is stored only in Infisical or Titan `~/.aws` (never in chat/repos), and rotated ≤ 90 days (How to operate-03).
+3. **Long-lived keys are managed.** Any long-lived access key is stored only in Infisical or Koskadeux `~/.aws` (never in chat/repos), and rotated ≤ 90 days (How to operate-03).
 4. **All service secrets via Infisical.**
 5. **Confirm-first class.** Destructive (delete data/resources), IAM/policy changes, billing-write, security/logging changes, and any out-of-footprint action are confirmed with Max before execution.
 6. **Bucket naming.** `aimarket-<purpose>-<env>`, lowercase/hyphens only, globally unique. Sub-divide with key prefixes, not extra buckets.
@@ -209,7 +209,7 @@ G9 replaces the old static ExternalId assumption: activation creates a new seria
 
 Service keys live only in Infisical `ai-market-backend` (`bd272d48-c5a1-4b52-9d24-12066ae4403c`), `test-env`, path `/`, with no Railway sync. Keys are `S1681_S3_ACCOUNT_ID`, `S1681_S3_BUCKET`, `S1681_S3_ROLE_ARN`, `S1681_S3_REGION`, `S1681_S3_PREFIX` (= `s1681/fixtures/`), `S1681_S3_BROKER_ACCESS_KEY_ID`, `S1681_S3_BROKER_SECRET_ACCESS_KEY`, `S1681_S3_SEED_ACCESS_KEY_ID` and `S1681_S3_SEED_SECRET_ACCESS_KEY`. `S1681_S3_EXTERNAL_ID` is now per-run output; the run journal keeps its hash, never its value. Serial issuance/activation uses `S1681_SELLER01_SERIAL`, transient `S1681_SELLER01_SERIAL_BOOTSTRAP_TOKEN`, captured `S1681_SELLER01_SERIAL_INSTALL_TOKEN`, and a `SERIAL_TOKEN_SECRET` distinct from production. See [money-path activation](money-path-test-environment.md#s1681-s3-ownership-activation-and-spend). No credential value belongs in this page, logs or Git.
 
-`aimarket-e2e-harness` (E2E harness user; keys `E2E_AWS_ACCESS_KEY_ID` / `E2E_AWS_SECRET_ACCESS_KEY` in Infisical `ai-market-backend` **prod** and copied as literals to the Railway `ai-market-backend` service; no backend code reads them) cannot list or rotate its own keys. Rotate from Titan-1 with the `aimarket-sandbox` profile, never printing a secret:
+`aimarket-e2e-harness` (E2E harness user; keys `E2E_AWS_ACCESS_KEY_ID` / `E2E_AWS_SECRET_ACCESS_KEY` in Infisical `ai-market-backend` **prod** and copied as literals to the Railway `ai-market-backend` service; no backend code reads them) cannot list or rotate its own keys. Rotate from Koskadeux with the `aimarket-sandbox` profile, never printing a secret:
 
 0. Run the section E operator-identity preflight first (confirm `aws --profile aimarket-sandbox sts get-caller-identity` is `user/aim-sandbox-cli` in `157263244532`; use `rtk proxy aws` as section E requires).
 1. `aws --profile aimarket-sandbox iam create-access-key --user-name aimarket-e2e-harness` captured into a shell variable, not echoed.

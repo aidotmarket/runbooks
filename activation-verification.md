@@ -42,12 +42,12 @@ the service.
 Canonical six-service scope for this runbook:
 | Service | Runtime host | Restart mechanism | Health probe endpoint |
 |---|---|---|---|
-| `koskadeux-mcp` (`com.koskadeux.mcp`) | Titan-1 `launchd`, local Python on `:8765` | `launchctl kickstart -k gui/$UID/com.koskadeux.mcp` | `http://127.0.0.1:8765/health` |
+| `koskadeux-mcp` (`com.koskadeux.mcp`) | Koskadeux `launchd`, local Python on `:8765` | `launchctl kickstart -k gui/$UID/com.koskadeux.mcp` | `http://127.0.0.1:8765/health` |
 | `ai-market-backend` | Railway production | `git push origin main` triggers async auto-deploy | `https://api.ai.market/health` |
 | `ai-market-frontend` | Cloudflare Pages | `git push origin main` triggers Pages deploy | `https://ai.market/` |
 | `ops.ai.market` | Cloudflare Pages | `git push origin main` triggers Pages deploy | `https://ops.ai.market/` |
-| `council-hall` (`com.koskadeux.council-hall`) | Titan-1 `launchd`, FastAPI on `:8770` | `launchctl kickstart -k gui/$UID/com.koskadeux.council-hall` | `http://127.0.0.1:8770/health` |
-| `ag_server` (`com.koskadeux.ag_server`) | Titan-1 `launchd`, FastAPI on `:8766` | `launchctl kickstart -k gui/$UID/com.koskadeux.ag_server` | `http://127.0.0.1:8766/health` |
+| `council-hall` (`com.koskadeux.council-hall`) | Koskadeux `launchd`, FastAPI on `:8770` | `launchctl kickstart -k gui/$UID/com.koskadeux.council-hall` | `http://127.0.0.1:8770/health` |
+| `ag_server` (`com.koskadeux.ag_server`) | Koskadeux `launchd`, FastAPI on `:8766` | `launchctl kickstart -k gui/$UID/com.koskadeux.ag_server` | `http://127.0.0.1:8766/health` |
 Interpretation rules:
 - Local launchd services require an explicit restart after code change.
 - Railway and Cloudflare-hosted services restart by deploy, not by local

@@ -268,7 +268,7 @@ first_staleness_detected_at: null
 
 ### Overview
 
-The build-queue dashboard at `ops.ai.market/build-queue` is the single, canonical view of every active and recently-closed build item in the Council of Models system. It replaces three formerly separate views — the legacy backend Postgres `build_queue_items` table, the ad-hoc allAI summary, and the morning standup ticker — with one unified surface. Every row on the dashboard reflects a `build:*` entity that lives in Living State on `koskadeux-mcp` (Titan-1). There is no second store and no parallel cache.
+The build-queue dashboard at `ops.ai.market/build-queue` is the single, canonical view of every active and recently-closed build item in the Council of Models system. It replaces three formerly separate views — the legacy backend Postgres `build_queue_items` table, the ad-hoc allAI summary, and the morning standup ticker — with one unified surface. Every row on the dashboard reflects a `build:*` entity that lives in Living State on `koskadeux-mcp` (Koskadeux). There is no second store and no parallel cache.
 
 The dashboard exists because the prior split made it easy to mark something "done" in one place while it was still "in progress" somewhere else. The unified lifecycle removes that ambiguity: an item has exactly one stage at any moment, and every stage transition is recorded as a canonical Event Ledger entry written atomically with the mutation that caused it.
 
@@ -301,7 +301,7 @@ The forward path is **Filed → In Progress → In Review → Live in Production
 
 Every item is tagged with one of four work-types. The work-type controls what "Live in Production" actually means and what evidence the completion gate looks for.
 
-- **Backend.** Code that ships to `ai-market-backend` on Railway or to `koskadeux-mcp` on Titan-1. *Live in Production* means: deployed to the relevant environment, observable in logs, and a smoke check has run within the last hour. Evidence references typically point at deploy IDs, commit SHAs, and a smoke-check link.
+- **Backend.** Code that ships to `ai-market-backend` on Railway or to `koskadeux-mcp` on Koskadeux. *Live in Production* means: deployed to the relevant environment, observable in logs, and a smoke check has run within the last hour. Evidence references typically point at deploy IDs, commit SHAs, and a smoke-check link.
 - **Orchestration.** Council-protocol changes, dispatcher tweaks, MCP tool additions, prompt edits. *Live in Production* means: the change is loaded by the running Sentinel/dispatcher and a dispatch through the affected path has succeeded since the change. Evidence references typically point at a successful dispatch ID and the relevant config entity in Living State.
 - **Spec-or-Doc.** Spec authoring, runbook writes, CORE.md updates, design notes. *Live in Production* means: merged to the canonical branch (usually `main`) and reachable from the index that humans browse (CORE.md, the specs directory, or the runbooks directory). Evidence references the merge commit SHA and the path the doc landed at.
 - **Frontend.** UI work in `ai-market-frontend` or any operator dashboard. *Live in Production* means: deployed to `ops.ai.market` (or the relevant subdomain) and visually verified by Max or Vulcan. Evidence references the deploy URL, a screenshot or short description of the verified behavior, and the commit SHA.
@@ -511,7 +511,7 @@ The periodic reconciliation pass writes `body.git_state` onto a `build:*` entity
 
 ## Push guardrail — automated builds cannot reach main (S1077)
 
-The tracked source of truth is `koskadeux-mcp/scripts/pre-push`; installed hooks and `/Users/max/.koskadeux/git-template/hooks/pre-push` are copies. The hook protects `main`, `master`, and `production` on every network or unknown remote unless `KD_ALLOW_MAIN_PUSH=1` is set. Automated builds (Codex/CC) never set that sentinel, so they push only `build/*`; a deliberate reviewed merge uses, for example, `KD_ALLOW_MAIN_PUSH=1 git push origin main` after Gate-3 and Titan-1 verification.
+The tracked source of truth is `koskadeux-mcp/scripts/pre-push`; installed hooks and `/Users/max/.koskadeux/git-template/hooks/pre-push` are copies. The hook protects `main`, `master`, and `production` on every network or unknown remote unless `KD_ALLOW_MAIN_PUSH=1` is set. Automated builds (Codex/CC) never set that sentinel, so they push only `build/*`; a deliberate reviewed merge uses, for example, `KD_ALLOW_MAIN_PUSH=1 git push origin main` after Gate-3 and Koskadeux verification.
 
 T-2026-000259 narrowed the guardrail without weakening that trust boundary. A remote is recognized as local only when its location is an absolute path, begins with `./` or `../`, or uses `file://`; protected refs are allowed for those filesystem remotes so throwaway Git fixtures work normally. Network remotes and all unrecognized remote-location forms remain blocked on protected refs without the sentinel. Unknown forms fail closed. Non-protected refs, including `build/*`, remain unaffected.
 

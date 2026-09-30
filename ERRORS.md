@@ -222,11 +222,11 @@
 
 ## `Browser is not available: chrome`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `Browser service/config bridge stale or unavailable`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `browser_journey refused: E2E_PROD_FRONTEND_URL is required`
 
@@ -258,7 +258,7 @@
 
 ## `Cannot communicate with the ChatGPT browser extension`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `Cannot redeploy yet, please wait for the original deployment to finish building`
 
@@ -350,11 +350,11 @@
 
 ## `config_read_ok false`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `config_requirements_read_ok false`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `confirmation query or Qdrant retrieval raises`
 
@@ -394,7 +394,7 @@
 
 ## `correct false`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `covers claims a whole item for a partial walk`
 
@@ -618,7 +618,7 @@
 
 ## `Exact operator tab not found`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `executor_busy_no_lease`
 
@@ -730,7 +730,7 @@
 
 ## `Google Chrome running: no`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `GUARDRAIL refusal text on the push`
 
@@ -810,7 +810,7 @@
 
 ## `installed false or enabled false`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `insufficient available funds`
 
@@ -1138,7 +1138,7 @@
 
 ## `Native host manifest does not exist`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `newest run finished in under a second, or is days old`
 
@@ -1758,7 +1758,7 @@
 
 ## `The admin-enforced policy could not be verified`
 
-- [Chrome Browser Use on Titan 1](runbooks/chrome-browser-use.md)
+- [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
 
 ## `the fixed-subject ticket is absent or duplicated because its query or persistence failed`
 

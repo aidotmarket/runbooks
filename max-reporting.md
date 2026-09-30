@@ -25,7 +25,7 @@ error_signatures:
 | `infra:opening-prompt` (Living State) | The longer elaboration; must not diverge from CORE §3 | Living State via gateway | Koskadeux MCP |
 | write-like-max skill | Max's voice for summaries and outward-facing prose | Claude.ai user skill `write-like-max` | Claude.ai project config |
 | Boot-contract marker test | Regression guard: asserts the marker text "The ONLY Max-facing output in a round is one short end-of-round summary" is present in the boot constitution payload | koskadeux-mcp test suite (boot-contract tests) | koskadeux-mcp CI |
-| `date -u` on Titan-1 | The `[YYYY-MM-DD HH:MM UTC]` timestamp header on every Max-facing reply | Titan-1 shell | Titan-1 |
+| `date -u` on Koskadeux | The `[YYYY-MM-DD HH:MM UTC]` timestamp header on every Max-facing reply | Koskadeux shell | Koskadeux |
 
 ## Capabilities
 
@@ -64,13 +64,13 @@ Prose: a round is one work cycle that ends in a summary. Everything an instance 
   trigger: A round of work is complete and Max needs the result
   pre_conditions:
     - all in-round work concluded or parked with state recorded
-    - fresh `date -u` timestamp obtained from Titan-1
+    - fresh `date -u` timestamp obtained from Koskadeux
   tool_or_endpoint: "the chat reply itself — one summary, structured per CORE §3"
   argument_sourcing:
     structure: "(1) what was done, a sentence or two; (2) what is needed from Max, ONLY if something genuinely is; (3) why it mattered, tied plainly to the pillars, with an honest line on necessity/simplicity/better-way; (4) anything critical, omitted if none"
     voice: write-like-max skill; plain business English; outcome first
     exclusions: no BQ codes, gate numbers, SHAs, tool names, or session numbers in the prose
-    header: "[YYYY-MM-DD HH:MM UTC] from `date -u` on Titan-1 at the top"
+    header: "[YYYY-MM-DD HH:MM UTC] from `date -u` on Koskadeux at the top"
     footer: "round-end marker: CONTINUE / DECISION / CLOSE SESSION"
   idempotency: NOT_IDEMPOTENT
   expected_success:

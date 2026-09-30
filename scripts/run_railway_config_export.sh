@@ -3,7 +3,7 @@
 # Machine-identity (Universal Auth) login; secrets via `infisical run`. Mirrors run_qdrant_backup.sh.
 # Exports services/source/branch/config/cron/domains + variable NAMES (NO secret values).
 # S1002: dedicated bd272d48 RAILWAY_API_TOKEN was revoked (Not Authorized). Railway token now sourced
-#        from the canonical Titan-1 path (railway-env.sh -> koskadeux-mcp project). AWS writer creds
+#        from the canonical Koskadeux path (railway-env.sh -> koskadeux-mcp project). AWS writer creds
 #        still injected from bd272d48 via `infisical run`. Enumeration query fixed in the .py.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

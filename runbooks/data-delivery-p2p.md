@@ -57,7 +57,7 @@ cd /Users/max/Projects/ai-market/ai-market-backend && unset RAILWAY_TOKEN
 # 1. Flags and the bucket (Railway variables piped, never saved)
 railway variables -e production -s ai-market-backend --json | .venv/bin/python -c '
 import json,sys,boto3,socket,urllib3.util.connection as uc
-uc.allowed_gai_family=lambda: socket.AF_INET   # Titan-1: IPv6 to R2 times out
+uc.allowed_gai_family=lambda: socket.AF_INET   # Koskadeux: IPv6 to R2 times out
 d=json.load(sys.stdin)
 for k in ("MULTI_FILE_DATASETS_ENABLED","WORKSPACE_SAMPLE_FILES_ENABLED","DEMO_FULFILLMENT","FULFILLMENT_STAGING_DIR"): print(k, d.get(k,"<unset>"))
 s3=boto3.client("s3",endpoint_url=d["LISTING_ASSET_ENDPOINT"],aws_access_key_id=d["LISTING_ASSET_R2_ACCESS_KEY_ID"],aws_secret_access_key=d["LISTING_ASSET_R2_SECRET_ACCESS_KEY"],region_name="auto")

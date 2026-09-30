@@ -27,8 +27,8 @@ error_signatures:
 
 | Dependency | What it provides | Where it lives | Owning service |
 |---|---|---|---|
-| `aidotmarket/e2e-harness` | The harness itself: queue, runtime dispatch, agentic and recorded browser runners, redaction, retention, tickets | Titan-1 clone `~/Projects/ai-market/e2e-harness`; main at `b3da50904b3019e091487297f5ffde7ed4f694ac` (S1622) | GitHub `aidotmarket/e2e-harness` |
-| Playwright + Chromium | The browser substrate. Declared in `pyproject.toml`; the browser binary is installed separately (`playwright install chromium`) | Titan-1, inside the harness virtualenv | Playwright |
+| `aidotmarket/e2e-harness` | The harness itself: queue, runtime dispatch, agentic and recorded browser runners, redaction, retention, tickets | Koskadeux clone `~/Projects/ai-market/e2e-harness`; main at `b3da50904b3019e091487297f5ffde7ed4f694ac` (S1622) | GitHub `aidotmarket/e2e-harness` |
+| Playwright + Chromium | The browser substrate. Declared in `pyproject.toml`; the browser binary is installed separately (`playwright install chromium`) | Koskadeux, inside the harness virtualenv | Playwright |
 | `E2E_PROD_FRONTEND_URL` | The ONLY source of the sanctioned production frontend URL. No hardcoded fallback exists; a `browser_journey` refuses to run when it is unset | set by `scripts/harness-env.sh` (S1201); the launchd plist no longer carries it | e2e-harness config |
 | `E2E_PROD_TARGETING_ENABLED` | Harness-side opt-in for production targeting. Required for every browser journey EXCEPT the anonymous exemption (Architecture & interactions) | set by `scripts/harness-env.sh` (S1201) | e2e-harness config |
 | `scripts/harness-env.sh` | The ONE place the harness gets its production environment. Exports the targeting opt-in and the two sanctioned URLs, and fetches `INTERNAL_API_KEY` from Infisical **at runtime** into `E2E_INTERNAL_API_KEY`. No secret is written to the plist, a dotenv file or the repo. The Infisical bearer token reaches curl on stdin via a `-K` config block, never on argv | `e2e-harness/scripts/harness-env.sh`; sourced by `scripts/run-nightly.sh`, which is what the launchd plist runs | e2e-harness (S1201, main `f8c7ba2`) |
@@ -72,11 +72,11 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan/Mars | Queue and run a browser journey | `shell_request` on Titan-1: `e2e-harness enqueue @charter.json`, `e2e-harness run` | Titan-1 shell | COMPLETE |
-| Vulcan/Mars | Read the run report and artifacts | `shell_request` on `$E2E_HARNESS_ROOT/reports`, `/artifacts` | Titan-1 shell | COMPLETE |
+| Vulcan/Mars | Queue and run a browser journey | `shell_request` on Koskadeux: `e2e-harness enqueue @charter.json`, `e2e-harness run` | Koskadeux shell | COMPLETE |
+| Vulcan/Mars | Read the run report and artifacts | `shell_request` on `$E2E_HARNESS_ROOT/reports`, `/artifacts` | Koskadeux shell | COMPLETE |
 | MP (Codex) | Build harness changes | `council_request mode=build` against a dedicated worktree | Council dispatch | COMPLETE — builder output must be diff-inspected at file:line; commit messages over-claim |
 | DS / AG | Review harness changes | `council_request mode=review` (builder excluded) | Council dispatch | COMPLETE |
-| launchd (`com.ai-market.e2e-harness.nightly`) | Nightly run at 02:15 local | plist in the harness repo | Titan-1 | COMPLETE |
+| launchd (`com.ai-market.e2e-harness.nightly`) | Nightly run at 02:15 local | plist in the harness repo | Koskadeux | COMPLETE |
 | Codex-as-driver (agentic page reasoning) | Improvise a first walk like a first-time customer | n/a | n/a | PLANNED — Phase 1 walks a fixed public path; the live agent loop lands with the authenticated journeys |
 
 ## How to operate
@@ -85,7 +85,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
 - id: E-01
   trigger: Run the anonymous public browser walk against production (the Phase 1 signal)
   pre_conditions:
-    - Titan-1 harness checkout on main with the virtualenv installed
+    - Koskadeux harness checkout on main with the virtualenv installed
     - Chromium installed for Playwright (playwright install chromium)
     - E2E_PROD_FRONTEND_URL set to the sanctioned production frontend URL
   tool_or_endpoint: "e2e-harness enqueue @<charter.json>; e2e-harness run"
@@ -264,7 +264,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
   symptom_ref: F-05
   component_ref: Browser runner
   root_cause: Chromium binary not installed
-  repair_entry_point: the harness virtualenv on Titan-1
+  repair_entry_point: the harness virtualenv on Koskadeux
   change_pattern: run `playwright install chromium` in the venv; document it in the harness README rather than working around it per-machine
   rollback_procedure: n/a
   integrity_check: the anonymous walk passes
@@ -280,7 +280,7 @@ Prose: a charter is appended to the JSONL queue; `e2e-harness run` loads it, cre
   symptom_ref: F-08
   component_ref: Production guard
   root_cause: 'the harness environment was not loaded, or the Infisical token is dead'
-  repair_entry_point: scripts/harness-env.sh on Titan-1
+  repair_entry_point: scripts/harness-env.sh on Koskadeux
   change_pattern: 'source scripts/harness-env.sh, or run scripts/run-nightly.sh which does it for you. If the key still does not resolve, the Infisical token is the fault - fix the token. NEVER paste the key into the plist, a dotenv file or a charter - the whole point of the loader is that no production secret is at rest on disk'
   rollback_procedure: 'n/a - the refusal is the safety property, not the bug'
   integrity_check: 'the loader prints a 64-character key length under a launchd-minimal env, and preflight returns 200 for the allowlisted account'

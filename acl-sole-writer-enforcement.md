@@ -50,14 +50,14 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
 | Runtime gate | tools/acl_enforce/gate.py:enforce_field_acl | field_acl; event_ledger | (future) tools/state.py state_request | WARN: emit acl_warn_violation and allow. ENFORCE: emit acl_enforce_violation and raise 403 sole_writer_mismatch. |
 | Audit / SLO | tools/acl_enforce/audit.py:collect_phase_a_audit / evaluate_phase_c_slo | event_ledger; field_acl | orchestrate | Phase A dry-run replay of past writes; Phase C reads concrete acl_warn_violation payload path via lookup._match_path (NOT a literal path_pattern). |
 | Cutover orchestrator | tools/acl_enforce/orchestrate.py:start_phase_b_warn / execute_phase_d_flip / rollback_phase_e_row | field_acl; event_ledger | audit | Phase B/D/E. Phase D locks rows, rejects already-enforced, RE-VALIDATES the Phase C SLO inside the flip transaction, then updates enforce_mode in one atomic txn. |
-| field_acl (state store) | — | Postgres (Living State DB; reach via DATABASE_PUBLIC_URL from Titan-1) | — | Columns include enforce_mode IN ('warn','enforce'), sole_writer_role, sole_writer_session_match, key_pattern/key_pattern_type, path_pattern/path_type. |
+| field_acl (state store) | — | Postgres (Living State DB; reach via DATABASE_PUBLIC_URL from Koskadeux) | — | Columns include enforce_mode IN ('warn','enforce'), sole_writer_role, sole_writer_session_match, key_pattern/key_pattern_type, path_pattern/path_type. |
 | event_ledger (state store) | — | Postgres event_ledger | — | Emits acl_warn_started, acl_audit_done, acl_flip_ready, acl_flip_blocked, acl_flip_done, acl_row_rollback, acl_warn_violation, acl_enforce_violation (all event_type <=32 chars). |
 
 ## Agent capabilities
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| vulcan / mars (orchestrating instance) | run WARN-start, readiness check, flip, rollback, audit | shell_request to Titan-1: direct invocation of tools/acl_enforce/orchestrate.py + audit.py functions with a live DB connection (no dedicated CLI/MCP wrapper yet) | Titan-1 shell + DATABASE_PUBLIC_URL | PARTIAL — first-class CLI/MCP tool wrapper is a tracked Changes and maintenance REVIEW item; operated today via direct library calls on Titan-1 |
+| vulcan / mars (orchestrating instance) | run WARN-start, readiness check, flip, rollback, audit | shell_request to Koskadeux: direct invocation of tools/acl_enforce/orchestrate.py + audit.py functions with a live DB connection (no dedicated CLI/MCP wrapper yet) | Koskadeux shell + DATABASE_PUBLIC_URL | PARTIAL — first-class CLI/MCP tool wrapper is a tracked Changes and maintenance REVIEW item; operated today via direct library calls on Koskadeux |
 | state_request (runtime path) | enforce on put/patch pre-persistence | gate.py:enforce_field_acl (future hook) | Living State write path | PLANNED |
 | reconciliation_job / lifecycle / drain / claim handlers | governed writers subject to the gate | state_request | per field_acl sole_writer_role row | PLANNED |
 | Max | direct the enforce-flip (Phase D) | operator instruction relayed to the orchestrating instance | final authority | COMPLETE |
@@ -71,7 +71,7 @@ The same migration added a DB-side trigger `archive_sets_reconciliation_block` (
     - field_acl contains zero rows with enforce_mode='enforce'
   tool_or_endpoint: tools/acl_enforce/orchestrate.py:start_phase_b_warn(conn)
   argument_sourcing:
-    conn: open against the Living State DB via DATABASE_PUBLIC_URL (Infisical-sourced) from Titan-1
+    conn: open against the Living State DB via DATABASE_PUBLIC_URL (Infisical-sourced) from Koskadeux
   idempotency: IDEMPOTENT
   expected_success:
     shape: returns None; one acl_warn_started event in event_ledger with enforce_rows=0

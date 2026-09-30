@@ -37,7 +37,7 @@ Max's d50cbd80 review-roster override does not say it amends CORE §5, so a CORE
 |---|---|---|---|---|
 | Living State entity | `tools/state.py:state_request` | Postgres `state_entities`, key `infra:constitution` (body.content, body.version_label, append-only amendment records) | kd_session_open boot payload; ops console | Boot source of truth. Optimistic `expected_version` on every write. |
 | Git mirror | `ai-market-backend:docs/core/CORE.md` | git, backend main | Railway auto-deploys backend on push (docs-only change still rebuilds) | Mirrors the entity byte-for-byte. On divergence the entity wins (G-02). |
-| Boot delivery | `tools/session.py:kd_session_open` | Titan-1 `registry.db` | both instances on every open | 64,000-char boot wire budget (the boot kernel, not full CORE, is delivered); §3 marker assertion; constitution_source=db. |
+| Boot delivery | `tools/session.py:kd_session_open` | Koskadeux `registry.db` | both instances on every open | 64,000-char boot wire budget (the boot kernel, not full CORE, is delivered); §3 marker assertion; constitution_source=db. |
 | Council gate | `tools/agents.py:council_request` | council task logs | GLM / DeepSeek / Gemini voters; CC non-Council second opinion only | 3/3 valid unanimous voter verdicts required. Voter quirks: agent-dispatch.md, codex-mp.md. |
 
 ## Agent capabilities
@@ -46,7 +46,7 @@ Max's d50cbd80 review-roster override does not say it amends CORE §5, so a CORE
 |---|---|---|---|---|
 | Vulcan / Mars | dispatch the amendment diff to each voter | `council_request` (agent=glm, deepseek, gemini) | MCP session | COMPLETE |
 | Vulcan / Mars | apply the entity patch | `state_request` action=patch | MCP session (boot-gated) | COMPLETE |
-| Vulcan / Mars | commit + push the git mirror | `shell_request` (git; `KD_ALLOW_MAIN_PUSH=1` on the push) | Titan-1 shell | COMPLETE |
+| Vulcan / Mars | commit + push the git mirror | `shell_request` (git; `KD_ALLOW_MAIN_PUSH=1` on the push) | Koskadeux shell | COMPLETE |
 | Max | final approval / veto | direct instruction in session | human | COMPLETE |
 
 ## How to operate

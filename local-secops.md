@@ -1,17 +1,17 @@
 ---
-title: Local SecOps Assistant (Titan-1)
+title: Local SecOps Assistant (Koskadeux)
 owner: unassigned
 last_verified: '2026-07-10'
 aliases: []
 error_signatures: []
 ---
 
-# Local SecOps Assistant (Titan-1)
+# Local SecOps Assistant (Koskadeux)
 
 > **Built**: S1115 (2026-07-04)
-> **Host**: Titan-1 / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB)
+> **Host**: Koskadeux / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB)
 > **Location on disk**: `/Users/max/local-secops/`
-> **Purpose**: Rotate / update / expire / generate credentials with a fully-local model, so secret values never leave Titan-1 and no human has to type them.
+> **Purpose**: Rotate / update / expire / generate credentials with a fully-local model, so secret values never leave Koskadeux and no human has to type them.
 > **Owner**: Vulcan/Mars (operator-invoked); registered in Living State at `infra:local-secops`.
 
 ---

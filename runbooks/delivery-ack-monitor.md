@@ -36,7 +36,7 @@ On metadata, complete and error frames, malformed transfer, order or listing ids
 | Seller's frames refused with `AUTHORIZATION_MISMATCH` | Frame names a transfer/order/listing the device's seller does not own, or an id is not a UUID (chunk frames return the raw UUID parse error instead) | Compare the frame ids with `transfer_sessions`/`orders` rows for that seller |
 | Owner's complete refused with `MANIFEST_DELIVERY_REQUIRED` | Multi-file delivery switched off while a manifest order is mid-delivery; the owner's monitor is still stopped | Expected; re-enable `MULTI_FILE_DATASETS_ENABLED` or let the order finish on the manifest route |
 
-Tests that pin this behaviour: `tests/test_ack_monitor_authorization_s1734.py` (25 tests). `tests/test_fulfillment_listener.py` (8 failures) and `tests/test_s1681_s3_delivery.py` (83 failures) fail locally on Titan-1 identically on base `d4582fe9` and on the fix (both re-run by Vulcan S1734); CI Gold Path is the gate.
+Tests that pin this behaviour: `tests/test_ack_monitor_authorization_s1734.py` (25 tests). `tests/test_fulfillment_listener.py` (8 failures) and `tests/test_s1681_s3_delivery.py` (83 failures) fail locally on Koskadeux identically on base `d4582fe9` and on the fix (both re-run by Vulcan S1734); CI Gold Path is the gate.
 
 ## Related
 

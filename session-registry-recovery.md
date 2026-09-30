@@ -38,7 +38,7 @@ error_signatures:
 
 ## Architecture & interactions
 
-The session registry is a SQLite database on Titan-1 at `/Users/max/koskadeux-state/registry.db` (relocated from OS-clearable /var/tmp in S1499, T-2026-000585; a transitional symlink remains at the old path), opened through `registry.py open_registry`, whose path resolves from the `KOSKADEUX_REGISTRY_DB` environment variable (defaulting to the production path). The `sessions` table is instance-keyed: at most one row each for `vulcan`, `mars`, and the non-human `scratch` instance. Session numbers come from a durable monotonic high-water mark held in the `session_seq` single-row table and mirrored to the Living State anchor `config:session-seq` (Railway Postgres). The allocator `Registry.register_allocated_session` reserves the anchor to at least the candidate number BEFORE writing the registry row, and fails closed if Living State is unreachable, so a registry rebuild or restore re-seeds from the anchor and never rewinds. Stale rows self-heal on open via `_auto_close_stale_instance_if_safe`, which closes a row only when its `last_seen_at` is past the TTL AND the peer bus shows no recent signal from that instance (fail-open on a peer-check error to avoid killing a live session). Schema changes are append-only migrations applied transactionally and idempotently against the live table shape.
+The session registry is a SQLite database on Koskadeux at `/Users/max/koskadeux-state/registry.db` (relocated from OS-clearable /var/tmp in S1499, T-2026-000585; a transitional symlink remains at the old path), opened through `registry.py open_registry`, whose path resolves from the `KOSKADEUX_REGISTRY_DB` environment variable (defaulting to the production path). The `sessions` table is instance-keyed: at most one row each for `vulcan`, `mars`, and the non-human `scratch` instance. Session numbers come from a durable monotonic high-water mark held in the `session_seq` single-row table and mirrored to the Living State anchor `config:session-seq` (Railway Postgres). The allocator `Registry.register_allocated_session` reserves the anchor to at least the candidate number BEFORE writing the registry row, and fails closed if Living State is unreachable, so a registry rebuild or restore re-seeds from the anchor and never rewinds. Stale rows self-heal on open via `_auto_close_stale_instance_if_safe`, which closes a row only when its `last_seen_at` is past the TTL AND the peer bus shows no recent signal from that instance (fail-open on a peer-check error to avoid killing a live session). Schema changes are append-only migrations applied transactionally and idempotently against the live table shape.
 
 ### S1456 durable-state boundary
 
@@ -84,7 +84,7 @@ never remove the source or overwrite a conflicting target.
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan/Mars | inspect registry state, run migration status/apply, run phantom cleanup, restart MCP and verify | shell plus state_request | Titan-1 shell plus Living State | COMPLETE |
+| Vulcan/Mars | inspect registry state, run migration status/apply, run phantom cleanup, restart MCP and verify | shell plus state_request | Koskadeux shell plus Living State | COMPLETE |
 | Vulcan/Mars | re-seed or re-affirm the durable anchor after a regression | state_request patch on config:session-seq | Living State | COMPLETE |
 | kd_session_open | auto self-heal a stale instance row on open | tools/session.py self-heal path | registry | COMPLETE |
 | Max | authorize or perform a physical host restart and resolve strategic forks | shell | host owner | COMPLETE |
@@ -98,7 +98,7 @@ Both instances own the non-interactive recovery steps (inspect, migrate, cleanup
   trigger: Routine verification that the session registry is healthy before relying on session opens.
   pre_conditions:
     - registry.db exists at the production path or KOSKADEUX_REGISTRY_DB points at the intended DB
-    - sqlite3 available on Titan-1
+    - sqlite3 available on Koskadeux
   tool_or_endpoint: "sqlite3 /Users/max/koskadeux-state/registry.db on schema_migrations, session_seq, sessions, plus PRAGMA integrity_check"
   argument_sourcing:
     db_path: production path, or KOSKADEUX_REGISTRY_DB if overridden
