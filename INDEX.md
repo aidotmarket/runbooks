@@ -380,11 +380,11 @@
 
 ## Codex / MP — Council Primary Builder
 - Path: `codex-mp.md`
-- Purpose: **MP** is the Council name for OpenAI **Codex** (model **`gpt-6-sol`** since 2026-09-22 — Max S1738, "please just implement it as the builder model", koskadeux-mcp #231, Codex CLI 0.155.1; before that `gpt-5.6-sol`, Max decision 2026-09-18, Event 9459dfc3: `~/.codex/config.toml` had drifted to `gpt-6-astra` on 2026-09-06 without a recorded decision and burned $100 of credits in one day at 2.5× Sol's rate; the bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786; ChatGPT OAuth, prepaid credits). It is the **mandatory builder for all BQ/development code builds**. MP is not a gate voter, though explicit MP review dispatch remains available outside gate voting. The S1651 CC/GLM/DeepSeek panel and Kimi comparison seat are historical. For current reviews, follow the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`: GLM and DeepSeek are required, CC holds Gemini's third seat through 2026-10-05, Gemini is not dispatched, unanimity applies, and option A/option C govern the package and review tier. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
+- Purpose: **MP** is the Council name for OpenAI **Codex** (model **`gpt-6.1-sol`**, reasoning effort **`medium`**, global Codex CLI **0.159.1** — Max decision 77d48293, 2026-09-30; lineage: `gpt-5.6-sol` → `gpt-6-sol` → `gpt-6.1-sol`; ChatGPT OAuth, prepaid credits). `~/.codex/config.toml` and `koskadeux-mcp/.env` `MP_MODEL` both select `gpt-6.1-sol`. The bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786. It is the **mandatory builder for all BQ/development code builds**. MP is not a gate voter, though explicit MP review dispatch remains available outside gate voting. The S1651 CC/GLM/DeepSeek panel and Kimi comparison seat are historical. For current reviews, follow the ACTIVE OVERRIDE in `runbooks/council.md`: the panel is DeepSeek, CC (Gemini seat per d50cbd80), codex2 (GLM seat per e4c8ed6f until GLM recovery or 2026-10-02 00:00 CEST). CC holds Gemini's seat through 2026-10-05; Gemini is not dispatched, unanimity applies, and option A/option C govern the package and review tier. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 - Owner: `vulcan`
-- Last verified: `2026-09-24`
+- Last verified: `2026-09-30`
 - Aliases: none
-- Error signatures: Incorrect API key provided: sk-svcac, gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap, minimal bridge has no configured checkout for repo
+- Error signatures: Incorrect API key provided: sk-svcac, gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap, minimal bridge has no configured checkout for repo, every default-account MP build fails with HTTP 400, bridge_runner fails at import when run from a foreign cwd
 - Status: current
 
 ## Completion Trust and Ref Disposition
@@ -789,7 +789,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-07-17`
 - Aliases: none
-- Error signatures: none
+- Error signatures: launchd user jobs exit 78 after a Titan-1 reboot
 - Status: current
 
 ## Lifecycle Emails
