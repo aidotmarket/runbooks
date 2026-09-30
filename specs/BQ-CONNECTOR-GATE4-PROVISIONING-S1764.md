@@ -585,6 +585,7 @@ def quiet(sync_id,observe):
     while time.monotonic()<deadline:
         rows=safe(syncs)
         require(isinstance(rows,list) and all(isinstance(r,dict) for r in rows), 'Sync inventory drift')
+        # None selects service-quiet, used only after the proof sync is deleted.
         target=PROOF_SYNC_ID if sync_id is None else sync_id
         matches=[r for r in rows if r.get('id')==target]
         require(len(matches)<=1, 'Duplicate proof sync')
@@ -742,8 +743,31 @@ def verify_infisical_absence():
     require(not proof_source_users(), 'Proof source still used')
     require(not any(r['id']==created.get('folder') or r['name']=='s1764-proof' for r in proof_folders('/')), 'Proof folder remains')
 
+def proof_project_by_name():
+    # Caller-scoped projects query: https://docs.railway.com/integrations/api/manage-projects
+    f=pin_field('Query','projects')
+    edge=base_type(pin_field(base_type(f),'edges')); node=base_type(pin_field(edge,'node'))
+    for name in ('id','name'): pin_field(node,name)
+    rows=safe(gql,'query{projects{edges{node{id name}}}}',{})['projects']['edges']
+    require(isinstance(rows,list) and all(isinstance(r,dict) and isinstance(r.get('node'),dict)
+        and set(r['node'])=={'id','name'} for r in rows), 'Project inventory drift')
+    matches=[r['node'] for r in rows if r['node']['name']==PROOF_NAME]
+    require(len(matches)<=1, 'Duplicate proof project name; deletion refused')
+    if matches: require(text_id(matches[0]['id'])!=RP, 'Production project refused')
+    return matches[0] if matches else None
+
+def cleanup_railway_project(ids):
+    global PROOF_PROJECT_ID
+    if 'project' not in created:
+        row=proof_project_by_name()
+        if row is None: return
+        PROOF_PROJECT_ID=text_id(row['id']); created['project']=PROOF_PROJECT_ID
+        ids.append(PROOF_PROJECT_ID)
+    delete_proof_project()
+
 def verify_railway_absence():
-    if 'project' in created: require(proof_project() is None, 'Railway project absence unproved')
+    if created.get('railway_project_attempted'):
+        require(proof_project_by_name() is None, 'Railway project absence unproved')
 
 try:
     IMAGE_DIGEST='<operator: rtk docker buildx imagetools inspect nginx:alpine>'
@@ -753,6 +777,7 @@ try:
     require(dict(f[2])=={'input':'ProjectCreateInput!'} and base_type(f)=='Project', 'Project creation schema drift')
     pin_field('ProjectCreateInput','name')
     for name in ('id','name'): pin_field('Project',name)
+    created['railway_project_attempted']=True
     resource=safe(gql,'mutation($i:ProjectCreateInput!){projectCreate(input:$i){id name}}',{'i':{'name':PROOF_NAME}})['projectCreate']
     PROOF_PROJECT_ID=text_id(resource['id']); created['project']=PROOF_PROJECT_ID
     require(isinstance(resource,dict) and set(resource)=={'id','name'} and resource['name']==PROOF_NAME, 'Project create response drift')
@@ -767,6 +792,7 @@ try:
     for name in ('projectId','name','source'): pin_field('ServiceCreateInput',name)
     source=base_type(pin_field('ServiceCreateInput','source')); pin_field(source,'image')
     for name in ('id','name'): pin_field('Service',name)
+    # Project-level lookup/deletion also covers serviceCreate with an unusable response.
     resource=safe(gql,'mutation($i:ServiceCreateInput!){serviceCreate(input:$i){id name}}',
         {'i':{'projectId':PROOF_PROJECT_ID,'name':'proof','source':{'image':IMAGE}}})['serviceCreate']
     PROOF_SERVICE_ID=text_id(resource['id']); created['service']=PROOF_SERVICE_ID
@@ -823,15 +849,37 @@ finally:
         teardown('teardown-child-delete',[created['child']],lambda: cleanup_folder('child',PROOF_PATH,'child'))
     if 'folder' in created:
         teardown('teardown-folder-delete',[created['folder']],lambda: cleanup_folder('folder','/','s1764-proof'))
-    if 'project' in created:
-        teardown('teardown-project-delete',[created['project']],delete_proof_project)
+    if created.get('railway_project_attempted'):
+        ids=[created['project']] if 'project' in created else []
+        teardown('teardown-project-delete',ids,lambda: cleanup_railway_project(ids))
     teardown('teardown-infisical-absence',[],verify_infisical_absence)
     teardown('teardown-railway-absence',[created['project']] if 'project' in created else [],verify_railway_absence)
     teardown('teardown-production-sync-invariant',[],
         lambda: require(production_sync_snapshot()==production_sync_before, 'Production sync invariant failed'))
-# Assemble the restricted receipt from names/IDs/status rows before propagating failure; never serialize exceptions.
-if failure is not None: raise failure from None
-require(not teardown_failed, 'Teardown or absence verification failed; receipt required')
+    # Persist names/IDs/status only, including failures; never serialize exceptions or values.
+    import datetime, getpass
+    operations=[{**r,'disposition':'Step 2' if r['result']=='PASS' else 'Step 5'}
+        for r in receipt if not r['operation'].startswith('teardown-')]
+    dispositions={r['operation']:('Step 5' if any(x['disposition']=='Step 5'
+        for x in operations if x['operation']==r['operation']) else 'Step 2') for r in operations}
+    restricted={'actor':getpass.getuser(),'utc_time':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        'infisical':{'host':'secrets.ai.market','project_id':P,'environment':PE,'path':PROOF_PATH},
+        'railway':{'project_name':PROOF_NAME,'project_id':created.get('project'),
+            'environment_id':globals().get('PROOF_ENV_ID'),'environment_name':globals().get('PROOF_ENV_NAME'),
+            'service_name':'proof','service_id':created.get('service'),
+            'image_digest':IMAGE_DIGEST if re.fullmatch(r'sha256:[0-9a-f]{64}',IMAGE_DIGEST) else None},
+        'operations':operations,'teardown':[r for r in receipt if r['operation'].startswith('teardown-')],
+        'dispositions':dispositions,'teardown_failed':teardown_failed}
+    os.umask(0o077)
+    receipt_path=Path('/Users/max/koskadeux-state/s1771/s1764-nodeploy-proof.json')
+    receipt_path.parent.mkdir(parents=True,exist_ok=True)
+    with receipt_path.open('w') as out:
+        os.fchmod(out.fileno(),0o600)
+        json.dump(restricted,out,indent=2); out.write('\n')
+    if failure is not None and teardown_failed:
+        raise RuntimeError('proof failed and teardown failed; see receipt') from failure
+    elif failure is not None: raise failure from None
+    elif teardown_failed: raise RuntimeError('Teardown or absence verification failed; see receipt')
 
 ```
 
