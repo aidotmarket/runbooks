@@ -1,6 +1,6 @@
 # BQ-CONNECTOR-CORE Gate 4 — provisioning and early-access enable plan (S1764)
 
-Status: **plan only; no production enable authority or completion claim.** Review merge base: runbooks main `ee59009524013caa16d2b82d9a7c26d24e574bf6`; historical design base: runbooks main `d2cc51293ac127c94be1e73650e57a298818d150`; backend main `66109cdc681066bf05e99d3a43de368daa2d4c26` (2026-09-29). Authority: `customer-mcp-connector.md` (especially Mandatory for resource Gate 4, switch administration, keyset, consent and directory sections), core Gate 1/2, buyer discovery Gate 2, OAuth Gate 2, `infisical-secrets.md`, `local-secops.md`, `schema-migration.md`, `auth-signup-flow.md`, Railway runbooks. The operator records exact SHAs/deployments again at execution; a later backend main requires a fresh code/table-access diff. Target: `https://connect.ai.market/mcp` works with OAuth for Max, an approved synthetic reviewer, and existing test accounts, then Max may submit it from the ai.market Claude organization. Keep the allowlist until the P1 release decision.
+Status: **plan only; no production enable authority or completion claim.** Review merge base: runbooks main `4dbb9b99f0c895776d2cb46bf008eebf09795f90`; historical design base: runbooks main `d2cc51293ac127c94be1e73650e57a298818d150`; backend main `673bba93`. Authority: `customer-mcp-connector.md` (especially Mandatory for resource Gate 4, switch administration, keyset, consent and directory sections), core Gate 1/2, buyer discovery Gate 2, OAuth Gate 2, `infisical-secrets.md`, `local-secops.md`, `schema-migration.md`, `auth-signup-flow.md`, Railway runbooks. The operator records exact SHAs/deployments again at execution; a later backend main requires a fresh code/table-access diff. Target: `https://connect.ai.market/mcp` works with OAuth for Max, an approved synthetic reviewer, and existing test accounts, then Max may submit it from the ai.market Claude organization. Keep the allowlist until the P1 release decision.
 
 ## Stop gates before a production change
 
@@ -232,9 +232,10 @@ def deployment_snapshot():
 def verify_upsert_shape():
     q='query { __type(name:"VariableCollectionUpsertInput") { inputFields { name type { kind name ofType { kind name } } } } __schema { mutationType { fields { name args { name type { kind name ofType { kind name } } } } } } }'
     data=gql(q,{})
-    fields={f['name'] for f in data['__type']['inputFields']}
+    fields={f['name']:f for f in data['__type']['inputFields']}
     mutations={f['name']:f for f in data['__schema']['mutationType']['fields']}
-    assert fields=={'projectId','environmentId','serviceId','replace','skipDeploys','variables'}
+    assert set(fields)=={'projectId','environmentId','serviceId','replace','skipDeploys','variables'}
+    assert fields['replace']['type']['kind']=='SCALAR' and fields['replace']['type']['name']=='Boolean'
     assert len(mutations['variableCollectionUpsert']['args'])==1
     assert mutations['variableCollectionUpsert']['args'][0]['name']=='input'
     assert mutations['variableCollectionUpsert']['args'][0]['type']['name']=='VariableCollectionUpsertInput' or mutations['variableCollectionUpsert']['args'][0]['type']['ofType']['name']=='VariableCollectionUpsertInput'
@@ -247,7 +248,7 @@ def put(service,items):
     assert deployment_snapshot()==BASE_DEPLOYMENTS
     q='mutation($input:VariableCollectionUpsertInput!){variableCollectionUpsert(input:$input)}'
     result=gql(q,{'input':{'projectId':RP,'environmentId':RE,'serviceId':service,
-                            'variables':items,'skipDeploys':True}})
+                            'variables':items,'replace':False,'skipDeploys':True}})
     after=rv(service)
     for name,value in items.items():
         if name=='REDIS_URL' and value.startswith('${{'):
@@ -269,7 +270,7 @@ def put(service,items):
 
 Create a throwaway Railway project named `s1764-nodeploy-proof` with one trivial service from a pinned static image (for example `nginx:alpine` pinned by digest). Give it no database, Redis, shared network, production variable, domain or production resource reference. Record its project/environment/service IDs and image digest. In Infisical project `ai-market-backend` `bd272d48-c5a1-4b52-9d24-12066ae4403c`, use **staging** and create only `/s1764-proof`; never use root or `prod`. Create one native Railway sync from that exact folder to the disposable service, using the existing Railway connection type, `includeAllSubFolders:false`, `disableSecretDeletion:true`, and the same initial behavior/auto-sync settings planned for the resource sync. Capture the deployment ID immediately before the sync-create POST and after its first job settles; this is the `sync-create` proof row. Confirm the source path, environment, destination project/environment/service IDs and connection ID on readback. The existing production syncs must be unchanged. This setup touches no production resources; cost is only the short-lived throwaway Railway service and its sync jobs.
 
-Run the following sequence from the protected Python interpreter used above, with `P` unchanged and a separate staging API wrapper (`PE='staging'`, `PROOF_PATH='/s1764-proof'`) and disposable Railway IDs. Tokens are loaded from `~/.config/infisical/sysadmin-token` and ambient `RAILWAY_API_TOKEN` as above; refresh through `infisical-secrets.md`/`local-secops.md`. No token or secret value goes to argv, disk, output or a receipt. `proof_deployment_id()` is bound to the same reviewed Railway deployment-ID reader as `deployment_ids()` but scoped to the disposable service. `proof_sync(sync_id)` filters `GET /api/v1/secret-syncs?projectId=P` by the exact ID and asserts its staging source and disposable destination before each operation. `wait_job(sync_id,old_job)` polls until a new `lastSyncJobId` has `syncStatus` `success`/`succeeded`, or fails on error/timeout. `wait_proof_quiet(sync_id)` polls the inventory and deployment ID until no job is pending and both remain stable through the operator's bounded observation interval; it fails on an unknown status or timeout. `proof_variables_raw()` uses the live-introspected raw-reference readback described in §2.4; it refuses unresolved values. The Infisical UI may supply `disable_proof_sync()` only after the operator verifies its exact sync ID and reads back `isAutoSyncEnabled=false`; an unverified pause API shape is a refusal, not a pass.
+Run the following sequence from the protected Python interpreter used above, with `P` unchanged and a separate staging API wrapper (`PE='staging'`, `PROOF_PATH='/s1764-proof'`) and disposable Railway IDs. Tokens are loaded from `~/.config/infisical/sysadmin-token` and ambient `RAILWAY_API_TOKEN` as above; refresh through `infisical-secrets.md`/`local-secops.md`. No token or secret value goes to argv, disk, output or a receipt. `proof_deployment_id()` is bound to the same reviewed Railway deployment-ID reader as `deployment_ids()` but scoped to the disposable service. `proof_sync(sync_id)` filters `GET /api/v1/secret-syncs?projectId=P` by the exact ID and asserts its staging source and disposable destination before each operation. `wait_job(sync_id,old_job)` polls until a new `lastSyncJobId` has `syncStatus` `success`/`succeeded`, or fails on error/timeout. `wait_proof_quiet(sync_id)` polls the inventory and deployment ID until no job is pending and both remain stable through the operator's bounded observation interval; it fails on an unknown status or timeout. `proof_variables_raw()` and `proof_variables_effective()` use live-introspected raw and rendered readbacks described in §2.4; they refuse unknown shapes and unresolved references. The Infisical UI may supply `disable_proof_sync()` only after the operator verifies its exact sync ID and reads back `isAutoSyncEnabled=false`; an unverified pause API shape is a refusal, not a pass.
 
 ```python
 PE='staging'; PROOF_PATH='/s1764-proof'
@@ -281,7 +282,23 @@ proof_api=api
 receipt=[]
 root=next(s for s in syncs() if s['name']=='railway-backend-prod')
 assert root['projectId']==P and root['connection']['app']=='railway'
+def production_sync_snapshot():
+    return {s['id']:(s['syncOptions'],s['destinationConfig']) for s in syncs()
+            if s['environment']['slug']==E}
+def proof_source_users():
+    users=[]
+    for s in syncs():
+        if s['environment']['slug']!=PE: continue
+        path=s['folder']['path']
+        if path==PROOF_PATH:
+            users.append(s['id'])
+        elif PROOF_PATH.startswith(path.rstrip('/')+'/'):
+            assert s['syncOptions'].get('includeAllSubFolders') is False
+    return users
+production_sync_before=production_sync_snapshot()
+assert production_sync_before
 assert not any(s['name']==PROOF_NAME for s in syncs())
+assert not proof_source_users()  # no existing staging sync can source the proof path
 before=proof_deployment_id()
 proof_api('POST','/api/v1/secret-syncs/railway',body={
     'name':PROOF_NAME,'projectId':P,'connectionId':root['connectionId'],
@@ -295,6 +312,7 @@ proof_api('POST','/api/v1/secret-syncs/railway',body={
 created=[s for s in syncs() if s['name']==PROOF_NAME]
 assert len(created)==1
 PROOF_SYNC_ID=created[0]['id']
+assert proof_source_users()==[PROOF_SYNC_ID]
 wait_job(PROOF_SYNC_ID,None)
 after=proof_deployment_id()
 receipt.append({'operation':'sync-create','before_deployment_id':before,
@@ -333,7 +351,7 @@ checked('secret-write',lambda: proof_api('POST','/api/v4/secrets/S1764_PROOF',
 checked('forced-sync',lambda: proof_api('POST',
     '/api/v1/secret-syncs/railway/'+PROOF_SYNC_ID+'/sync-secrets'))
 checked('secret-delete',lambda: proof_api('DELETE','/api/v4/secrets/S1764_PROOF',
-    body={'projectId':P,'environment':PE,'secretPath':PROOF_PATH,'type':'shared'}))
+    body={'projectId':P,'environment':PE,'secretPath':PROOF_PATH,'type':'shared'}),expect_job=False)
 # The initial sync-create row was captured at setup, before this block.
 checked('sync-disable',disable_proof_sync,PROOF_SYNC_ID,False)
 before=proof_deployment_id()
@@ -344,26 +362,36 @@ receipt.append({'operation':'sync-delete','before_deployment_id':before,
                 'after_deployment_id':after,'sync_id':PROOF_SYNC_ID,
                 'sync_job_id':None,'result':'PASS' if before==after else 'RESTART'})
 assert before==after, 'sync-delete must move to Step 5'
+assert not proof_source_users()
+assert production_sync_snapshot()==production_sync_before
 
 # Rehearse the Railway removal with a disposable literal variable. The helper
 # reads EVERY raw variable first and must preserve every name/value except one.
 before=proof_deployment_id()
 raw=proof_variables_raw(PROOF_SERVICE_ID)
 assert 'S1764_PROOF_REMOVE' in raw
+reference_names={k for k,v in raw.items() if v.startswith('${{')}
+effective_before=proof_variables_effective(PROOF_SERVICE_ID)
+assert all(effective_before[k]!=raw[k] for k in reference_names)
 expected={k:v for k,v in raw.items() if k!='S1764_PROOF_REMOVE'}
 gql('mutation($input:VariableCollectionUpsertInput!){variableCollectionUpsert(input:$input)}',
     {'input':{'projectId':PROOF_PROJECT_ID,'environmentId':PROOF_ENV_ID,
               'serviceId':PROOF_SERVICE_ID,'variables':expected,
               'replace':True,'skipDeploys':True}})
 assert proof_variables_raw(PROOF_SERVICE_ID)==expected
+effective_after=proof_variables_effective(PROOF_SERVICE_ID)
+assert all(effective_after[k]==effective_before[k] and effective_after[k]!=raw[k]
+           for k in reference_names)
 after=proof_deployment_id()
 receipt.append({'operation':'railway-collection-remove','before_deployment_id':before,
                 'after_deployment_id':after,'sync_id':None,'sync_job_id':None,
                 'result':'PASS' if before==after else 'RESTART'})
 assert before==after, 'Railway removal must move to Step 5'
+receipt.append({'operation':'reference-preservation','names':sorted(reference_names),
+                'result':'PASS' if reference_names else 'UNPROVED'})
 ```
 
-Before executing the block, bind and review `delete_proof_child_folder()`, `disable_proof_sync()` and `delete_proof_sync()` to the current Infisical API or verified UI actions. The folder deletion and sync pause shapes are not established by this runbook; refuse them until their endpoint/field shape or UI readback is recorded. Create `S1764_PROOF_REMOVE` on the disposable service with `skipDeploys:true` before the Railway removal rehearsal and capture that setup mutation's deployment IDs too. For each sync mutation, inspect the sync inventory and any new job until settled even where `expect_job=False`; record a new job ID if one appeared. The `sync-create` before ID must be captured **before** the setup POST; missing that boundary is a failed proof. Assert the source folder is still isolated and no production sync ID/options changed. Also rehearse §2.4 with a raw `${{...}}` reference to a disposable service variable; if the reference cannot resolve without adding another service, mark reference preservation unproved and block any production removal that would retain a reference. Teardown in reverse order: disable/delete the proof sync, delete proof secrets and folder, then delete the throwaway Railway project; verify absence in both systems. Teardown may restart only the disposable service. Save a restricted, names/IDs-only `s1764-nodeploy-proof.json` receipt outside Git with `actor`, UTC time, Infisical host/project/environment/path, Railway project/environment/service/image IDs, API/schema versions, `operations` (the `receipt` rows above plus setup `sync-create`), teardown IDs/absence and the Step 2 or Step 5 disposition for each class. Never save raw API responses.
+Before executing the block, bind and review `delete_proof_child_folder()`, `disable_proof_sync()` and `delete_proof_sync()` to the current Infisical API or verified UI actions. The folder deletion and sync pause shapes are not established by this runbook; refuse them until their endpoint/field shape or UI readback is recorded. Create `S1764_PROOF_REMOVE` on the disposable service with `skipDeploys:true` before the Railway removal rehearsal and capture that setup mutation's deployment IDs too. For each sync mutation, inspect the sync inventory and any new job until settled even where `expect_job=False`; record a new job ID if one appeared. The `sync-create` before ID must be captured **before** the setup POST; missing that boundary is a failed proof. Assert the source folder is still isolated and `production_sync_snapshot()==production_sync_before` again after final teardown; record the production-sync invariant comparison without exposing values. Also rehearse §2.4 with a raw `${{...}}` reference to a disposable service variable; assert its raw string and rendered value before and after replacement are unchanged, and record a names/IDs-only pass. If the reference cannot resolve without adding another service, mark reference preservation unproved and block any production removal that would retain a reference. Teardown in reverse order: disable/delete the proof sync, delete proof secrets and folder, then delete the throwaway Railway project; verify absence in both systems. Teardown may restart only the disposable service. Save a restricted, names/IDs-only `s1764-nodeploy-proof.json` receipt outside Git with `actor`, UTC time, Infisical host/project/environment/path, Railway project/environment/service/image IDs, API/schema versions, `operations` (the `receipt` rows above, including reference preservation and setup `sync-create`), teardown IDs/absence and the Step 2 or Step 5 disposition for each class. Never save raw API responses.
 
 ### 2.1 Restricted resource DSN and Redis
 
@@ -527,7 +555,7 @@ del srca,srcr,dst_a,dst_r
 
 Before **any** Step 2 production mutation, complete §2.0's no-deploy proof for each dependent Infisical forward/rollback class and the Railway collection replacement. Mars's 2026-09-29T23:45Z read-only introspection proves `VariableDeleteInput` has no `skipDeploys`; `variableDelete` is prohibited for Step 2 even though `scripts/railway_watcher_credential/railway_watcher_credential.py` uses it elsewhere. With `disableSecretDeletion=true`, deleting an Infisical secret or sync leaves its Railway copy; remove those names explicitly only through the guarded collection replacement below. Keep global switch/flags off throughout; if flags were later enabled, use the rollback map's global kill first.
 
-For a removal, fetch the **entire current service variable name set** through `rv(service)` in the protected interpreter. Fetch each name's raw value through the live-introspected Railway metadata readback `raw_reference(service,name)`; this must return the literal value or the unchanged raw `${{...}}` reference, never a resolved reference value. Assert the raw metadata names equal `rv(service).keys()`, and refuse if any raw value is missing, unreadable or of unknown shape. Re-read immediately before mutation; refuse concurrent name/value drift. Form `variables` as exactly that protected-memory mapping minus the named removals (or with exact prior values restored for a mixed rollback). Apply one `variableCollectionUpsert` with `replace:true, skipDeploys:true`, then assert readback names equal the expected set, retained raw references equal their originals, retained literal values match in protected memory, and **all four** production deployment IDs equal the baseline. Do not log values. This operation is permitted only for `ai-market-connector` (`RES`) and `ai-market-connector-auth` (`AUTH`), never `ai-market-backend` (`BACK`) or `issue-channel-watcher` (`WATCH`). A backend-only new variable requiring deletion moves with its dependent forward action to Step 5's restart window; do not extend this helper's allow-list.
+For a removal, fetch the **entire current service variable name set** through `rv(service)` in the protected interpreter. Fetch each name's raw value through the live-introspected Railway metadata readback `raw_reference(service,name)`; this must return the literal value or the unchanged raw `${{...}}` reference, never a resolved reference value. Assert the raw metadata names equal `rv(service).keys()`, and refuse if any raw value is missing, unreadable or of unknown shape. Re-read immediately before mutation; refuse concurrent name/value drift. Form `variables` as exactly that protected-memory mapping minus the named removals (or with exact prior values restored for a mixed rollback). Apply one `variableCollectionUpsert` with `replace:true, skipDeploys:true`, then assert readback names equal the expected set, retained raw references and their rendered values equal their originals, retained literal values match in protected memory, and **all four** production deployment IDs equal the baseline. Do not log values. This operation is permitted only for `ai-market-connector` (`RES`) and `ai-market-connector-auth` (`AUTH`), never `ai-market-backend` (`BACK`) or `issue-channel-watcher` (`WATCH`). A backend-only new variable requiring deletion moves with its dependent forward action to Step 5's restart window; do not extend this helper's allow-list.
 
 ```python
 def remove_or_restore_connector_vars(service,remove=(),restore=None):
@@ -546,13 +574,17 @@ def remove_or_restore_connector_vars(service,remove=(),restore=None):
     assert all(not v.startswith('${{') or v.endswith('}}') for v in raw.values())
     expected={k:v for k,v in raw.items() if k not in remove}
     expected.update(restore)
-    assert set(rv(service))==names
+    assert rv(service)==effective
     assert {k:raw_reference(service,k) for k in names}==raw
+    references={k for k in expected if k in raw and raw[k].startswith('${{')}
+    assert all(effective[k]!=raw[k] for k in references)  # resolved before mutation
     gql('mutation($input:VariableCollectionUpsertInput!){variableCollectionUpsert(input:$input)}',
         {'input':{'projectId':RP,'environmentId':RE,'serviceId':service,
                   'variables':expected,'replace':True,'skipDeploys':True}})
     assert set(rv(service))==set(expected)
     assert {k:raw_reference(service,k) for k in expected}==expected
+    after=rv(service)
+    assert all(after[k]==effective[k] and after[k]!=raw[k] for k in references)
     assert deployment_snapshot()==BASE_DEPLOYMENTS
     closed_stage('after-collection-replace')
     print(service,sorted(remove),'removed; retained names verified; deployments unchanged')
