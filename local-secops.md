@@ -38,10 +38,10 @@ It exists because secret rotation/movement was previously a manual, error-prone,
 | Read/verify a secret | Yes | `get`; value not printed to chat, only round-trip proof |
 | Expire/delete a secret | Yes | `delete` via raw REST API (curl `-K` stdin), because CLI delete is unreliable under this machine identity |
 | Restart a dependent LOCAL service after rotation | Yes | `launchctl kickstart -k` of 3 known labels only |
-| Rotate a THIRD-PARTY key (Stripe, DeepSeek, etc.) | No (partial) | Provider-issued value must arrive via a secure channel; **not wired**. The model must never invent a third-party value |
+| Rotate a THIRD-PARTY key (Stripe, DeepSeek, etc.) | No (partial) | Provider-issued value must arrive via a secure channel; **not wired**. A plan must never invent a third-party value |
 | Push a backend secret to prod | No (automatic) | The native Infisical→Railway sync (LIVE since S1125) mirrors Infisical→Railway on its own; this tool writes the Infisical catalog only |
 | Autonomous/scheduled rotation | No | Operator/Vulcan-invoked only; no timer, no daemon |
-| Run arbitrary shell | No | Executor rebuilds argv from vetted templates; raw model string is never run |
+| Run arbitrary shell | No | Executor rebuilds argv from vetted templates; raw plan string is never run |
 
 ---
 
@@ -75,7 +75,7 @@ Local SecOps does not manage `/connector-auth` or `CONNECTOR_OAUTH_SIGNING_KEYS`
 |---|---|---|
 | Proposer (`llama3.3:70b`, retired 2026-08-18) | Draft a plan grounded on PLAYBOOK.md | Execute anything; print a real secret value; invent flags/subcommands |
 | Executor (`secops_execute.py`) | Run the allow-listed actions on approved plans | Run any off-list command, touch a non-allow-listed project, run a shell |
-| Vulcan/Mars (operator) | Review a proposed plan; invoke the executor; provide provider-issued third-party values through a secure channel | Bypass review; paste secret values into chat |
+| Vulcan/Mars (operator) | Review the hand-written plan; invoke the executor; provide provider-issued third-party values through a secure channel | Bypass review; paste secret values into chat |
 | Max | Approve/authorize a rotation; supply third-party provider values | — |
 
 **Allow-listed actions (only these):**
