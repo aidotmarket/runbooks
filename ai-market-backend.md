@@ -126,8 +126,12 @@ PostgreSQL on Railway. The app connects via `DATABASE_URL` (internal Railway hos
 **If a migration fails mid-execution:** The migration may have partially applied (tables created but `alembic_version` not stamped). Fix by making the migration idempotent and redeploying.
 
 ```sh
-# Check current migration state
-railway run alembic current
+# Check current migration state in production (from Koskadeux or the laptop).
+# `railway run alembic current` fails here with `socket.gaierror` because it
+# injects the internal DATABASE_URL (postgres.railway.internal). Read the
+# stamped revision through the Postgres public proxy instead:
+PUB=$(railway variables -e production -s Postgres --json | python3 -c 'import json,sys;print(json.load(sys.stdin)["DATABASE_PUBLIC_URL"])')
+psql "$PUB" -At -c 'select version_num from alembic_version'
 # Generate new migration
 alembic revision --autogenerate -m "description"
 ```
