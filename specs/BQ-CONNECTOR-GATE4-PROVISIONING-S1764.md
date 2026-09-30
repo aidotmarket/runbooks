@@ -704,7 +704,7 @@ def delete_proof_project():
 ```python
 # Run once after reviewed pins and §2.0 preflight; no production mutations.
 PE='staging'; PROOF_PATH='/s1764-proof'; PROOF_NAME='s1764-nodeploy-proof'
-created={}; receipt=[]; failure=None; teardown_failed=False; proof_class='setup'
+created={}; receipt=[]; failure=None; teardown_failed=False; receipt_write_failed=False; proof_class='setup'
 production_sync_before=production_sync_snapshot()
 require(bool(production_sync_before), 'Production sync snapshot empty')
 
@@ -759,6 +759,7 @@ def proof_project_by_name():
 def cleanup_railway_project(ids):
     global PROOF_PROJECT_ID
     if 'project' not in created:
+        require(created.get('name_absent_before_create') is True, 'Project name pre-check missing; deletion refused')
         row=proof_project_by_name()
         if row is None: return
         PROOF_PROJECT_ID=text_id(row['id']); created['project']=PROOF_PROJECT_ID
@@ -767,6 +768,8 @@ def cleanup_railway_project(ids):
 
 def verify_railway_absence():
     if created.get('railway_project_attempted'):
+        if 'project' in created:
+            require(proof_project() is None, 'Railway project ID absence unproved')
         require(proof_project_by_name() is None, 'Railway project absence unproved')
 
 try:
@@ -777,6 +780,8 @@ try:
     require(dict(f[2])=={'input':'ProjectCreateInput!'} and base_type(f)=='Project', 'Project creation schema drift')
     pin_field('ProjectCreateInput','name')
     for name in ('id','name'): pin_field('Project',name)
+    require(proof_project_by_name() is None, 'Proof project name already exists; creation refused')
+    created['name_absent_before_create']=True
     created['railway_project_attempted']=True
     resource=safe(gql,'mutation($i:ProjectCreateInput!){projectCreate(input:$i){id name}}',{'i':{'name':PROOF_NAME}})['projectCreate']
     PROOF_PROJECT_ID=text_id(resource['id']); created['project']=PROOF_PROJECT_ID
@@ -856,30 +861,38 @@ finally:
     teardown('teardown-railway-absence',[created['project']] if 'project' in created else [],verify_railway_absence)
     teardown('teardown-production-sync-invariant',[],
         lambda: require(production_sync_snapshot()==production_sync_before, 'Production sync invariant failed'))
-    # Persist names/IDs/status only, including failures; never serialize exceptions or values.
-    import datetime, getpass
-    operations=[{**r,'disposition':'Step 2' if r['result']=='PASS' else 'Step 5'}
-        for r in receipt if not r['operation'].startswith('teardown-')]
-    dispositions={r['operation']:('Step 5' if any(x['disposition']=='Step 5'
-        for x in operations if x['operation']==r['operation']) else 'Step 2') for r in operations}
-    restricted={'actor':getpass.getuser(),'utc_time':datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        'infisical':{'host':'secrets.ai.market','project_id':P,'environment':PE,'path':PROOF_PATH},
-        'railway':{'project_name':PROOF_NAME,'project_id':created.get('project'),
-            'environment_id':globals().get('PROOF_ENV_ID'),'environment_name':globals().get('PROOF_ENV_NAME'),
-            'service_name':'proof','service_id':created.get('service'),
-            'image_digest':IMAGE_DIGEST if re.fullmatch(r'sha256:[0-9a-f]{64}',IMAGE_DIGEST) else None},
-        'operations':operations,'teardown':[r for r in receipt if r['operation'].startswith('teardown-')],
-        'dispositions':dispositions,'teardown_failed':teardown_failed}
-    os.umask(0o077)
-    receipt_path=Path('/Users/max/koskadeux-state/s1771/s1764-nodeploy-proof.json')
-    receipt_path.parent.mkdir(parents=True,exist_ok=True)
-    with receipt_path.open('w') as out:
-        os.fchmod(out.fileno(),0o600)
-        json.dump(restricted,out,indent=2); out.write('\n')
+    try:
+        # Persist names/IDs/status only, including failures; never serialize exceptions or values.
+        import datetime, getpass
+        operations=[{**r,'disposition':'Step 2' if r['result']=='PASS' else 'Step 5'}
+            for r in receipt if not r['operation'].startswith('teardown-')]
+        dispositions={r['operation']:('Step 5' if any(x['disposition']=='Step 5'
+            for x in operations if x['operation']==r['operation']) else 'Step 2') for r in operations}
+        restricted={'actor':getpass.getuser(),'utc_time':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'infisical':{'host':'secrets.ai.market','project_id':P,'environment':PE,'path':PROOF_PATH},
+            'railway':{'project_name':PROOF_NAME,'project_id':created.get('project'),
+                'environment_id':globals().get('PROOF_ENV_ID'),'environment_name':globals().get('PROOF_ENV_NAME'),
+                'service_name':'proof','service_id':created.get('service'),
+                'image_digest':IMAGE_DIGEST if re.fullmatch(r'sha256:[0-9a-f]{64}',IMAGE_DIGEST) else None},
+            'schema_api_pins':{'infisical_status_version':REVIEWED_STATUS[2]
+                if isinstance(REVIEWED_STATUS,tuple) and len(REVIEWED_STATUS)==3
+                and isinstance(REVIEWED_STATUS[2],str) and bool(REVIEWED_STATUS[2]) else None,
+                'railway_gql_fields':[{'type_name':t,'field_name':n} for t,n in sorted(REVIEWED_GQL)]},
+            'operations':operations,'teardown':[r for r in receipt if r['operation'].startswith('teardown-')],
+            'dispositions':dispositions,'teardown_failed':teardown_failed}
+        os.umask(0o077)
+        receipt_path=Path('/Users/max/koskadeux-state/s1771/s1764-nodeploy-proof.json')
+        receipt_path.parent.mkdir(parents=True,exist_ok=True)
+        with receipt_path.open('w') as out:
+            os.fchmod(out.fileno(),0o600)
+            json.dump(restricted,out,indent=2); out.write('\n')
+    except Exception:
+        receipt_write_failed=True
     if failure is not None and teardown_failed:
         raise RuntimeError('proof failed and teardown failed; see receipt') from failure
     elif failure is not None: raise failure from None
     elif teardown_failed: raise RuntimeError('Teardown or absence verification failed; see receipt')
+    elif receipt_write_failed: raise RuntimeError('receipt write failed')
 
 ```
 
