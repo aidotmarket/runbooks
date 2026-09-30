@@ -1145,7 +1145,8 @@ def require_current_syncs(after=False):
         # created with False. For the resource sync, omission is accepted only with a flat source (no child folders);
         # root non-recursion into /connector-resource is proven by the §2.5b canary forced-sync.
         if include=='omitted' and name=='railway-connector-resource-prod':
-            assert after and not api('GET','/api/v2/folders',{'projectId':P,'environment':E,'path':'/connector-resource'})['folders']
+            children=api('GET','/api/v2/folders',{'projectId':P,'environment':E,'path':'/connector-resource'})['folders']
+            assert after and isinstance(children,list) and not children
         else:
             assert include is False or include=='omitted'
     return by_name
