@@ -936,9 +936,9 @@
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
 
-## `launchd user jobs exit 78 after a Titan-1 reboot`
+## `launchd user jobs exit 78 after a Koskadeux reboot`
 
-- [Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)](titan-1.md)
+- [Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)](koskadeux.md)
 
 ## `LEGAL_IDENTITY_CONFLICT`
 

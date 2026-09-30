@@ -120,7 +120,7 @@ Current P2 quarantine set: `access_tokens`, `agent_telemetry`, `agent_telemetry_
   tool_or_endpoint: "three checks: (a) psql read-only pg_stat_user_tables; (b) Railway deploymentLogs GraphQL filtered for 'does not exist'/'UndefinedTable'; (c) Koskadeux grep /var/tmp/koskadeux/*.log and ~/Library/Logs/aimarket_*.log"
   argument_sourcing:
     DATABASE_PUBLIC_URL: "Infisical project bd272d48-c5a1-4b52-9d24-12066ae4403c env prod"
-    railway_token: "Infisical/Railway operator token per titan-1.md; do not print"
+    railway_token: "Infisical/Railway operator token per koskadeux.md; do not print"
     active_backend_deployment: "Railway GraphQL deployments for ai-market-backend production, latest active/success deployment"
   idempotency: IDEMPOTENT
   expected_success:

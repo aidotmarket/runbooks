@@ -187,4 +187,4 @@ Planned/known extension points:
 
 ## §L. Topic router & self-containment
 
-Registered in `INDEX.md` under Secrets/credentials. Cross-references: `infisical-secrets.md` (the secret store, machine identities, third-party rotation), `titan-1.md` (host, LaunchAgents, Railway token), and BQ-RAILWAY-INFISICAL-SYNC / `infisical-secrets.md` for backend→Railway propagation. This page is self-contained for local-secops operation; you should not need to leave it to rotate an owned secret.
+Registered in `INDEX.md` under Secrets/credentials. Cross-references: `infisical-secrets.md` (the secret store, machine identities, third-party rotation), `koskadeux.md` (host, LaunchAgents, Railway token), and BQ-RAILWAY-INFISICAL-SYNC / `infisical-secrets.md` for backend→Railway propagation. This page is self-contained for local-secops operation; you should not need to leave it to rotate an owned secret.
