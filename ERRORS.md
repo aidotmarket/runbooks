@@ -1956,6 +1956,10 @@
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
 
+## `You are being ratelimited. Please try again later`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
+
 ## `you cannot find the reasoning for an existing choice`
 
 - [E2E Video Review](runbooks/e2e-video-review.md)
