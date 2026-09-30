@@ -394,6 +394,8 @@ Before executing the block, bind and review `delete_proof_child_folder()`, `disa
 
 #### 2.0.1 Reviewed helper bindings (S1771)
 
+Run order: §2.0 definitions → §2.0.1 definitions → §2.0.1 setup → §2.0 proof block (guarded lifecycle).
+
 Run these definitions after §2.0's import/definition blocks and before its preflight calls, then run the guarded lifecycle once in the **same protected interpreter** (`set +x`, `umask 077`; no helper file, raw output, debug logging or credential-bearing traceback). No live API verification is claimed here. **UNVERIFIED — operator must pin by live read-only call or UI readback before use; refuse on mismatch** applies to every `REVIEWED_*` entry: populate it in memory after independent review, never by automatically copying the current response. Pins contain schema names/types, response key/type shapes and the `/api/status` version only; record those and source/version in the ticket.
 
 Sources: [owner query and DSN](../customer-mcp-connector.md#connector-switch-administration-p0-runbook-sql) (lines 155–157), [owner retrieval](../schema-migration.md#s7a-s1163-schema-classification-tooling-operator-reference), [Infisical credentials/target](../infisical-secrets.md#safe-cli-verification), and `koskadeux-mcp/scripts/connector_keyset/connector_signing_keyset.py` (`Client.secrets`, `Client.syncs`, `require_no_connector_subfolders`, `run`: secret/folder GET, folder POST). Upstream [folder DELETE](https://infisical.com/docs/api-reference/endpoints/folders/delete), [Railway sync PATCH](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/update) and [sync DELETE/removeSecrets](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/delete) describe the proposed shapes, **not** this self-hosted version; pin against `https://secrets.ai.market/api/status` and its version-matched API docs/UI before use. Railway [GraphQL connections](https://docs.railway.com/integrations/api/graphql-overview) and [project/service creation](https://docs.railway.com/integrations/api/api-cookbook) establish examples; the exact endpoint/schema, `projectDelete` and raw `variables(unrendered)` remain **UNVERIFIED** until live introspection. `variableCollectionUpsert` is sourced by §2.0's schema receipt and `customer-mcp-connector.md:46`, rechecked below.
@@ -424,13 +426,15 @@ def shape(value):
     return type(value).__name__  # no values, including secret values
 
 def type_text(t):
+    if t['kind'] in ('NON_NULL','LIST'):
+        require(t.get('ofType') is not None, 'Introspection too shallow: deepen ofType')
     if t['kind']=='NON_NULL': return type_text(t['ofType'])+'!'
     if t['kind']=='LIST': return '['+type_text(t['ofType'])+']'
     return text_id(t['name'])
 
 def schema_field(type_name, name):
     # Read-only at backboard.railway.app/graphql/v2 through the existing gql().
-    q='query($n:String!){__type(name:$n){fields{name args{name type{kind name ofType{kind name ofType{kind name}}}} type{kind name ofType{kind name ofType{kind name}}}} inputFields{name type{kind name ofType{kind name ofType{kind name}}}}}}'
+    q='query($n:String!){__type(name:$n){fields{name args{name type{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name}}}}}}} type{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name}}}}}}} inputFields{name type{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name ofType{kind name}}}}}}}}}'
     row=safe(gql,q,{'n':type_name})['__type']
     require(isinstance(row,dict), 'Unknown GraphQL type')
     fields=row.get('fields') if row.get('fields') is not None else row.get('inputFields')
