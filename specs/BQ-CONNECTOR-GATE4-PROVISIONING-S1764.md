@@ -711,7 +711,8 @@ def delete_proof_folder():
 def proof_project():
     pin_field('Query','project')
     for name in ('id','name','workspaceId','environments','services'): pin_field('Project',name)
-    for connection in ('EnvironmentConnection','ServiceConnection'):
+    for field in ('environments','services'):
+        connection=base_type(pin_field('Project',field))
         edge=base_type(pin_field(connection,'edges')); node=base_type(pin_field(edge,'node'))
         for name in ('id','name'): pin_field(node,name)
     return safe(gql,'query($id:String!){project(id:$id){id name workspaceId environments{edges{node{id name}}} services{edges{node{id name}}}}}',
