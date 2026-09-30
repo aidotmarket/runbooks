@@ -1283,3 +1283,127 @@ The helper's live metadata binding and a disposable rehearsal are prerequisites.
 | Nonsecret settings and early-access env | On resource/auth, restore prior values or remove new names with the guarded collection replacement. Backend names must remain present and closed; any backend deletion is deferred with its dependent forward action to Step 5. Keep enforcement true with empty list on all three until Step 6; global kill first if rollback could weaken admission. |
 
 After rollback repeat names-only inventories, retained-secret in-process comparisons, sync-scope checks and deployment-ID comparison. An incomplete cleanup is an open blocker, not a Step 2 receipt. Never delete the existing signing keyset.
+
+### 2.5 Restart-window execution (S1771)
+
+**Why:** the §2.0 proof (S1771 run 2, Event `e4a8b7f1`, receipt `s1764-nodeploy-proof.json`) showed `variableCollectionUpsert(skipDeploys:true)` leaves the deployment unchanged (**Step 2**), but an Infisical native Railway `sync-create` redeployed its destination (**Step 5**). Every §2.2 action that runs or triggers a sync job (canary write, forced syncs, resource sync create, the three secret writes) therefore moves, with its rollback, to a Max-approved restart window, as §2.0 requires. §2.1's DSN and all §2.3 variable upserts stay Step 2 and run first with the unchanged-deployment checks; they take effect at the target's next redeploy in the window. Flags and the global switch stay off throughout, so the only customer-visible effect is the backend redeploy from the forced root sync.
+
+Run order in one protected interpreter: §2.0 definitions and preflight → §2.0.1 definitions with the reviewed pins (add `Query.serviceInstance` and `ServiceInstance.numReplicas`) → §2.1 DSN block → §2.2 definitions (its trailing reconcile is the pre-write check) → this block → §2.3's final readback block. Each window action records before/after deployment IDs for all four tracked services, the sync job ID, the restarted set and health results. Only the listed target may redeploy; any other change, a failed deployment, a failed health check, a sync error or a canary leak stops the run with no further writes. Roll back the last completed action by §2.4; within the window a rollback may redeploy the same target. A stopped run is an open blocker, not a Step 2 receipt.
+
+```python
+# §2.5 — run only inside the Max-approved restart window, after §2.1 and the §2.2 definitions.
+import time
+window=[]
+HEALTH={BACK:[('https://api.ai.market/health',200)],
+        AUTH:[('https://auth.ai.market/readyz',200)],
+        RES:[('https://connect.ai.market/healthz',200),('https://connect.ai.market/mcp',503)],
+        WATCH:[]}
+def http_status(url):
+    req=urllib.request.Request(url,headers={'User-Agent':'connector-step2/1.0'})
+    try:
+        with urllib.request.urlopen(req,timeout=15) as r: return r.status
+    except urllib.error.HTTPError as e: return e.code
+    except Exception: return None
+def health(service,timeout=300):
+    deadline=time.monotonic()+timeout
+    for url,code in HEALTH[service]:
+        while http_status(url)!=code:
+            require(time.monotonic()<deadline, 'Health check failed: '+url)
+            time.sleep(10)
+def sync_row(name):
+    rows=[r for r in syncs() if r.get('name')==name]
+    require(len(rows)==1, 'Sync missing/duplicate: '+name)
+    return rows[0]
+def wait_sync(name,old_job,timeout=600):
+    deadline=time.monotonic()+timeout
+    while time.monotonic()<deadline:
+        r=sync_row(name); status=r.get('syncStatus'); job=r.get('lastSyncJobId')
+        require(status in {'success','succeeded','pending','running'}, 'Sync failed: '+name)
+        if job and job!=old_job and status in {'success','succeeded'}: return job
+        time.sleep(5)
+    raise RuntimeError('Sync job timeout: '+name)
+def wait_deploys(before,targets,quiet=120,timeout=900):
+    # Targets may redeploy (or stay put if Railway skips an unchanged push); others must not.
+    deadline=time.monotonic()+timeout; stable_since=time.monotonic(); last=None
+    while True:
+        require(time.monotonic()<deadline, 'Deployment wait timeout')
+        nodes={s:latest_deployment(RP,RE,s) for s in before}
+        for s,n in nodes.items():
+            if s not in targets: require(n['id']==before[s], 'Unexpected redeploy of non-target service')
+            require(n['status'] not in {'FAILED','CRASHED','REMOVED'}, 'Deployment failed')
+        state={s:(n['id'],n['status']) for s,n in nodes.items()}
+        if state!=last: stable_since=time.monotonic(); last=state
+        settled=all(n['status']=='SUCCESS' for s,n in nodes.items() if s in targets)
+        if settled and time.monotonic()-stable_since>=quiet: break
+        time.sleep(10)
+    for s in targets: health(s)
+    return {s:n['id'] for s,n in nodes.items()}
+def window_action(label,targets,fn,sync_name=None):
+    global BASE_DEPLOYMENTS
+    closed_stage('before-'+label)
+    before=deployment_snapshot(); require(before==BASE_DEPLOYMENTS, 'Baseline drift before '+label)
+    old_job=sync_row(sync_name).get('lastSyncJobId') if sync_name and any(r.get('name')==sync_name for r in syncs()) else None
+    fn()
+    job=wait_sync(sync_name,old_job) if sync_name else None
+    after=wait_deploys(before,set(targets))
+    closed_stage('after-'+label)
+    window.append({'operation':label,'targets':sorted(targets),'sync':sync_name,'sync_job_id':job,
+        'before':before,'after':after,'restarted':sorted(s for s in before if after[s]!=before[s])})
+    BASE_DEPLOYMENTS=after
+def destination_names(service):
+    return set(rv(service)) if service in (BACK,AUTH,RES) else set(watcher_railway_variables())
+def canary_absent_everywhere():
+    for s in (BACK,AUTH,RES,WATCH):
+        require('CONNECTOR_RESOURCE_CANARY_S1764' not in destination_names(s), 'Canary leaked to a destination')
+
+CANARY='CONNECTOR_RESOURCE_CANARY_S1764'
+reconcile_active_sync_values()
+if not any(r['name']=='connector-resource' for r in api('GET','/api/v2/folders',{'projectId':P,'environment':E,'path':'/'})['folders']):
+    window_action('resource-folder-create',set(),lambda: api('POST','/api/v2/folders',
+        body={'projectId':P,'environment':E,'name':'connector-resource','path':'/'}))
+require(not folder('/connector-resource'), 'Resource folder not empty')
+reconcile_active_sync_values()
+window_action('canary-write',set(),lambda: api('POST','/api/v4/secrets/'+CANARY,body={'projectId':P,
+    'environment':E,'secretPath':'/connector-resource','secretValue':secrets.token_urlsafe(32),
+    'skipMultilineEncoding':True,'type':'shared'}))
+canary_absent_everywhere()
+for name,target in (('railway-backend-prod',BACK),('railway-connector-auth-prod',AUTH),
+                    ('railway-issue-channel-watcher-events-prod',WATCH)):
+    reconcile_active_sync_values()
+    sid=sync_row(name)['id']
+    window_action('forced-sync-'+name,{target},lambda sid=sid: api('POST',
+        '/api/v1/secret-syncs/railway/'+urllib.parse.quote(sid,safe='')+'/sync-secrets'),sync_name=name)
+    canary_absent_everywhere()
+window_action('canary-delete',set(),lambda: api('DELETE','/api/v4/secrets/'+CANARY,body={'projectId':P,
+    'environment':E,'secretPath':'/connector-resource','type':'shared'}))
+require(CANARY not in folder('/connector-resource'), 'Canary still in source'); canary_absent_everywhere()
+
+root=require_current_syncs()['railway-backend-prod']
+reconcile_active_sync_values()
+payload={'name':'railway-connector-resource-prod','projectId':P,
+ 'connectionId':root['connectionId'],'environment':E,'secretPath':'/connector-resource',
+ 'isAutoSyncEnabled':True,
+ 'syncOptions':{'initialSyncBehavior':'overwrite-destination',
+                'includeAllSubFolders':False,'disableSecretDeletion':True},
+ 'destinationConfig':{'projectId':RP,'projectName':'ai-market',
+   'environmentId':RE,'environmentName':'production',
+   'serviceId':RES,'serviceName':'ai-market-connector'}}
+window_action('resource-sync-create',{RES},lambda: api('POST','/api/v1/secret-syncs/railway',body=payload),
+    sync_name='railway-connector-resource-prod')
+require_current_syncs(after=True)
+require({'DATABASE_URL','REDIS_URL'}<=set(rv(RES)), 'Resource URL names missing after sync')
+canary_absent_everywhere()
+
+for path,name,target,sync_name in (('/connector-auth','SECRET_KEY',AUTH,'railway-connector-auth-prod'),
+                                   ('/connector-resource','SECRET_KEY',RES,'railway-connector-resource-prod'),
+                                   ('/connector-resource','CONNECTOR_AUDIT_HMAC_KEY',RES,'railway-connector-resource-prod')):
+    reconcile_active_sync_values(after=True)
+    require(name not in folder(path), 'Secret already present: '+path+' '+name)
+    window_action('secret-write-'+path.strip('/')+'-'+name,{target},lambda path=path,name=name: api('POST',
+        '/api/v4/secrets/'+name,body={'projectId':P,'environment':E,'secretPath':path,
+        'secretValue':secrets.token_urlsafe(48),'skipMultilineEncoding':True,'type':'shared'}),sync_name=sync_name)
+reconcile_active_sync_values(after=True)
+print('2.5 window complete:',[(w['operation'],w['restarted']) for w in window])
+```
+
+Save `window` (IDs only) with the Step 2 receipt. Then run §2.3's final readback block, `closed_stage('final')` and `require_current_syncs(after=True)`.
