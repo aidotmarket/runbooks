@@ -286,12 +286,13 @@ def proof_api(method,path,query=None,body=None):
     return http_mutation(operation,method,path,body=body,query=query)
 def production_sync_snapshot():
     return {s['id']:(s['syncOptions'],s['destinationConfig']) for s in syncs()
-            if s['environment']['slug']==E}
+            if (s.get('environment') or {}).get('slug')==E}
 def proof_source_users():
     users=[]
     for s in syncs():
-        if s['environment']['slug']!=PE: continue
-        path=s['folder']['path']
+        if (s.get('environment') or {}).get('slug')!=PE: continue
+        path=(s.get('folder') or {}).get('path')
+        if not isinstance(path,str): continue
         if path==PROOF_PATH:
             users.append(s['id'])
         elif PROOF_PATH.startswith(path.rstrip('/')+'/'):
@@ -303,14 +304,14 @@ def run_disposable_proof():
     proof_class='sync-create'
     assert PROOF_PROJECT_ID!=RP and PROOF_ENV_ID!=RE
     assert PROOF_SERVICE_ID not in (BACK,RES,AUTH,WATCH)
-    root=next(s for s in syncs() if s['name']=='railway-backend-prod')
-    assert root['projectId']==P and root['connection']['app']=='railway'
+    # infisical-sync is a Railway project token for RP only (S1771 run 1); use the disposable project's own connection.
+    conn=proof_connection()
     assert not any(s['name']==PROOF_NAME for s in syncs())
     assert not proof_source_users()  # no existing staging sync can source the proof path
     before=proof_deployment_id()
     created['sync_attempted']=True
     result=proof_api('POST','/api/v1/secret-syncs/railway',body={
-        'name':PROOF_NAME,'projectId':P,'connectionId':root['connectionId'],
+        'name':PROOF_NAME,'projectId':P,'connectionId':conn['id'],
         'environment':PE,'secretPath':PROOF_PATH,'isAutoSyncEnabled':True,
         'syncOptions':{'initialSyncBehavior':'overwrite-destination',
                        'includeAllSubFolders':False,'disableSecretDeletion':True},
@@ -399,7 +400,7 @@ def run_disposable_proof():
 
 ```
 
-Before executing the block, bind and review `delete_proof_child_folder()`, `disable_proof_sync()` and `delete_proof_sync()` to the current Infisical API or verified UI actions. Define the concrete bindings in §2.0.1 before preflight, then run its guarded lifecycle for setup, proof and teardown on both pass and failure. The folder deletion and sync pause shapes are not established by this runbook; refuse them until their endpoint/field shape or UI readback is recorded. Create `S1764_PROOF_REMOVE` on the disposable service with `skipDeploys:true` before the Railway removal rehearsal and capture that setup mutation's deployment IDs too. For each sync mutation, inspect the sync inventory and any new job until settled even where `expect_job=False`; record a new job ID if one appeared. The `sync-create` before ID must be captured **before** the setup POST; missing that boundary is a failed proof. Assert the source folder is still isolated and `production_sync_snapshot()==production_sync_before` again after final teardown; record the production-sync invariant comparison without exposing values. Also rehearse §2.4 with a raw `${{...}}` reference to a disposable service variable; assert its raw string and rendered value before and after replacement are unchanged, and record a names/IDs-only pass. If the reference cannot resolve without adding another service, mark reference preservation unproved and block any production removal that would retain a reference. The §2.0.1 finally block tears down in reverse order on pass and failure, including partial setup: disable/delete the proof sync, delete proof secrets and folder, then delete the throwaway Railway project; verify absence in both systems before re-raising any original failure. Teardown may restart only the disposable service. Save a restricted, names/IDs-only `s1764-nodeploy-proof.json` receipt outside Git with `actor`, UTC time, Infisical host/project/environment/path, Railway project/environment/service/image IDs, API/schema versions, `operations` (the `receipt` rows above, including reference preservation and setup `sync-create`), teardown IDs/absence and the Step 2 or Step 5 disposition for each class. Never save raw API responses.
+Before executing the block, bind and review `delete_proof_child_folder()`, `disable_proof_sync()` and `delete_proof_sync()` to the current Infisical API or verified UI actions. Define the concrete bindings in §2.0.1 before preflight, then run its guarded lifecycle for setup, proof and teardown on both pass and failure. The folder deletion and sync pause shapes are not established by this runbook; refuse them until their endpoint/field shape or UI readback is recorded. Create `S1764_PROOF_REMOVE` on the disposable service with `skipDeploys:true` before the Railway removal rehearsal and capture that setup mutation's deployment IDs too. For each sync mutation, inspect the sync inventory and any new job until settled even where `expect_job=False`; record a new job ID if one appeared. The `sync-create` before ID must be captured **before** the setup POST; missing that boundary is a failed proof. Assert the source folder is still isolated and `production_sync_snapshot()==production_sync_before` again after final teardown; record the production-sync invariant comparison without exposing values. Also rehearse §2.4 with a raw `${{...}}` reference to a disposable service variable; assert its raw string and rendered value before and after replacement are unchanged, and record a names/IDs-only pass. If the reference cannot resolve without adding another service, mark reference preservation unproved and block any production removal that would retain a reference. **Proof connection (S1771):** the production Infisical Railway connection `infisical-sync` uses method `project-token`, which Railway scopes to the ai-market project only, so it cannot write to a throwaway project (run 1 failed with `Failed to sync secrets to Railway`). The proof therefore creates a Railway project token for the disposable project and a temporary Infisical Railway connection `s1764-proof-railway` (method `project-token`, Infisical project `P`), uses it for the proof sync only, and deletes it after the proof sync. The token exists only in memory and dies with the disposable project; the production connection and syncs are never changed. The §2.0.1 finally block tears down in reverse order on pass and failure, including partial setup: disable/delete the proof sync, delete the proof connection, delete proof secrets and folder, then delete the throwaway Railway project; verify absence in both systems before re-raising any original failure. Teardown may restart only the disposable service. Save a restricted, names/IDs-only `s1764-nodeploy-proof.json` receipt outside Git with `actor`, UTC time, Infisical host/project/environment/path, Railway project/environment/service/image IDs, API/schema versions, `operations` (the `receipt` rows above, including reference preservation and setup `sync-create`), teardown IDs/absence and the Step 2 or Step 5 disposition for each class. Never save raw API responses.
 
 #### 2.0.1 Reviewed helper bindings (S1771)
 
@@ -421,6 +422,8 @@ The instance runs `infisical/infisical:v0.161.11`; upstream API references below
 | secret-delete | DELETE | `/api/v4/secrets/S1764_PROOF` (`{secretName}` in API reference) | `set()` | [Delete](https://infisical.com/docs/api-reference/endpoints/secrets/delete) |
 | folder-create | POST | `/api/v2/folders` | `{('folder', 'id'), ('folder', 'name')}` | [Create](https://infisical.com/docs/api-reference/endpoints/folders/create) |
 | folder-delete | DELETE | `/api/v2/folders/{folderIdOrName}` | `{('folder', 'id'), ('folder', 'name')}` | [Delete](https://infisical.com/docs/api-reference/endpoints/folders/delete) |
+| connection-create | POST | `/api/v1/app-connections/railway` | `{('appConnection', 'id')}` | [Create](https://infisical.com/docs/api-reference/endpoints/app-connections/railway/create) |
+| connection-delete | DELETE | `/api/v1/app-connections/railway/{connectionId}` | `{('appConnection', 'id')}` | [Delete](https://infisical.com/docs/api-reference/endpoints/app-connections/railway/delete) |
 
 ```python
 import os, re, time, urllib.parse
@@ -636,7 +639,8 @@ def http_mutation(operation,method,path,body=None,query=None,created_key=None):
     require(isinstance(pin[1],set) and all(isinstance(p,tuple) and p
         and all(isinstance(k,str) and k for k in p) for p in pin[1]), 'UNVERIFIED response key paths')
     endpoint=re.sub(r'(?<=/folders/)[^/]+$', '{folderIdOrName}',path)
-    endpoint=re.sub(r'(?<=/railway/)[^/]+(?=/sync-secrets$|$)', '{syncId}',endpoint)
+    endpoint=re.sub(r'(?<=/secret-syncs/railway/)[^/]+(?=/sync-secrets$|$)', '{syncId}',endpoint)
+    endpoint=re.sub(r'(?<=/app-connections/railway/)[^/]+$', '{connectionId}',endpoint)
     require(pin[0]==(method,endpoint,shape(body),shape(query)), 'Infisical request shape drift')
     check_instance_status()
     result=safe(api,method,path,query=query,body=body)
@@ -727,13 +731,65 @@ def delete_proof_project():
     require(dict(f[2])=={'id':'String!'} and base_type(f)=='Boolean', 'UNVERIFIED projectDelete shape')
     result=safe(gql,'mutation($id:String!){projectDelete(id:$id)}',{'id':PROOF_PROJECT_ID})
     require(result.get('projectDelete') is True, 'Project deletion unconfirmed')
-    # Require null; an arbitrary GraphQL/transport error is not absence evidence.
-    require(proof_project() is None, 'Project absence unproved; if project(id) raises, verify explicit not-found in UI')
+    require(proof_project_absent(), 'Project absence unproved')
+
+def proof_project_absent():
+    # Null project, or only the exact 'Project not found' error; any other error or transport failure is not absence evidence.
+    req=urllib.request.Request('https://backboard.railway.app/graphql/v2',
+      data=json.dumps({'query':'query($id:String!){project(id:$id){id}}','variables':{'id':text_id(PROOF_PROJECT_ID)}},separators=(',',':')).encode(),
+      headers={'Authorization':'Bearer '+RT,'Content-Type':'application/json','User-Agent':'Mozilla/5.0 (S1764 operator)'})
+    result=safe(lambda: json.load(urllib.request.urlopen(req,timeout=30)))
+    errors=result.get('errors') or []
+    require(isinstance(errors,list) and all(isinstance(e,dict) and e.get('message')=='Project not found' for e in errors), 'Project absence unproved')
+    require((result.get('data') or {}).get('project') is None, 'Project still present')
+    return proof_project_by_name() is None
+
+def proof_connections():
+    data=safe(api,'GET','/api/v1/app-connections/railway')
+    rows=data.get('appConnections') if isinstance(data,dict) else None
+    require(isinstance(rows,list) and all(isinstance(r,dict) for r in rows), 'Connection inventory drift')
+    # Keep names/IDs only; credentials fields are never retained.
+    return [{k:r.get(k) for k in ('id','name','method','projectId','app')} for r in rows]
+
+def proof_connection():
+    rows=[r for r in proof_connections() if r['id']==created.get('connection')]
+    require(len(rows)==1, 'Proof connection missing/duplicate')
+    r=rows[0]
+    require(r['name']==PROOF_CONN_NAME and r['method']=='project-token' and r['projectId']==P
+        and r['app']=='railway', 'Proof connection scope mismatch')
+    return r
+
+def create_proof_connection():
+    # Railway project token for the disposable project only; it dies with projectDelete. Memory only.
+    proof_scope()
+    require(not any(r['name']==PROOF_CONN_NAME for r in proof_connections()), 'Proof connection already exists')
+    f=pin_field('Mutation','projectTokenCreate')
+    require(dict(f[2])=={'input':'ProjectTokenCreateInput!'} and base_type(f)=='String', 'Project token schema drift')
+    for name in ('projectId','environmentId','name'): pin_field('ProjectTokenCreateInput',name)
+    token=safe(gql,'mutation($i:ProjectTokenCreateInput!){projectTokenCreate(input:$i)}',
+        {'i':{'projectId':PROOF_PROJECT_ID,'environmentId':PROOF_ENV_ID,'name':PROOF_CONN_NAME}})['projectTokenCreate']
+    try:
+        require(isinstance(token,str) and bool(token), 'Project token missing')
+        created['connection_attempted']=True
+        result=http_mutation('connection-create','POST','/api/v1/app-connections/railway',
+            body={'name':PROOF_CONN_NAME,'method':'project-token','projectId':P,'credentials':{'apiToken':token}})
+        created['connection']=text_id(result['appConnection']['id'])
+        del result
+    finally:
+        del token
+    return proof_connection()
+
+def delete_proof_connection():
+    proof_connection()
+    require(not any(r.get('connectionId')==created['connection'] for r in safe(syncs)), 'Proof connection still used by a sync')
+    result=http_mutation('connection-delete','DELETE','/api/v1/app-connections/railway/'+urllib.parse.quote(created['connection'],safe=''))
+    require(result['appConnection']['id']==created['connection'], 'Deleted connection response mismatch')
+    require(not any(r['id']==created['connection'] for r in proof_connections()), 'Proof connection still present')
 ```
 
 ```python
 # Run once after reviewed pins and §2.0 preflight; no production mutations.
-PE='staging'; PROOF_PATH='/s1764-proof'; PROOF_NAME='s1764-nodeploy-proof'
+PE='staging'; PROOF_PATH='/s1764-proof'; PROOF_NAME='s1764-nodeploy-proof'; PROOF_CONN_NAME='s1764-proof-railway'
 created={}; receipt=[]; failure=None; teardown_failed=False; receipt_write_failed=False; proof_class='setup'
 production_sync_before=None; IMAGE_DIGEST=None
 
@@ -763,6 +819,10 @@ def recover_infisical_creates():
             rows=[r for r in proof_folders(parent) if r['name']==name]
             require(len(rows)<=1, 'Ambiguous proof folder; cleanup refused')
             if rows: created[key]=text_id(rows[0]['id'])
+    if created.get('connection_attempted') and 'connection' not in created:
+        rows=[r for r in proof_connections() if r['name']==PROOF_CONN_NAME]
+        require(len(rows)<=1, 'Ambiguous proof connection; cleanup refused')
+        if rows: created['connection']=text_id(rows[0]['id'])
     if created.get('secret_attempted') and not created.get('secrets'):
         rows=proof_secret_rows()
         require(len(rows)<=1, 'Ambiguous proof secret; cleanup refused')
@@ -788,6 +848,10 @@ def cleanup_sync(disable):
         if disable: disable_proof_sync()
         else: delete_proof_sync()
 
+def cleanup_connection():
+    if any(r['id']==created['connection'] for r in proof_connections()):
+        delete_proof_connection()
+
 def cleanup_secret(name,secret_id):
     rows=safe(api,'GET','/api/v4/secrets',{'projectId':P,'environment':PE,'secretPath':PROOF_PATH,
         'viewSecretValue':'false','recursive':'false','includeImports':'false','expandSecretReferences':'false'})['secrets']
@@ -806,6 +870,7 @@ def verify_infisical_absence():
     if created.get('secret_attempted') and any(r['name']=='s1764-proof' for r in folders):
         require(not proof_secret_rows(), 'Proof secret remains')
     require(not any(r['id']==created.get('folder') or r['name']=='s1764-proof' for r in folders), 'Proof folder remains')
+    require(not any(r['id']==created.get('connection') or r['name']==PROOF_CONN_NAME for r in proof_connections()), 'Proof connection remains')
 
 def production_workspace():
     f=pin_field('Query','project')
@@ -853,7 +918,7 @@ def cleanup_railway_project(ids):
 def verify_railway_absence():
     if created.get('railway_project_attempted'):
         if 'project' in created:
-            require(proof_project() is None, 'Railway project ID absence unproved')
+            require(proof_project_absent(), 'Railway project ID absence unproved')
         require(proof_project_by_name() is None, 'Railway project absence unproved')
 
 try:
@@ -931,16 +996,20 @@ try:
     result=http_mutation('folder-create','POST','/api/v2/folders',body={'projectId':P,'environment':PE,'name':'s1764-proof','path':'/'},created_key='folder')
     require(isinstance(result,dict) and isinstance(result.get('folder'),dict) and result['folder'].get('name')=='s1764-proof', 'Folder create response drift')
     require(len([r for r in proof_folders('/') if r['name']=='s1764-proof' and r['id']==result['folder'].get('id')])==1, 'Folder create readback mismatch')
+    proof_class='proof-connection-create'
+    create_proof_connection()
     run_disposable_proof()
 except Exception as exc:
     failure=exc
     receipt.append({'operation':proof_class,'result':'RESTART','disposition':'Step 5'})
 finally:
-    if any(created.get(k+'_attempted') for k in ('sync','folder','child','secret')):
+    if any(created.get(k+'_attempted') for k in ('sync','folder','child','secret','connection')):
         teardown('teardown-infisical-recovery',[],recover_infisical_creates)
     if 'sync' in created:
         teardown('teardown-sync-disable',[created['sync']],lambda: cleanup_sync(True))
         teardown('teardown-sync-delete',[created['sync']],lambda: cleanup_sync(False))
+    if 'connection' in created:
+        teardown('teardown-connection-delete',[created['connection']],cleanup_connection)
     for name,secret_id in reversed(list(created.get('secrets',{}).items())):
         teardown('teardown-secret-delete',[secret_id],lambda n=name,i=secret_id: cleanup_secret(n,i))
     if 'child' in created:
@@ -967,6 +1036,7 @@ finally:
             'railway':{'project_name':PROOF_NAME,'project_id':created.get('project'),
                 'environment_id':globals().get('PROOF_ENV_ID'),'environment_name':globals().get('PROOF_ENV_NAME'),
                 'service_name':'proof','service_id':created.get('service'),
+                'proof_connection_name':PROOF_CONN_NAME,'proof_connection_id':created.get('connection'),
                 'image_digest':IMAGE_DIGEST if isinstance(IMAGE_DIGEST,str) and re.fullmatch(r'sha256:[0-9a-f]{64}',IMAGE_DIGEST) else None},
             'infisical_version_informational':INFISICAL_VERSION if isinstance(INFISICAL_VERSION,str) else None,
             'schema_api_pins':{
