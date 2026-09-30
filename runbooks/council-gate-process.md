@@ -95,7 +95,7 @@ Decision record: `decision:council-usage-guidelines-s1570` (Living State), conse
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| MP | mandatory builder; not a gate voter | Codex CLI / gpt-5.6-sol | repository write only in explicit build/author mode | COMPLETE |
+| MP | mandatory builder; not a gate voter | Codex CLI / gpt-6.1-sol | repository write only in explicit build/author mode | COMPLETE |
 | CC | non-Council second opinion except as Gemini's S1751 stand-in; never counted (S1721) outside that exception | Claude Code read-only review path | repository read | COMPLETE |
 | DeepSeek | active gate voter | shared parameterized Codex transport / deepseek-v4-pro | read-only fence on the pinned checkout | COMPLETE |
 | Gemini | active gate voter (S1721) | `gemini_transport.py` / pinned Gemini CLI 0.60.0, gemini-3.8-flash | own sandbox; read anything, write only its own home | COMPLETE |

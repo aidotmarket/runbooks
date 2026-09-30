@@ -40,13 +40,13 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 > - **TEMPORARY GLM SEAT — Max Event e4c8ed6f (2026-09-30):** codex2 (gpt-6.1-sol, Codex CLI 0.159.1, account max@kisa.cat) holds GLM's voting seat until GLM's usage reset is verified by one successful GLM review job; the substitution auto-expires 2026-10-02 00:00 CEST (koskadeux-mcp #307, main 43c1d86e: `required_reviewers = cc, codex2, deepseek`). Gate record wording: 'codex2/gpt-6.1-sol in GLM seat per e4c8ed6f'. Builder != reviewer applies per account: codex2 (max@kisa.cat) may review default-account MP builds (max@ai.market) and must not review codex2-built changes.
 
 > **CURRENT ROSTER - S1721, CORE §5. Subject to the ACTIVE OVERRIDE above; otherwise supersedes older roster statements on this page.**
-> The Council is exactly **GLM, DeepSeek and Gemini**. Every gate needs three unanimous votes with valid participation (the voter's pinned model verified). An unusable vote is rerun once. If Gemini's vote is still unusable (no response or error), CC takes Gemini's third seat for that gate round; GLM and DeepSeek are both still required. Any other voter's unusable vote after its rerun fails the gate. The gate record must name CC as standing in for Gemini and cite both failed Gemini response stamps. A voter is never dropped from the panel except for this Gemini-only stand-in.
+> The required voters are whatever `required_reviewers()` returns: the standing roster is **GLM, DeepSeek and Gemini**; during the ACTIVE OVERRIDE windows codex2 holds GLM's seat (e4c8ed6f, until 2026-10-02 00:00 CEST) and CC holds Gemini's seat (d50cbd80, through 2026-10-05). Every full-panel gate needs three unanimous votes with valid participation (the voter's pinned model verified). Outside the ACTIVE OVERRIDE, an unusable vote is rerun once. If Gemini's vote is still unusable (no response or error), CC takes Gemini's third seat for that gate round; GLM and DeepSeek are both still required. Any other voter's unusable vote after its rerun fails the gate. The gate record must name CC as standing in for Gemini and cite both failed Gemini response stamps. Temporary substitutions are Gemini→CC per d50cbd80 and GLM→codex2 per e4c8ed6f, plus the Gemini-only stand-in per S1751; no voter is otherwise dropped from the panel.
 > The stand-in does not apply to a CORE amendment gate, which still requires GLM, DeepSeek and Gemini plus Max's direct approval (CORE §5).
 > **CC and MP reviews are not standing Council votes; codex2 is non-voting except while holding the GLM seat per e4c8ed6f.** `council_request agent=cc`, `council_request agent=mp mode=review`, and `council_request agent=codex2 mode=review` are explicit non-voting second opinions outside the Gemini stand-in and temporary GLM-seat exceptions above: otherwise never counted as Council votes, and a directory response file cannot unlock or block completion. A separately persisted MP peer `APPROVE` keeps its pre-existing cross-review completion authority in `cross_review_gate.py`; the directory route never persists one. MP author/build dispatch remains on the minimal bridge. **Kimi is removed entirely** (code, launcher credential, issue-channel health source). AG is retired in code. There are no shadow reviewers (`SHADOW_REVIEWERS` is exported and empty).
 > Cross-review completion is an allowlist: an independent mp/vulcan/mars peer, or all required voters with none of them the builder or author.
-> Code truth: `council_reviewers.py` (`REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")`), `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc", "mp", "codex2")`, `council_request` enum `mp, glm, deepseek, gemini, cc, codex2` after deployment), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
+> Code truth: `council_reviewers.py` (`required_reviewers()` / `required_reviewer_order()` are the live authority; `REQUIRED_REVIEWER_ORDER = ("glm", "deepseek", "gemini")` is the standing roster). Substitutions apply on each decision for `CODEX2_START <= now < CODEX2_EXPIRES` (2026-09-30 09:28 CEST to 2026-10-02 00:00 CEST) and `CC_START <= now < CC_EXPIRES` (2026-09-25 00:00 CEST to 2026-10-06 00:00 CEST). `scripts/council_dir.py` selects `all` via `required_reviewer_order()`. Other code: `tools/agents.py` (`NON_COUNCIL_REVIEW_AGENTS = ("cc", "mp", "codex2")`, `council_request` enum `mp, glm, deepseek, gemini, cc, codex2` after deployment), `council_orchestrator.py` (fail-closed consensus, rerun once). Model pins: `infra:council-comms` `body.model_policy`.
 > Authority: Max S1721 - Event Ledger 47804cc4 (three voters), 51786409 (CC loses its seat, Kimi removed), c7edc37f (CC non-Council path), d3018462 (rerun once), 312e17d4 (Gemini model); Max S1751, Event Ledger 1dccefe2 (Gemini-only CC stand-in).
-> Text below that names CC as a voter, Kimi as a comparison seat, or a CC/GLM/DeepSeek panel is history. Gemini member setup: `runbooks/council.md`, section "Gemini member".
+> Older notes below that name Kimi as a comparison seat or the S1651 CC/GLM/DeepSeek panel are historical. Current CC voting authority follows the ACTIVE OVERRIDE and S1751 stand-in above. Gemini member setup: `runbooks/council.md`, section "Gemini member".
 
 ## Capabilities
 
@@ -66,7 +66,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 
 There is one Council reviewer path.
 
-1. Select `glm`, `deepseek`, or `gemini` (the Council). `cc` and `mp` with `mode=review` are available by explicit name as non-Council second opinions, except that `cc` stands in for Gemini under S1751 after Gemini's unusable rerun.
+1. Select a voter from `required_reviewers()`: standing roster GLM, DeepSeek, Gemini; during the ACTIVE OVERRIDE windows codex2 holds GLM's seat (e4c8ed6f, until 2026-10-02 00:00 CEST) and CC holds Gemini's seat (d50cbd80, through 2026-10-05). Outside those windows, `cc` and `codex2` with `mode=review` are explicit non-Council second opinions, except that `cc` stands in for Gemini under S1751 after Gemini's unusable rerun. `mp` reviews are always non-voting.
 2. Place one request file under `/Users/max/council/<member>/` and detach the member worker into its own session (`council_dir.py start <member> <request>` under the hood). The worker's lifetime is independent of any HTTP request: the ~120s gateway lifetime that killed real 39.5KB CC/Kimi reviews (Mars, S1557) cannot reach it. Launcher stdout goes to `launcher-<stamp>.md.log` beside the request.
 3. Return `status=submitted` with the request path and response path immediately.
 4. Completion is the response file existing at the returned path. There is no polling API, queue, ledger, or per-member submission lock; concurrent requests simply create distinct timestamped files, each with its own worker. Failure diagnosis is the launcher log.
@@ -77,14 +77,18 @@ The standard preamble is the complete review contract approved in S1557. It requ
 
 The manual equivalent is:
 
-    scripts/council_dir.py ask <glm|deepseek|gemini|cc|mp|all> <request_file>
-    scripts/council_dir.py run <glm|deepseek|gemini|cc|mp|all>
+    scripts/council_dir.py ask <glm|deepseek|gemini|cc|codex2|mp|all> <request_file>
+    scripts/council_dir.py run <glm|deepseek|gemini|cc|codex2|mp|all>
     scripts/council_dir.py ask deepseek <request_file>
     scripts/council_dir.py run deepseek
 
-`ask all` and `run all` mean the three required reviewers, GLM, DeepSeek, and
-Gemini (`REQUIRED_REVIEWER_ORDER`). They never include CC or MP. Use `ask cc`
-or `ask mp` explicitly for a non-Council second opinion; neither is counted except `cc` as Gemini's S1751 stand-in, using the same request file Gemini received.
+`ask all` and `run all` select `required_reviewer_order()`, the ordered form of
+`required_reviewers()`: standing roster GLM, DeepSeek, Gemini; during the ACTIVE
+OVERRIDE windows codex2 holds GLM's seat (e4c8ed6f, until 2026-10-02 00:00 CEST)
+and CC holds Gemini's seat (d50cbd80, through 2026-10-05). MP is never included.
+Outside their voting windows, use `ask cc` or `ask codex2` explicitly for a
+non-Council second opinion; CC can also be Gemini's S1751 stand-in, using the
+same request file Gemini received. `ask mp` is always an explicit non-voting review.
 
 CLI `ask` calls the same `submit_member` function as the MCP trigger, returns after submission, and preserves file/stdin bytes exactly. A busy member is rejected before a second request file is written; `ask all` continues submitting the free members and exits nonzero if any member was busy or failed. CLI `run` only starts already-placed files under the same member lock and does not prepend again. A file placed directly in a member directory likewise remains operator-authored and receives no automatic prefix.
 
@@ -96,8 +100,11 @@ A reviewer may return `REJECT` with no build mandates when its conclusion is to 
 
 The launcher does not pin a checkout, select files, retry, create a session, persist a verdict, push a branch, or select another transport. CC (non-Council) receives the one-sentence pickup instruction; Gemini runs through `gemini_transport.py` (see Gemini member). GLM and DeepSeek use the same parameterized Codex transport: each receives the complete request over stdin and Codex writes the one response file via `-o`. GLM keeps its dedicated `CODEX_HOME` and `HOME` under `/Users/max/koskadeux-state/agents/glm/`; DeepSeek has separate homes at `/Users/max/koskadeux-state/agents/deepseek/codex-home` and `/Users/max/koskadeux-state/agents/deepseek`. Their checked templates are `config/glm_codex/` and `config/deepseek_codex/`. MP reviews use `/Users/max/council/mp/` and the model named in `~/.codex/config.toml`, without loading that config. `mp_codex_transport.py` provisions a private `CODEX_HOME` (`/Users/max/koskadeux-state/agents/mp-review/codex-home`, template `config/mp_codex/` plus a copy of the CLI `auth.json` only) and `HOME` (`/Users/max/koskadeux-state/agents/mp-review`), and runs `codex exec --model <configured model> --config 'approval_policy="never"' --ephemeral --skip-git-repo-check -o <response>` with an environment of only `CODEX_HOME`, `HOME`, `PATH`, `TMPDIR`, `LANG` and `LC_ALL`. The template selects the `mp-review` permission profile, which extends `:read-only` and denies reads of `/Users/max/.codex` and the private Codex home. Do not add `--sandbox read-only`: it overrides the named profile and drops the read denies. It does not use build sockets, Task Spooler, a build lock, or build worktrees. Nothing in the Codex launcher parses output, size-limits it, byte-compares the response, audits directory permissions, or deletes a response (S1568). The GLM and DeepSeek templates supply a `:read-only` permission profile, deny `/Users/max/.codex`, and exclude their provider credential from the child shell environment. The external contract remains one request file in and one response file out in the same member directory, with response-file existence as the sole success criterion. Do not add another broker, queue, daemon, filesystem service, schema wrapper, or alternate launcher.
 
-Roster since S1721 (CORE §5): the required gate voters are exactly GLM,
-DeepSeek, and Gemini, unanimous 3/3. An unusable vote (no verdict, failed
+The required gate voters are whatever `required_reviewers()` returns, unanimous
+3/3 for full-panel gates. Standing roster since S1721 (CORE §5): GLM, DeepSeek,
+Gemini. During the ACTIVE OVERRIDE windows codex2 holds GLM's seat (e4c8ed6f,
+until 2026-10-02 00:00 CEST) and CC holds Gemini's seat (d50cbd80, through
+2026-10-05). Outside the override, an unusable vote (no verdict, failed
 launch, or model mismatch) is rerun once. If Gemini's rerun is still unusable,
 CC takes its third seat for that gate round; GLM and DeepSeek remain required.
 Any other voter's unusable rerun fails the gate. Record CC as standing in for
@@ -107,7 +114,8 @@ name and is never counted. Kimi is
 removed. There is no shadow seat: the shadow-seat mechanics below were built in
 S1649, remain in code, and apply only if a seat is ever registered outside the
 required set (`SHADOW_REVIEWERS` is empty today). The canonical roster is
-`council_reviewers.py` (`REQUIRED_REVIEWER_ORDER`, `SHADOW_REVIEWERS`).
+`council_reviewers.py` (`required_reviewers()`, `required_reviewer_order()`,
+`CODEX2_START` / `CODEX2_EXPIRES`, `CC_START` / `CC_EXPIRES`, `SHADOW_REVIEWERS`).
 
 Authority: Max S1721, Event Ledger 47804cc4, 51786409, c7edc37f, d3018462. Historical (S1651 roster, superseded): Max direct instruction S1651, Event Ledger decision 1f6c9580. Max's supersession statement for the CORE v9.16 amendment: Event Ledger ddb93d96-d06d-42fd-899f-157918581df4 (2026-09-02, verbatim: "I am superseding the Council to install DeepSeek as a gate voter in place of Kimi").
 
@@ -228,10 +236,10 @@ Use `council_request(agent="codex2", mode="review", task=<review request>)`, or 
 ```yaml operate
 - id: E-01
   trigger: An existing request file must be sent to one Council reviewer.
-  pre_conditions: [member_is_glm_deepseek_gemini_or_cc, request_file_is_readable]
+  pre_conditions: [member_is_required_reviewer_or_explicit_non_voting_reviewer, request_file_is_readable]
   tool_or_endpoint: council_request(agent=<member>, review_package_path=<request_file>)
   argument_sourcing:
-    agent: glm, deepseek, or gemini; cc for a non-Council second opinion or as Gemini's S1751 stand-in after its unusable rerun, with the same request file Gemini received
+    agent: a member of required_reviewers(); standing roster GLM, DeepSeek, Gemini; during ACTIVE OVERRIDE windows codex2 holds GLM's seat (e4c8ed6f, until 2026-10-02 00:00 CEST) and CC holds Gemini's seat (d50cbd80, through 2026-10-05); outside those windows cc/codex2 are explicit non-voting opinions, except CC as Gemini's S1751 stand-in with the same request file Gemini received
     review_package_path: the exact file to copy into the member directory
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request path exists and the call returns without waiting for the response path}
@@ -241,10 +249,10 @@ Use `council_request(agent="codex2", mode="review", task=<review request>)`, or 
   next_step_failure: Poll the active_request_id; do not switch transports, add parsing, or re-dispatch.
 - id: E-02
   trigger: Plain task text must be sent to one Council reviewer.
-  pre_conditions: [member_is_glm_deepseek_gemini_or_cc, task_text_is_present]
+  pre_conditions: [member_is_required_reviewer_or_explicit_non_voting_reviewer, task_text_is_present]
   tool_or_endpoint: council_request(agent=<member>, task=<text>)
   argument_sourcing:
-    agent: glm, deepseek, or gemini; cc for a non-Council second opinion or, as Gemini's S1751 stand-in after its unusable rerun, use E-01 with the same request file Gemini received
+    agent: a member of required_reviewers(); standing roster GLM, DeepSeek, Gemini; during ACTIVE OVERRIDE windows codex2 holds GLM's seat (e4c8ed6f, until 2026-10-02 00:00 CEST) and CC holds Gemini's seat (d50cbd80, through 2026-10-05); outside those windows cc/codex2 are explicit non-voting opinions, except CC as Gemini's S1751 stand-in (use E-01 with the same request file Gemini received)
     task: exact text to write to the request file
   idempotency: NOT_IDEMPOTENT
   expected_success: {shape: status submitted plus request_id, request path, and response path, verification: the request file contains the task and the call does not require the response file to exist}
@@ -257,9 +265,9 @@ Use `council_request(agent="codex2", mode="review", task=<review request>)`, or 
   pre_conditions: [required_member_credentials_available, request_file_is_readable]
   tool_or_endpoint: scripts/council_dir.py ask all <request_file>
   argument_sourcing:
-    request_file: one plain file; the same bytes are copied once to GLM, DeepSeek, and Gemini only; use ask cc explicitly for a non-Council second opinion or as Gemini's S1751 stand-in after its unusable rerun, with the same request file Gemini received
+    request_file: one plain file; the same bytes are copied once to each member returned by required_reviewer_order()/required_reviewers(); standing roster GLM, DeepSeek, Gemini; during ACTIVE OVERRIDE windows codex2 holds GLM's seat (e4c8ed6f, until 2026-10-02 00:00 CEST) and CC holds Gemini's seat (d50cbd80, through 2026-10-05)
   idempotency: NOT_IDEMPOTENT
-  expected_success: {shape: exactly three submitted request paths without waiting for responses, verification: one printed request path exists in each required member directory and none is created for CC}
+  expected_success: {shape: exactly three submitted request paths without waiting for responses, verification: one printed request path exists in each dynamically required member directory and none is created for a member outside that set}
   expected_failures:
     - {signature: member unavailable, cause: that member credential or CLI is unavailable}
     - {signature: member_busy plus active request, cause: that member already has one active request; no new request file is written}
