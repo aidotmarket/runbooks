@@ -18,6 +18,25 @@ error_signatures:
 
 ## Overview
 
+### Select the Codex builder account
+
+`dispatch_mp_build` and `council_request(agent=mp, mode=build, ...)` accept
+`builder_account="default"|"codex2"`. Omit it for the usual `~/.codex`
+account (`max@ai.market`), or pass `builder_account="codex2"` for the separately
+logged-in account at `/Users/max/koskadeux-state/agents/codex2/codex-home`
+(`max@kisa.cat`). The Task Spooler queue, worktree, push, and secret scan are
+the same. Read `builder_account` in the job report JSON before assigning a
+review: the account that built a change must not review that change. Use the
+other Codex account or a separate Council reviewer.
+
+If the builder output says `You've hit your usage limit ... try again at
+<date>`, record that account and exact reset date, then dispatch the remaining
+work with the other account if it has capacity. Check its own latest job output
+before relying on it. As of 2026-09-30, codex2 is limited until
+2026-10-03 19:10 unless Max resets it. When both accounts are limited, stop
+new MP dispatches and report both reset dates to Max. Do not move or copy
+either account's `auth.json`.
+
 
 ## Capabilities
 
@@ -324,7 +343,7 @@ error_signatures:
   component_ref: Codex CLI + auth
   root_cause: 'Codex usage quota on the ChatGPT account is exhausted; the CLI refuses new work until the stated reset date'
   repair_entry_point: 'Max restores the quota at https://chatgpt.com/codex/settings/usage (plan change, reset, or re-login to a different ChatGPT account with quota — done 2026-09-17, S1718) - outside instance authority'
-  change_pattern: '1) Stop dispatching MP immediately; every further dispatch burns nothing but produces nothing. 2) Tell Max in the end-of-round summary with the exact reset date from the error string. 3) Do NOT hand-author code builds to route around it - MP remains the mandatory builder (CORE S4). 4) After Max confirms restoration, verify before believing any handoff or BQ note that says "quota returns <date>": grep -l "hit your usage limit" /Users/max/koskadeux-state/ts-sockets/jobs/*.builder-output.log and stat the newest hit; a job report newer than the newest hit with builder_exit_code 0 proves the quota is back. Then run the direct smoke of G-11 step 1 and redispatch. A quota statement carried in a handoff is a claim about the past account state, not ground truth (S1718 lost a round to a stale one).'
+  change_pattern: '1) Record the exhausted builder_account and exact reset date from its output. 2) Switch to the other account with builder_account=default|codex2 if it has capacity; see Select the Codex builder account above. 3) If both accounts are limited, stop MP dispatches and tell Max both dates. Do not hand-author code builds. 4) After a reset, verify with a new successful job and no usage-limit string in its builder output; a handoff quota date is not current ground truth.'
   rollback_procedure: n/a
   integrity_check: 'smoke dispatch reaches a terminal status with no usage-limit string in its builder-output log'
 ```
