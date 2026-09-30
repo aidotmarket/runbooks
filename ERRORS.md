@@ -220,6 +220,10 @@
 
 - [Council Gate Process](runbooks/council-gate-process.md)
 
+## `bridge_runner fails at import when run from a foreign cwd`
+
+- [Codex / MP — Council Primary Builder](codex-mp.md)
+
 ## `Browser is not available: chrome`
 
 - [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
@@ -616,6 +620,10 @@
 
 - [allAI Escalation Safety Spine](allai-escalation-safety-spine.md)
 
+## `every default-account MP build fails with HTTP 400`
+
+- [Codex / MP — Council Primary Builder](codex-mp.md)
+
 ## `Exact operator tab not found`
 
 - [Chrome Browser Use on Koskadeux](runbooks/chrome-browser-use.md)
@@ -927,6 +935,10 @@
 ## `late_arriver`
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
+
+## `launchd user jobs exit 78 after a Titan-1 reboot`
+
+- [Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)](titan-1.md)
 
 ## `LEGAL_IDENTITY_CONFLICT`
 
