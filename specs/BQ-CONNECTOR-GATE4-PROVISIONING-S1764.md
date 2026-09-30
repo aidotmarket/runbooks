@@ -290,9 +290,12 @@ def production_sync_snapshot():
 def proof_source_users():
     users=[]
     for s in syncs():
-        if (s.get('environment') or {}).get('slug')!=PE: continue
+        env=(s.get('environment') or {}).get('slug')
+        # Unknown environment is tolerated only for the proof's own recorded sync; otherwise isolation is unproved.
+        if env is None: require(s.get('id')==globals().get('created',{}).get('sync'), 'Sync environment unknown; isolation unproved')
+        elif env!=PE: continue
         path=(s.get('folder') or {}).get('path')
-        if not isinstance(path,str): continue
+        require(isinstance(path,str) and path.startswith('/'), 'Staging sync source unknown; isolation unproved')
         if path==PROOF_PATH:
             users.append(s['id'])
         elif PROOF_PATH.startswith(path.rstrip('/')+'/'):
@@ -739,9 +742,16 @@ def proof_project_absent():
       data=json.dumps({'query':'query($id:String!){project(id:$id){id}}','variables':{'id':text_id(PROOF_PROJECT_ID)}},separators=(',',':')).encode(),
       headers={'Authorization':'Bearer '+RT,'Content-Type':'application/json','User-Agent':'Mozilla/5.0 (S1764 operator)'})
     result=safe(lambda: json.load(urllib.request.urlopen(req,timeout=30)))
-    errors=result.get('errors') or []
-    require(isinstance(errors,list) and all(isinstance(e,dict) and e.get('message')=='Project not found' for e in errors), 'Project absence unproved')
-    require((result.get('data') or {}).get('project') is None, 'Project still present')
+    require(isinstance(result,dict) and ('data' in result or 'errors' in result), 'Non-GraphQL response; absence unproved')
+    if 'errors' in result:
+        errors=result['errors']
+        require(isinstance(errors,list) and errors and all(isinstance(e,dict)
+            and e.get('message')=='Project not found' for e in errors), 'Project absence unproved')
+        require(result.get('data') is None or (isinstance(result['data'],dict) and result['data'].get('project') is None), 'Project absence unproved')
+    else:
+        require(isinstance(result['data'],dict) and 'project' in result['data'] and result['data']['project'] is None, 'Project still present')
+    # Authoritative workspace inventory must lack both the recorded ID and the proof name.
+    require(not any(r['id']==PROOF_PROJECT_ID for r in workspace_projects()), 'Project ID still listed')
     return proof_project_by_name() is None
 
 def proof_connections():
@@ -881,7 +891,7 @@ def production_workspace():
     return text_id(project.get('workspaceId'))
 
 
-def proof_project_by_name():
+def workspace_projects():
     # Workspace-scoped, complete inventory; RP is the positive visibility control.
     f=pin_field('Query','projects'); args=dict(f[2])
     require(args.get('workspaceId') in ('String','String!') and args.get('first')=='Int', 'Projects query drift')
@@ -896,7 +906,10 @@ def proof_project_by_name():
         and set(r['node'])=={'id','name'} for r in rows), 'Project inventory drift')
     require(inventory['pageInfo']['hasNextPage'] is False and any(r['node']['id']==RP for r in rows),
         'Project listing not authoritative')
-    matches=[r['node'] for r in rows if r['node']['name']==PROOF_NAME]
+    return [r['node'] for r in rows]
+
+def proof_project_by_name():
+    matches=[r for r in workspace_projects() if r['name']==PROOF_NAME]
     require(len(matches)<=1, 'Duplicate proof project name; deletion refused')
     if matches: require(text_id(matches[0]['id'])!=RP, 'Production project refused')
     return matches[0] if matches else None
