@@ -405,16 +405,29 @@ Before executing the block, bind and review `delete_proof_child_folder()`, `disa
 
 Run order: §2.0 definitions → §2.0.1 definitions → §2.0.1 setup → §2.0 proof block (guarded lifecycle).
 
-Run these definitions after §2.0's import/definition blocks and before its preflight calls, then run the guarded lifecycle once in the **same protected interpreter** (`set +x`, `umask 077`; no helper file, raw output, debug logging or credential-bearing traceback). No live API verification is claimed here. **UNVERIFIED — operator must pin by live read-only call or UI readback before use; refuse on mismatch** applies to every `REVIEWED_*` entry: populate it in memory after independent review, never by automatically copying the current response. Pins contain schema names/types and request/response key/type shapes; record those and their source in the ticket. The operator-entered Infisical version (for example `infisical/infisical:v0.161.11` from the Railway dashboard) is informational receipt metadata only, never a mutation precondition.
+Run these definitions after §2.0's import/definition blocks and before its preflight calls, then run the guarded lifecycle once in the **same protected interpreter** (`set +x`, `umask 077`; no helper file, raw output, debug logging or credential-bearing traceback). No live API verification is claimed here. **UNVERIFIED — operator must pin by live read-only call or UI readback before use; refuse on mismatch** applies to every `REVIEWED_*` entry: populate it in memory after independent review, never by automatically copying the current response. Pins contain schema names/types, exact request key/type shapes, and sets of required mutation-response key paths from the table below; record those and their source in the ticket. Extra response keys and nullable optional values are allowed; consumed IDs must be non-empty strings. Keep the `/api/status` key/type shape pin unchanged. The operator-entered Infisical version (for example `infisical/infisical:v0.161.11` from the Railway dashboard) is informational receipt metadata only, never a mutation precondition.
 
 Sources: [owner query and DSN](../customer-mcp-connector.md#connector-switch-administration-p0-runbook-sql) (lines 155–157), [owner retrieval](../schema-migration.md#s7a-s1163-schema-classification-tooling-operator-reference), [Infisical credentials/target](../infisical-secrets.md#safe-cli-verification), and `koskadeux-mcp/scripts/connector_keyset/connector_signing_keyset.py` (`Client.secrets`, `Client.syncs`, `require_no_connector_subfolders`, `run`: secret/folder GET, folder POST). Upstream [folder DELETE](https://infisical.com/docs/api-reference/endpoints/folders/delete), [Railway sync PATCH](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/update) and [sync DELETE/removeSecrets](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/delete) describe the proposed shapes, **not** this self-hosted version; pin the status shape at `https://secrets.ai.market/api/status` as a reachability/identity check of the self-hosted instance. The upstream Infisical API docs are the reference for reviewing the HTTP shapes. Railway [GraphQL connections](https://docs.railway.com/integrations/api/graphql-overview) and [project/service creation](https://docs.railway.com/integrations/api/api-cookbook) establish examples; the exact endpoint/schema, `projectDelete` and raw `variables(unrendered)` remain **UNVERIFIED** until live introspection. `variableCollectionUpsert` is sourced by §2.0's schema receipt and `customer-mcp-connector.md:46`, rechecked below.
+
+The instance runs `infisical/infisical:v0.161.11`; upstream API references below are informational, not live instance verification. Required paths cover only mutation-response fields the proof consumes; source/destination and job checks use separate inventory readbacks. An empty set means no response fields are consumed (a dict is still required).
+
+| Operation | Method | Endpoint template | Required response key paths | API reference |
+|---|---|---|---|---|
+| sync-create | POST | `/api/v1/secret-syncs/railway` | `{('secretSync', 'id')}` | [Create](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/create) |
+| forced-sync | POST | `/api/v1/secret-syncs/railway/{syncId}/sync-secrets` | `set()` | [Sync secrets](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/sync-secrets) |
+| sync-pause | PATCH | `/api/v1/secret-syncs/railway/{syncId}` | `{('secretSync', 'id')}` | [Update](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/update) |
+| sync-delete | DELETE | `/api/v1/secret-syncs/railway/{syncId}` | `{('secretSync', 'id')}` | [Delete](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/delete) |
+| secret-write | POST | `/api/v4/secrets/S1764_PROOF` (`{secretName}` in API reference) | `{('secret', 'id')}` | [Create](https://infisical.com/docs/api-reference/endpoints/secrets/create) |
+| secret-delete | DELETE | `/api/v4/secrets/S1764_PROOF` (`{secretName}` in API reference) | `set()` | [Delete](https://infisical.com/docs/api-reference/endpoints/secrets/delete) |
+| folder-create | POST | `/api/v2/folders` | `{('folder', 'id'), ('folder', 'name')}` | [Create](https://infisical.com/docs/api-reference/endpoints/folders/create) |
+| folder-delete | DELETE | `/api/v2/folders/{folderIdOrName}` | `{('folder', 'id'), ('folder', 'name')}` | [Delete](https://infisical.com/docs/api-reference/endpoints/folders/delete) |
 
 ```python
 import os, re, time, urllib.parse
 assert __debug__, 'Do not run this session with Python -O'
 os.umask(0o077)
 REVIEWED_GQL={}  # (type_name, field_name): exact schema_field() tuple; names/types only
-REVIEWED_HTTP={} # operation: ((method, endpoint_template, shape(body), shape(query)), shape(response))
+REVIEWED_HTTP={} # operation: ((method, endpoint_template, shape(body), shape(query)), required_response_paths_set)
 REVIEWED_STATUS=None  # shape(api GET /api/status); reachability/identity only
 INFISICAL_VERSION=None  # operator-entered informational string; never a precondition
 REVIEWED_DB_IDENTITY=None  # (database, owner_role, server_address), pinned by the credentialed owner session
@@ -617,16 +630,24 @@ def check_instance_status():
     require(isinstance(data,dict) and shape(data)==REVIEWED_STATUS, 'Infisical status shape drift')
 
 def http_mutation(operation,method,path,body=None,query=None,created_key=None):
-    # UNVERIFIED self-hosted mutation: reviewed request and expected response shapes required BEFORE use.
+    # UNVERIFIED self-hosted mutation: exact request shape and required response paths reviewed BEFORE use.
     pin=REVIEWED_HTTP.get(operation)
     require(isinstance(pin,tuple) and len(pin)==2, 'UNVERIFIED Infisical mutation')
+    require(isinstance(pin[1],set) and all(isinstance(p,tuple) and p
+        and all(isinstance(k,str) and k for k in p) for p in pin[1]), 'UNVERIFIED response key paths')
     endpoint=re.sub(r'(?<=/folders/)[^/]+$', '{folderIdOrName}',path)
     endpoint=re.sub(r'(?<=/railway/)[^/]+(?=/sync-secrets$|$)', '{syncId}',endpoint)
     require(pin[0]==(method,endpoint,shape(body),shape(query)), 'Infisical request shape drift')
     check_instance_status()
     result=safe(api,method,path,query=query,body=body)
+    require(isinstance(result,dict), 'Infisical mutation response is not a dict')
+    for key_path in pin[1]:
+        value=result
+        for key in key_path:
+            require(isinstance(value,dict) and key in value, 'Missing required response key path')
+            value=value[key]
+        if key_path[-1]=='id': text_id(value)
     if created_key is not None: created[created_key]=text_id(result['folder']['id'])
-    require(shape(result)==pin[1], 'Infisical mutation response drift')
     return result
 
 def proof_folders(parent):
