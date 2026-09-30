@@ -436,9 +436,9 @@
 - Path: `runbooks/council.md`
 - Purpose: This runbook is maintained by Vulcan. Neither instance is senior to the other.
 - Owner: `vulcan`
-- Last verified: `2026-09-25`
+- Last verified: `2026-09-30`
 - Aliases: Council dispatch, review transport, glm-codex-transport, deepseek-codex-transport, glm-profile-isolation, gemini member, gemini-transport, gemini release checker, three-voter council
-- Error signatures: model_mismatch main=, gemini_home_unprovisioned, Error occurred during tool execution, Not logged in, OAuth session expired and could not be refreshed, is not set; source the credential first, no response written after, gemini: no response written after, required reviewer missing from the live tool schema
+- Error signatures: model_mismatch main=, gemini_home_unprovisioned, Error occurred during tool execution, Not logged in, OAuth session expired and could not be refreshed, is not set; source the credential first, no response written after, gemini: no response written after, required reviewer missing from the live tool schema, You've hit your usage limit
 - Status: current
 
 ## Council Gate Process
