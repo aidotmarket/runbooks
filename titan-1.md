@@ -3,7 +3,8 @@ title: Koskadeux — the Mac Studio (dev workstation + local AI council + MCP ho
 owner: unassigned
 last_verified: '2026-07-17'
 aliases: []
-error_signatures: []
+error_signatures:
+- launchd user jobs exit 78 after a Titan-1 reboot
 ---
 
 # Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)
@@ -113,5 +114,9 @@ higher. Local: `curl 127.0.0.1:{8765,8767}/health`; kickstart:
 `launchctl kickstart -k gui/$(id -u)/com.koskadeux.<svc>`.
 
 ## When it breaks
+
+### launchd user jobs exit 78 after a Titan-1 reboot (2026-09-30)
+
+Symptom: launchd user jobs exit 78 after a Titan-1 reboot; `/var/tmp/koskadeux` is recreated owned by root, mode 0744. Cause: stale root LaunchDaemons `ai.market.s1426.s1422.r3` and `ai.market.s1426.s1422.r4` recreated the directory at boot. Fix: chown `/var/tmp/koskadeux` back to `max`, remove both `/Library/LaunchDaemons/ai.market.s1426.s1422.r3.plist` and `/Library/LaunchDaemons/ai.market.s1426.s1422.r4.plist`, verify both are absent, and reload the affected user jobs.
 
 Use the reboot-outage incident record and cold-start canary rule above for restart failures; no broader repair procedure is defined.
