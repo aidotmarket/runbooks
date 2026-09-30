@@ -391,7 +391,371 @@ receipt.append({'operation':'reference-preservation','names':sorted(reference_na
                 'result':'PASS' if reference_names else 'UNPROVED'})
 ```
 
-Before executing the block, bind and review `delete_proof_child_folder()`, `disable_proof_sync()` and `delete_proof_sync()` to the current Infisical API or verified UI actions. The folder deletion and sync pause shapes are not established by this runbook; refuse them until their endpoint/field shape or UI readback is recorded. Create `S1764_PROOF_REMOVE` on the disposable service with `skipDeploys:true` before the Railway removal rehearsal and capture that setup mutation's deployment IDs too. For each sync mutation, inspect the sync inventory and any new job until settled even where `expect_job=False`; record a new job ID if one appeared. The `sync-create` before ID must be captured **before** the setup POST; missing that boundary is a failed proof. Assert the source folder is still isolated and `production_sync_snapshot()==production_sync_before` again after final teardown; record the production-sync invariant comparison without exposing values. Also rehearse §2.4 with a raw `${{...}}` reference to a disposable service variable; assert its raw string and rendered value before and after replacement are unchanged, and record a names/IDs-only pass. If the reference cannot resolve without adding another service, mark reference preservation unproved and block any production removal that would retain a reference. Teardown in reverse order: disable/delete the proof sync, delete proof secrets and folder, then delete the throwaway Railway project; verify absence in both systems. Teardown may restart only the disposable service. Save a restricted, names/IDs-only `s1764-nodeploy-proof.json` receipt outside Git with `actor`, UTC time, Infisical host/project/environment/path, Railway project/environment/service/image IDs, API/schema versions, `operations` (the `receipt` rows above, including reference preservation and setup `sync-create`), teardown IDs/absence and the Step 2 or Step 5 disposition for each class. Never save raw API responses.
+Before executing the block, bind and review `delete_proof_child_folder()`, `disable_proof_sync()` and `delete_proof_sync()` to the current Infisical API or verified UI actions. Use the concrete bindings and guarded disposable setup in §2.0.1 before executing the preflight or proof blocks. The folder deletion and sync pause shapes are not established by this runbook; refuse them until their endpoint/field shape or UI readback is recorded. Create `S1764_PROOF_REMOVE` on the disposable service with `skipDeploys:true` before the Railway removal rehearsal and capture that setup mutation's deployment IDs too. For each sync mutation, inspect the sync inventory and any new job until settled even where `expect_job=False`; record a new job ID if one appeared. The `sync-create` before ID must be captured **before** the setup POST; missing that boundary is a failed proof. Assert the source folder is still isolated and `production_sync_snapshot()==production_sync_before` again after final teardown; record the production-sync invariant comparison without exposing values. Also rehearse §2.4 with a raw `${{...}}` reference to a disposable service variable; assert its raw string and rendered value before and after replacement are unchanged, and record a names/IDs-only pass. If the reference cannot resolve without adding another service, mark reference preservation unproved and block any production removal that would retain a reference. Teardown in reverse order: disable/delete the proof sync, delete proof secrets and folder, then delete the throwaway Railway project; verify absence in both systems. Teardown may restart only the disposable service. Save a restricted, names/IDs-only `s1764-nodeploy-proof.json` receipt outside Git with `actor`, UTC time, Infisical host/project/environment/path, Railway project/environment/service/image IDs, API/schema versions, `operations` (the `receipt` rows above, including reference preservation and setup `sync-create`), teardown IDs/absence and the Step 2 or Step 5 disposition for each class. Never save raw API responses.
+
+#### 2.0.1 Reviewed helper bindings (S1771)
+
+Run these definitions before §2.0's preflight calls, then the setup before its disposable proof block, in the **same protected interpreter** (`set +x`, `umask 077`; no helper file, raw output, debug logging or credential-bearing traceback). No live API verification is claimed here. **UNVERIFIED — operator must pin by live read-only call or UI readback before use; refuse on mismatch** applies to every `REVIEWED_*` entry: populate it in memory after independent review, never by automatically copying the current response. Pins contain schema names/types, response key/type shapes and the `/api/status` version only; record those and source/version in the ticket.
+
+Sources: [owner query and DSN](../customer-mcp-connector.md#connector-switch-administration-p0-runbook-sql) (lines 155–157), [owner retrieval](../schema-migration.md#s7a-s1163-schema-classification-tooling-operator-reference), [Infisical credentials/target](../infisical-secrets.md#safe-cli-verification), and `koskadeux-mcp/scripts/connector_keyset/connector_signing_keyset.py` (`Client.secrets`, `Client.syncs`, `require_no_connector_subfolders`, `run`: secret/folder GET, folder POST). Upstream [folder DELETE](https://infisical.com/docs/api-reference/endpoints/folders/delete), [Railway sync PATCH](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/update) and [sync DELETE/removeSecrets](https://infisical.com/docs/api-reference/endpoints/secret-syncs/railway/delete) describe the proposed shapes, **not** this self-hosted version; pin against `https://secrets.ai.market/api/status` and its version-matched API docs/UI before use. Railway [GraphQL connections](https://docs.railway.com/integrations/api/graphql-overview) and [project/service creation](https://docs.railway.com/integrations/api/api-cookbook) establish examples; the exact endpoint/schema, `projectDelete` and raw `variables(unrendered)` remain **UNVERIFIED** until live introspection. `variableCollectionUpsert` is sourced by §2.0's schema receipt and `customer-mcp-connector.md:46`, rechecked below.
+
+```python
+import re, time
+assert __debug__, 'Do not run this session with Python -O'
+os.umask(0o077)
+REVIEWED_GQL={}  # (type_name, field_name): exact schema_field() tuple; names/types only
+REVIEWED_HTTP={} # operation: (version, (method, endpoint_template, shape(body), shape(query)), shape(response))
+REVIEWED_STATUS=None  # (shape(api GET /api/status), version_field_name, exact_version)
+REVIEWED_DB_IDENTITY=None  # (database, owner_role, server_address), pinned by the credentialed owner session
+
+def require(ok, reason):
+    if not ok: raise RuntimeError(reason)
+
+def safe(call, *args, **kwargs):
+    try: return call(*args, **kwargs)
+    except Exception: raise RuntimeError('Protected call failed; details suppressed') from None
+
+def text_id(value):
+    require(isinstance(value,str) and bool(value.strip()), 'Missing/empty ID')
+    return value
+
+def shape(value):
+    if isinstance(value,dict): return tuple(sorted((k,shape(v)) for k,v in value.items()))
+    if isinstance(value,list): return ('list',tuple(sorted(set(shape(v) for v in value),key=repr)))
+    return type(value).__name__  # no values, including secret values
+
+def type_text(t):
+    if t['kind']=='NON_NULL': return type_text(t['ofType'])+'!'
+    if t['kind']=='LIST': return '['+type_text(t['ofType'])+']'
+    return text_id(t['name'])
+
+def schema_field(type_name, name):
+    # Read-only at backboard.railway.app/graphql/v2 through the existing gql().
+    q='query($n:String!){__type(name:$n){fields{name args{name type{kind name ofType{kind name ofType{kind name}}}} type{kind name ofType{kind name ofType{kind name}}}} inputFields{name type{kind name ofType{kind name ofType{kind name}}}}}}'
+    row=safe(gql,q,{'n':type_name})['__type']
+    require(isinstance(row,dict), 'Unknown GraphQL type')
+    fields=row.get('fields') if row.get('fields') is not None else row.get('inputFields')
+    matches=[f for f in fields if f['name']==name]
+    require(len(matches)==1, 'GraphQL field missing/duplicate')
+    f=matches[0]
+    return (name,type_text(f['type']),tuple(sorted((a['name'],type_text(a['type'])) for a in f.get('args',[]))))
+
+def pin_field(type_name,name):
+    actual=schema_field(type_name,name)
+    require(REVIEWED_GQL.get((type_name,name))==actual, 'UNVERIFIED GraphQL field or schema drift')
+    return actual
+
+def base_type(signature): return signature[1].replace('!','').strip('[]')
+
+def verify_deployment_shape():
+    f=pin_field('Query','deployments'); args=dict(f[2])
+    require(args.get('input')=='DeploymentListInput!' and args.get('first')=='Int', 'Deployment query drift')
+    for name in ('projectId','environmentId','serviceId'):
+        require(base_type(pin_field('DeploymentListInput',name))=='String', 'Deployment input drift')
+    edge=base_type(pin_field(base_type(f),'edges'))
+    node=base_type(pin_field(edge,'node'))
+    require(node=='Deployment', 'Deployment node drift')
+    for name in ('id','status','createdAt'): pin_field(node,name)
+
+def latest_deployment(project,environment,service):
+    verify_deployment_shape()
+    q='query($i:DeploymentListInput!){deployments(first:1,input:$i){edges{node{id status createdAt}}}}'
+    data=safe(gql,q,{'i':{'projectId':text_id(project),'environmentId':text_id(environment),'serviceId':text_id(service)}})
+    rows=data['deployments']['edges']
+    require(isinstance(rows,list) and len(rows)==1, 'Latest deployment missing/duplicate')
+    node=rows[0]['node']
+    require(set(node)=={'id','status','createdAt'} and all(isinstance(v,str) and v for v in node.values()), 'Deployment response drift')
+    text_id(node['id'])
+    return node
+
+def deployment_ids() -> dict[str,str]:
+    services=(BACK,AUTH,RES,WATCH)
+    require(len(set(services))==4, 'Duplicate production service IDs')
+    out={s:latest_deployment(RP,RE,s)['id'] for s in services}
+    require(len(set(out.values()))==4, 'Duplicate deployment IDs')
+    return out
+
+def global_kill_disabled() -> bool:
+    # Documented non-interactive owner path: customer-mcp-connector.md:157; schema-migration.md §S.7a.
+    # Client.secrets establishes this folder GET; only the requested value is retained in memory.
+    rows=safe(api,'GET','/api/v4/secrets',{'projectId':P,'environment':E,'secretPath':'/',
+        'viewSecretValue':'true','recursive':'false','includeImports':'false','expandSecretReferences':'false'})
+    require(isinstance(rows,dict) and isinstance(rows.get('secrets'),list), 'Owner folder response drift')
+    matches=[r for r in rows['secrets'] if isinstance(r,dict) and r.get('secretKey')=='AUTHOR_DISPATCH_DATABASE_URL']
+    require(len(matches)==1 and matches[0].get('type')=='shared', 'Owner DSN missing/duplicate')
+    dsn=matches[0].get('secretValue')
+    require(isinstance(dsn,str) and bool(dsn), 'Owner DSN absent')
+    del rows,matches
+    # Reconfirm owner DB/host/environment by the credentialed owner-session procedure before this call.
+    require(E=='prod' and P=='bd272d48-c5a1-4b52-9d24-12066ae4403c', 'Owner source mismatch')
+    require(isinstance(REVIEWED_DB_IDENTITY,tuple) and len(REVIEWED_DB_IDENTITY)==3
+        and all(isinstance(v,str) and v for v in REVIEWED_DB_IDENTITY), 'Owner DB identity unreviewed')
+    try:
+        import psycopg  # v3; no CLI, subprocess or DSN conversion fallback
+        with psycopg.connect(dsn,connect_timeout=5) as conn:
+            with conn.transaction(), conn.cursor() as cur:
+                cur.execute('SET TRANSACTION READ ONLY')
+                cur.execute("SET LOCAL statement_timeout = '5s'")
+                cur.execute('SELECT current_database(), current_user, inet_server_addr()::text')
+                require(cur.fetchall()==[REVIEWED_DB_IDENTITY], 'Owner DB identity mismatch')
+                cur.execute("SELECT disabled FROM connector_switches WHERE scope='global' AND key='global'")
+                result=cur.fetchall()
+        require(len(result)==1 and len(result[0])==1 and type(result[0][0]) is bool, 'Global switch row/type mismatch')
+        return result[0][0]
+    except Exception: raise RuntimeError('Owner read refused; details suppressed') from None
+    finally: del dsn
+
+def proof_scope():
+    require(PE=='staging' and PROOF_PATH=='/s1764-proof' and PROOF_NAME=='s1764-nodeploy-proof', 'Proof source mismatch')
+    require(text_id(PROOF_PROJECT_ID)!=RP and text_id(PROOF_ENV_ID)!=RE, 'Production destination refused')
+    require(text_id(PROOF_SERVICE_ID) not in (BACK,AUTH,RES,WATCH), 'Production service refused')
+
+def variables_read(project,environment,service,raw):
+    f=pin_field('Query','variables'); args=dict(f[2])
+    require(set(args)=={'projectId','environmentId','serviceId','unrendered'}, 'Variables argument drift')
+    require(args['unrendered'] in ('Boolean','Boolean!'), 'Raw variables unsupported')
+    require(all(args[k] in ('String','String!') for k in ('projectId','environmentId','serviceId')), 'Variables ID type drift')
+    q='query($p:String!,$e:String!,$s:String!,$u:Boolean!){variables(projectId:$p,environmentId:$e,serviceId:$s,unrendered:$u)}'
+    out=safe(gql,q,{'p':project,'e':environment,'s':service,'u':raw})['variables']
+    require(isinstance(out,dict) and all(isinstance(k,str) and isinstance(v,str) for k,v in out.items()), 'Variables response drift')
+    return out
+
+def raw_reference(service,name) -> str:
+    require(service in (BACK,AUTH,RES) and isinstance(name,str), 'Raw reference scope mismatch')
+    out=variables_read(RP,RE,service,True)
+    require(name in out, 'Raw variable missing')
+    return out[name]
+
+def proof_variables_raw(service_id) -> dict[str,str]:
+    proof_scope(); require(service_id==PROOF_SERVICE_ID, 'Proof service mismatch')
+    return variables_read(PROOF_PROJECT_ID,PROOF_ENV_ID,service_id,True)
+
+def proof_variables_effective(service_id) -> dict[str,str]:
+    proof_scope(); require(service_id==PROOF_SERVICE_ID, 'Proof service mismatch')
+    out=variables_read(PROOF_PROJECT_ID,PROOF_ENV_ID,service_id,False)
+    require(not any('${{' in v for v in out.values()), 'Unresolved proof reference')
+    return out
+
+def proof_deployment_id():
+    proof_scope()
+    return latest_deployment(PROOF_PROJECT_ID,PROOF_ENV_ID,PROOF_SERVICE_ID)['id']
+
+def proof_sync(sync_id):
+    proof_scope(); text_id(sync_id)
+    rows=safe(syncs)
+    require(isinstance(rows,list) and all(isinstance(r,dict) for r in rows), 'Sync inventory drift')
+    ids=[text_id(r.get('id')) for r in rows]
+    require(len(ids)==len(set(ids)), 'Duplicate sync IDs')
+    matches=[r for r in rows if r['id']==sync_id]
+    require(len(matches)==1, 'Proof sync missing/duplicate')
+    r=matches[0]; dest=r.get('destinationConfig') or {}
+    require(r.get('projectId')==P and (r.get('environment') or {}).get('slug')==PE
+        and (r.get('folder') or {}).get('path')==PROOF_PATH
+        and dest.get('projectId')==PROOF_PROJECT_ID and dest.get('environmentId')==PROOF_ENV_ID
+        and dest.get('serviceId')==PROOF_SERVICE_ID and r.get('destination')=='railway', 'Proof sync scope mismatch')
+    require(type(r.get('isAutoSyncEnabled')) is bool, 'Sync pause field drift')
+    return r
+
+SUCCESS={'success','succeeded'}; BUSY={'pending','running'}
+def job_state(row):
+    status=row.get('syncStatus')
+    require(status in SUCCESS|BUSY, 'Failed/error/unknown sync status')
+    job=row.get('lastSyncJobId')
+    require(job is None or isinstance(job,str) and bool(job), 'Job ID drift')
+    require(status not in SUCCESS or bool(job), 'Successful sync has no job ID')
+    return job,status
+
+def wait_job(sync_id,old_job,timeout=300):
+    require(0<timeout<=300, 'Invalid job timeout')
+    deadline=time.monotonic()+timeout
+    while time.monotonic()<deadline:
+        job,status=job_state(proof_sync(sync_id))
+        if job!=old_job and status in SUCCESS: return job
+        time.sleep(5)
+    raise RuntimeError('Proof sync job timeout')
+
+def quiet(sync_id,observe):
+    proof_scope(); require(0<observe<600, 'Invalid observation interval')
+    deadline=time.monotonic()+600; unchanged=None; previous=None
+    while time.monotonic()<deadline:
+        rows=safe(syncs)
+        require(isinstance(rows,list) and all(isinstance(r,dict) for r in rows), 'Sync inventory drift')
+        target=PROOF_SYNC_ID if sync_id is None else sync_id
+        matches=[r for r in rows if r.get('id')==target]
+        require(len(matches)<=1, 'Duplicate proof sync')
+        state=job_state(proof_sync(target)) if matches else (None,None)
+        busy=state[1] in BUSY
+        current=(state,proof_deployment_id()); now=time.monotonic()
+        if busy or current!=previous: unchanged=None
+        if not busy and unchanged is None: unchanged=now
+        if unchanged is not None and now-unchanged>=observe: return
+        previous=current; time.sleep(5)
+    raise RuntimeError('Proof quiet timeout')
+
+def wait_proof_quiet(sync_id,observe=90): return quiet(sync_id,observe)
+def wait_proof_service_quiet(observe=90): return quiet(None,observe)
+
+def instance_version():
+    # UNVERIFIED status response: pin version field and key/type shape by read-only GET/UI.
+    require(isinstance(REVIEWED_STATUS,tuple) and len(REVIEWED_STATUS)==3, 'UNVERIFIED /api/status')
+    data=safe(api,'GET','/api/status')
+    expected,field,version=REVIEWED_STATUS
+    require(isinstance(data,dict) and shape(data)==expected and data.get(field)==version
+        and isinstance(version,str) and bool(version), 'Infisical instance version/shape drift')
+    return version
+
+def http_mutation(operation,method,path,body=None,query=None):
+    # UNVERIFIED self-hosted mutation: reviewed version + request shape + expected response shape required BEFORE use.
+    pin=REVIEWED_HTTP.get(operation)
+    require(isinstance(pin,tuple) and len(pin)==3, 'UNVERIFIED Infisical mutation')
+    endpoint=re.sub(r'(?<=/folders/)[^/]+$', '{folderIdOrName}',path)
+    endpoint=re.sub(r'(?<=/railway/)[^/]+$', '{syncId}',endpoint)
+    require(pin[0]==instance_version() and pin[1]==(method,endpoint,shape(body),shape(query)), 'Infisical request shape/version drift')
+    result=safe(api,method,path,query=query,body=body)
+    require(shape(result)==pin[2], 'Infisical mutation response drift')
+    return result
+
+def proof_folders(parent):
+    # connector_signing_keyset.py:414–420, 436–440 establishes folders list at the requested parent.
+    require(PE=='staging' and parent in ('/',PROOF_PATH,PROOF_PATH+'/child'), 'Folder scope mismatch')
+    data=safe(api,'GET','/api/v2/folders',{'projectId':P,'environment':PE,'path':parent})
+    rows=data.get('folders') if isinstance(data,dict) else None
+    require(isinstance(rows,list) and all(isinstance(r,dict) and isinstance(r.get('name'),str) for r in rows), 'Folder list drift')
+    ids=[text_id(r.get('id')) for r in rows]
+    require(len(ids)==len(set(ids)) and len(rows)==len({r['name'] for r in rows}), 'Duplicate folders')
+    return rows
+
+def proof_secrets_empty(path):
+    # Client.secrets establishes this exact list shape; values are never requested.
+    require(PE=='staging' and path in (PROOF_PATH,PROOF_PATH+'/child'), 'Secret path mismatch')
+    data=safe(api,'GET','/api/v4/secrets',{'projectId':P,'environment':PE,'secretPath':path,
+        'viewSecretValue':'false','recursive':'false','includeImports':'false','expandSecretReferences':'false'})
+    require(isinstance(data,dict) and isinstance(data.get('secrets'),list) and not data['secrets'], 'Proof folder is not empty')
+    require(not proof_folders(path), 'Proof folder has children')
+
+def remove_folder(parent,name):
+    proof_scope()
+    rows=[r for r in proof_folders(parent) if r['name']==name]
+    require(len(rows)==1, 'Proof folder missing/duplicate')
+    folder_id=rows[0]['id']; path=parent.rstrip('/')+'/'+name
+    proof_secrets_empty(path)
+    # Upstream folders/delete; UNVERIFIED for this instance until version-matched pin.
+    result=http_mutation('folder-delete','DELETE','/api/v2/folders/'+urllib.parse.quote(folder_id,safe=''),
+        body={'projectId':P,'environment':PE,'path':parent})
+    require(isinstance(result,dict) and isinstance(result.get('folder'),dict)
+        and result['folder'].get('id')==folder_id and result['folder'].get('name')==name, 'Deleted folder response mismatch')
+    require(not any(r['name']==name or r['id']==folder_id for r in proof_folders(parent)), 'Folder still present')
+
+def delete_proof_child_folder(): return remove_folder(PROOF_PATH,'child')
+
+def disable_proof_sync():
+    row=proof_sync(PROOF_SYNC_ID)
+    # Upstream railway/update; UNVERIFIED self-hosted PATCH response until pin.
+    result=http_mutation('sync-pause','PATCH','/api/v1/secret-syncs/railway/'+urllib.parse.quote(PROOF_SYNC_ID,safe=''),
+        body={'isAutoSyncEnabled':False})
+    require(isinstance(result,dict) and isinstance(result.get('secretSync'),dict)
+        and result['secretSync'].get('id')==row['id'], 'Sync pause response mismatch')
+    require(proof_sync(PROOF_SYNC_ID)['isAutoSyncEnabled'] is False, 'Sync still enabled')
+
+def delete_proof_sync():
+    require(proof_sync(PROOF_SYNC_ID)['isAutoSyncEnabled'] is False, 'Pause sync before deletion')
+    wait_proof_quiet(PROOF_SYNC_ID)
+    # Upstream railway/delete documents removeSecrets; refuse if current instance cannot pin false.
+    result=http_mutation('sync-delete','DELETE','/api/v1/secret-syncs/railway/'+urllib.parse.quote(PROOF_SYNC_ID,safe=''),
+        query={'removeSecrets':'false'})
+    require(isinstance(result,dict) and isinstance(result.get('secretSync'),dict)
+        and result['secretSync'].get('id')==PROOF_SYNC_ID, 'Deleted sync response mismatch')
+    require(not any(r.get('id')==PROOF_SYNC_ID for r in safe(syncs)), 'Sync still present')
+
+def delete_proof_folder():
+    proof_scope()
+    require(not any((r.get('environment') or {}).get('slug')==PE
+        and (r.get('folder') or {}).get('path')==PROOF_PATH for r in safe(syncs)), 'Proof folder still has a sync')
+    return remove_folder('/','s1764-proof')
+
+def proof_project():
+    pin_field('Query','project')
+    for name in ('id','name','environments','services'): pin_field('Project',name)
+    for connection in ('EnvironmentConnection','ServiceConnection'):
+        edge=base_type(pin_field(connection,'edges')); node=base_type(pin_field(edge,'node'))
+        for name in ('id','name'): pin_field(node,name)
+    return safe(gql,'query($id:String!){project(id:$id){id name environments{edges{node{id name}}} services{edges{node{id name}}}}}',
+        {'id':text_id(PROOF_PROJECT_ID)})['project']
+
+def delete_proof_project():
+    proof_scope(); row=proof_project()
+    require(isinstance(row,dict) and row['id']==PROOF_PROJECT_ID and row['name']=='s1764-nodeploy-proof', 'Project deletion scope mismatch')
+    f=pin_field('Mutation','projectDelete')
+    require(dict(f[2])=={'id':'String!'} and base_type(f)=='Boolean', 'UNVERIFIED projectDelete shape')
+    result=safe(gql,'mutation($id:String!){projectDelete(id:$id)}',{'id':PROOF_PROJECT_ID})
+    require(result.get('projectDelete') is True, 'Project deletion unconfirmed')
+    # Require null; an arbitrary GraphQL/transport error is not absence evidence.
+    require(proof_project() is None, 'Project absence unproved; if project(id) raises, verify explicit not-found in UI')
+```
+
+```python
+# Guarded setup; run once before the earlier disposable sync-create proof (no production mutations).
+# UNVERIFIED exact creation/readback schema until REVIEWED_GQL pins match live introspection.
+PE='staging'; PROOF_PATH='/s1764-proof'; PROOF_NAME='s1764-nodeploy-proof'
+IMAGE_DIGEST='<operator: rtk docker buildx imagetools inspect nginx:alpine>'
+require(re.fullmatch(r'sha256:[0-9a-f]{64}',IMAGE_DIGEST) is not None, 'Fill the inspected image digest')
+IMAGE='nginx:alpine@'+IMAGE_DIGEST
+f=pin_field('Mutation','projectCreate')
+require(dict(f[2])=={'input':'ProjectCreateInput!'} and base_type(f)=='Project', 'Project creation schema drift')
+pin_field('ProjectCreateInput','name')
+for name in ('id','name'): pin_field('Project',name)
+created=safe(gql,'mutation($i:ProjectCreateInput!){projectCreate(input:$i){id name}}',{'i':{'name':PROOF_NAME}})['projectCreate']
+require(isinstance(created,dict) and set(created)=={'id','name'} and created['name']==PROOF_NAME, 'Project create response drift')
+PROOF_PROJECT_ID=text_id(created['id']); require(PROOF_PROJECT_ID!=RP, 'Production project refused')
+project=proof_project()
+require(project['id']==PROOF_PROJECT_ID and project['name']==PROOF_NAME and not project['services']['edges'], 'New project readback mismatch')
+envs=project['environments']['edges']; require(isinstance(envs,list) and len(envs)==1, 'Proof must have one environment')
+PROOF_ENV_ID=text_id(envs[0]['node']['id']); PROOF_ENV_NAME=text_id(envs[0]['node']['name'])
+PROOF_PROJECT_NAME=project['name']; require(PROOF_ENV_ID!=RE, 'Production environment refused')
+f=pin_field('Mutation','serviceCreate')
+require(dict(f[2])=={'input':'ServiceCreateInput!'} and base_type(f)=='Service', 'Service creation schema drift')
+for name in ('projectId','name','source'): pin_field('ServiceCreateInput',name)
+source=base_type(pin_field('ServiceCreateInput','source')); pin_field(source,'image')
+for name in ('id','name'): pin_field('Service',name)
+created=safe(gql,'mutation($i:ServiceCreateInput!){serviceCreate(input:$i){id name}}',
+    {'i':{'projectId':PROOF_PROJECT_ID,'name':'proof','source':{'image':IMAGE}}})['serviceCreate']
+require(isinstance(created,dict) and set(created)=={'id','name'} and created['name']=='proof', 'Service create response drift')
+PROOF_SERVICE_ID=text_id(created['id']); PROOF_SERVICE_NAME=created['name']; proof_scope()
+project=proof_project(); services=project['services']['edges']
+require(len(services)==1 and services[0]['node']==created and project['environments']['edges']==envs, 'Disposable IDs/names readback mismatch')
+# Wait for initial image deployment to finish; missing IDs/status drift still refuse.
+deadline=time.monotonic()+600
+while time.monotonic()<deadline:
+    node=latest_deployment(PROOF_PROJECT_ID,PROOF_ENV_ID,PROOF_SERVICE_ID)
+    if node['status']=='SUCCESS': break
+    require(node['status'] in {'INITIALIZING','QUEUED','BUILDING','DEPLOYING'}, 'Initial deployment failed/unknown status')
+    time.sleep(5)
+else: raise RuntimeError('Initial deployment timeout')
+require(verify_upsert_shape(), 'Collection upsert schema drift')
+require(base_type(pin_field('Mutation','variableCollectionUpsert'))=='Boolean', 'Upsert result type drift')
+for name in ('projectId','environmentId','serviceId','variables','replace','skipDeploys'):
+    pin_field('VariableCollectionUpsertInput',name)
+before=proof_deployment_id()
+items={'S1764_PROOF_REMOVE':'disposable','S1764_PROOF_TARGET':'reference-target',
+       'S1764_PROOF_REFERENCE':'${{proof.S1764_PROOF_TARGET}}'}
+result=safe(gql,'mutation($i:VariableCollectionUpsertInput!){variableCollectionUpsert(input:$i)}',
+    {'i':{'projectId':PROOF_PROJECT_ID,'environmentId':PROOF_ENV_ID,'serviceId':PROOF_SERVICE_ID,
+          'variables':items,'replace':False,'skipDeploys':True}})
+require(result.get('variableCollectionUpsert') is True, 'Setup variable mutation unconfirmed')
+raw=proof_variables_raw(PROOF_SERVICE_ID); effective=proof_variables_effective(PROOF_SERVICE_ID)
+require(all(raw.get(k)==v for k,v in items.items()) and effective.get('S1764_PROOF_REFERENCE')==items['S1764_PROOF_TARGET'], 'Same-service reference setup failed')
+after=proof_deployment_id(); require(before==after, 'Setup variables restarted the disposable service')
+SETUP_RECEIPT={'operation':'setup-variables','before_deployment_id':before,'after_deployment_id':after,
+    'project_id':PROOF_PROJECT_ID,'environment_id':PROOF_ENV_ID,'service_id':PROOF_SERVICE_ID,'image_digest':IMAGE_DIGEST}
+# Preserve SETUP_RECEIPT separately: the earlier proof block initializes receipt=[]; append it at final receipt assembly.
+require(not any(r['name']=='s1764-proof' for r in proof_folders('/')), 'Proof folder already exists')
+# Folder POST: connector_signing_keyset.py run(); self-hosted response still requires the version pin.
+result=http_mutation('folder-create','POST','/api/v2/folders',body={'projectId':P,'environment':PE,'name':'s1764-proof','path':'/'})
+require(isinstance(result,dict) and isinstance(result.get('folder'),dict) and result['folder'].get('name')=='s1764-proof', 'Folder create response drift')
+require(len([r for r in proof_folders('/') if r['name']=='s1764-proof' and r['id']==result['folder'].get('id')])==1, 'Folder create readback mismatch')
+# Now run the existing proof block; it binds PROOF_SYNC_ID after sync-create, preserving its before-POST boundary.
+# Final teardown after that block: delete_proof_folder(); delete_proof_project(); recheck production_sync_snapshot().
+```
 
 ### 2.1 Restricted resource DSN and Redis
 
