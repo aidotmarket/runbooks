@@ -1485,3 +1485,54 @@ print('Step 2 complete; connect /readyz:',http_status('https://connect.ai.market
 ```
 
 Save `window` and `PRIOR_NAMES` (names/IDs only) with the Step 2 receipt. `PRIOR_VALUES` stays in the protected interpreter for §2.4 restoration (names in `PRIOR_NAMES` restore their exact raw prior value; other §2.5a names are removed) until Step 2 is complete or rolled back; keep admission closed during any restore.
+
+## Gate 4 STEP 3 operator procedure — trusted edge peer (S1786)
+
+This section makes Step 3 executable. It replaces Step 3's "temporary redacted request-ID diagnostic" with an existing equivalent that needs no code change and logs no customer header or IP. Flags and the global switch stay off throughout.
+
+### 3.0 Method: read the limiter bucket itself
+
+`RequestEdge` (backend main `83e9b8f9`, `app/mcp/connector/asgi.py`) runs `_edge_status` and then `limiter.check("ip", limit_key("ip", ip=state.client_ip))` on every `/mcp` request, GET or POST, **before** the switch check. `limit_key` returns the IP unchanged and `ratelimit.py` writes the Redis sorted set `conn:rl:v1:ip:<client_ip>` with a 60-second expiry. That key is exactly the selected limiter bucket that the pre-auth limiter and auth-failure audit use, so reading it is direct evidence of what Step 3 must prove. The resource runs `uvicorn` without `--proxy-headers` configuration and without `FORWARDED_ALLOW_IPS` (Railway readback S1786), so uvicorn's default trusts only `127.0.0.1` and `request.client.host` is the real socket peer.
+
+Readback runs on Titan-1 against the production Redis public URL (`Redis` service `REDIS_PUBLIC_URL`, loaded through the Railway API in the protected process and never printed). It uses `SCAN MATCH conn:rl:v1:ip:*`, `ZCARD` and `PTTL` only; it never writes. Output rules: an address in `100.64.0.0/10` or private space is printed in full (Railway infrastructure, not a person); a probe source's own public IP is printed only as its label (`CLOUD`, `MAC`); `1.2.3.4` as `FORGED`; any other public address only as a count of `OTHER_PUBLIC_REDACTED`. Receipts carry labels, `100.64.x.x` addresses, counts, request IDs and timestamps, never a third-party IP. Script: `koskadeux-state/s1786/edge_scan.py`.
+
+Sources: `CLOUD` is the Claude cloud workspace egress (Railway edge `iad1`); `MAC` is Titan-1 in Madrid (a European Railway edge). `connect.ai.market` answers directly from Railway (`server: railway-hikari`, `x-railway-edge` present); Cloudflare is not in front.
+
+### 3.1 Baseline measured (S1786, 2026-10-01 00:1x CEST, no CIDR set)
+
+48 `GET /mcp` (24 per source, all 503 `CONNECTOR_DISABLED`) produced 21 limiter keys, all socket peers from `100.64.0.2` to `100.64.0.22`, and **no key for either source's public IP**. Consequence today: every caller is bucketed by whichever Railway edge proxy carried it, so about 20 shared buckets exist for the whole internet and a handful of busy clients could rate-limit everyone. Step 3 is required before enable.
+
+Railway's own statements conflict (community thread "Edge Proxy X-Forwarded-For and X-Real-Ip can't be trusted": the rightmost XFF value is the real client; thread "Security-Critical Questions on Edge Proxy Header Handling": the edge strips client XFF and "the first value is the real connecting IP"; the socket peer is community-reported in `100.0.0.0/8`). The probe below decides; neither statement is assumed.
+
+### 3.2 CIDR choice
+
+Set `CONNECTOR_TRUSTED_PROXY_CIDRS=100.64.0.0/24` on `ai-market-connector` only. It covers every observed peer with room for edge growth and stays far narrower than `100.64.0.0/10`, RFC 1918, or Cloudflare ranges. The failure modes are asymmetric: a future edge peer outside the /24 is untrusted, so its callers fall back to that peer's shared bucket (today's behaviour, over-limiting, never a bypass); nothing outside Railway's infrastructure can present a `100.64.0.0/24` socket peer to the container, because the service has no public TCP proxy and Railway private networking is IPv6. Step 7 smoke re-runs the §3.4 readback and widens the CIDR by a reviewed change if any `100.64.0.0/10` key outside the /24 appears.
+
+### 3.3 Apply
+
+One Railway `variableCollectionUpsert` on the resource service (`a08ef347-…`, production `23e322c3-…`) with `skipDeploys:false`, which redeploys **only** `ai-market-connector` (dark: `CONNECTOR_ENABLED=false`, global row disabled; no Infisical write, so no sync job and no other service restarts). Record the prior deployment ID and value (absent). Wait for `SUCCESS` on both replicas, then run the "Verify after a resource deploy" checks in `customer-mcp-connector.md` with `/readyz` 200 (Step 2 state). No Max restart window is needed: no customer-serving service restarts.
+
+### 3.4 Probe and pass criteria
+
+Run from both sources, each probe type in its own window, waiting 65 seconds between windows so every earlier key has expired. Each window sends 12 `POST /mcp` with body `{"jsonrpc":"2.0","id":1,"method":"ping"}` (503 `CONNECTOR_DISABLED`, response `x-request-id` recorded), then runs the readback.
+
+| Window | Header sent | Pass |
+| --- | --- | --- |
+| P1 plain | none | key `<own IP>` count 12 per source; no new `100.64.x` key from the probe |
+| P2 forged | `X-Forwarded-For: 1.2.3.4` | key `<own IP>` count 12; **no `1.2.3.4` key** |
+| P3 invalid | `X-Forwarded-For: not-an-ip` | record observed bucket: own IP if the edge replaces client XFF, else the peer `100.64.x` bucket (code path `ValueError` → socket peer). Either is safe; a key named `not-an-ip` fails |
+| P4 prepend-chain | `X-Forwarded-For: 1.2.3.4, 5.6.7.8` | key `<own IP>` count 12; no `1.2.3.4` or `5.6.7.8` key |
+
+Both replicas: 12 requests per window from two sources through round-robin replicas make single-replica coverage negligible (under 2⁻¹¹ per window); both replicas run the same image and variables. Per-replica attribution would need a code change and is not claimed. Hop count is inferred, not logged: a pass in P2/P4 proves the edge either strips client XFF or appends the true caller on the right, and that the selected hop is the caller.
+
+Not reachable, recorded as such: an untrusted direct socket peer (the container has no public TCP proxy; `_peer_trusted` false path is covered by backend unit tests) and an all-trusted-hop chain (a client cannot originate from `100.64.0.0/24`).
+
+**Fail:** any key for `1.2.3.4`, `5.6.7.8` or `not-an-ip`; the own-IP key missing in P1/P2/P4; or a probe's requests landing in a `100.64.x` bucket in P1/P2/P4. On fail, run §3.5 at once.
+
+### 3.5 Rollback
+
+`variableDelete` of `CONNECTOR_TRUSTED_PROXY_CIDRS` on the resource (redeploys the resource only). Buckets return to socket peers (the §3.1 state); the global switch stays disabled. Enable stays blocked until rate-limit attribution is repaired by a reviewed change.
+
+### 3.6 Record
+
+Receipt `koskadeux-state/s1786/step3-receipt.json` (labels, `100.64.x` peers, counts, request IDs, deployment IDs, timestamps), an Event Ledger entry, and a `customer-mcp-connector.md` "Gate 4 Step 3 done" section with the CIDR, the measured edge behaviour and the receipt path.
