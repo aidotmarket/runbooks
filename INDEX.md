@@ -839,9 +839,9 @@
 
 ## Local SecOps Assistant (Koskadeux)
 - Path: `local-secops.md`
-- Purpose: **Built**: S1115 (2026-07-04) **Host**: Koskadeux / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB) **Location on disk**: `/Users/max/local-secops/` **Purpose**: Rotate / update / expire / generate credentials with a fully-local model, so secret values never leave Koskadeux and no human has to type them. **Owner**: Vulcan/Mars (operator-invoked); registered in Living State at `infra:local-secops`.
+- Purpose: **Built**: S1115 (2026-07-04) **Host**: Koskadeux / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB) **Location on disk**: `/Users/max/local-secops/` **Purpose**: Rotate / update / expire / generate credentials so secret values never leave Koskadeux and no human has to type them. **Proposer retired (2026-08-18).** Ollama and `llama3.3:70b` were uninstalled; `secops_propose.py` fails with `URLError: Connection refused` (127.0.0.1:11434). The operator writes the plan JSON by hand; `secops_execute.py` is unchanged and still enforces every guardrail. Model and Ollama details below are history. **Owner**: Vulcan/Mars (operator-invoked); registered in Living State at `infra:local-secops`.
 - Owner: `unassigned`
-- Last verified: `2026-07-10`
+- Last verified: `2026-10-01`
 - Aliases: none
 - Error signatures: none
 - Status: current

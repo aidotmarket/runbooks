@@ -1,7 +1,7 @@
 ---
 title: Local SecOps Assistant (Koskadeux)
 owner: unassigned
-last_verified: '2026-07-10'
+last_verified: '2026-10-01'
 aliases: []
 error_signatures: []
 ---
@@ -11,14 +11,16 @@ error_signatures: []
 > **Built**: S1115 (2026-07-04)
 > **Host**: Koskadeux / `Koskadeux.local` (Mac Studio, M3 Ultra / 256GB)
 > **Location on disk**: `/Users/max/local-secops/`
-> **Purpose**: Rotate / update / expire / generate credentials with a fully-local model, so secret values never leave Koskadeux and no human has to type them.
+> **Purpose**: Rotate / update / expire / generate credentials so secret values never leave Koskadeux and no human has to type them.
+>
+> **Proposer retired (2026-08-18).** Ollama and `llama3.3:70b` were uninstalled; `secops_propose.py` fails with `URLError: Connection refused` (127.0.0.1:11434). The operator writes the plan JSON by hand; `secops_execute.py` is unchanged and still enforces every guardrail. Model and Ollama details below are history.
 > **Owner**: Vulcan/Mars (operator-invoked); registered in Living State at `infra:local-secops`.
 
 ---
 
 ## Overview
 
-The Local SecOps assistant is a supervised, local-only helper for credential operations against our self-hosted Infisical (`secrets.ai.market`). It runs a local LLM (no network egress of secret material) to draft an exact command plan, and a separate guardrailed executor to carry an approved plan out under a hard allow-list. It is deliberately two programs: a **proposer** that can only think, and an **executor** that can only act within vetted templates.
+The Local SecOps assistant is a supervised, local-only helper for credential operations against our self-hosted Infisical (`secrets.ai.market`). The operator writes an exact command plan by hand, and a guardrailed executor carries the approved plan out under a hard allow-list. (Until 2026-08-18 a local model drafted the plans; that proposer is retired.)
 
 It exists because secret rotation/movement was previously a manual, error-prone, type-the-value-by-hand process. It removes the human from touching secret values while keeping the human (Max/Vulcan) in the approval loop.
 
@@ -30,26 +32,26 @@ It exists because secret rotation/movement was previously a manual, error-prone,
 
 | Capability | Supported | Notes |
 |---|---|---|
-| Draft a credential-op plan from a natural-language task | Yes | `secops_propose.py`; propose-only, never executes |
+| Draft a credential-op plan from a natural-language task | No (retired 2026-08-18) | Write the plan by hand; `secops_propose.py` no longer runs |
 | Rotate/update a secret we own | Yes | `set` upsert; value self-generated (`secrets.token_urlsafe(48)`) |
 | Copy an EXISTING value Railway → Infisical (reconcile) | Yes | `reconcile-from-railway`; host-side, value never printed/never on disk; round-trip hash-verify. Use to fix Infisical when Railway drifted ahead |
 | Read/verify a secret | Yes | `get`; value not printed to chat, only round-trip proof |
 | Expire/delete a secret | Yes | `delete` via raw REST API (curl `-K` stdin), because CLI delete is unreliable under this machine identity |
 | Restart a dependent LOCAL service after rotation | Yes | `launchctl kickstart -k` of 3 known labels only |
-| Rotate a THIRD-PARTY key (Stripe, DeepSeek, etc.) | No (partial) | Provider-issued value must arrive via a secure channel; **not wired**. The model must never invent a third-party value |
+| Rotate a THIRD-PARTY key (Stripe, DeepSeek, etc.) | No (partial) | Provider-issued value must arrive via a secure channel; **not wired**. A plan must never invent a third-party value |
 | Push a backend secret to prod | No (automatic) | The native Infisical→Railway sync (LIVE since S1125) mirrors Infisical→Railway on its own; this tool writes the Infisical catalog only |
 | Autonomous/scheduled rotation | No | Operator/Vulcan-invoked only; no timer, no daemon |
-| Run arbitrary shell | No | Executor rebuilds argv from vetted templates; raw model string is never run |
+| Run arbitrary shell | No | Executor rebuilds argv from vetted templates; raw plan string is never run |
 
 ---
 
 ## Architecture & interactions
 
-**Runtime.** Ollama, installed via Homebrew, running as LaunchAgent `homebrew.mxcl.ollama` (auto-starts at login), serving the API at `http://127.0.0.1:11434`. Model: `llama3.3:70b` (chosen for dependability over speed; fits the M3 Ultra / 256GB).
+**Runtime (history, removed 2026-08-18).** Ollama, installed via Homebrew, running as LaunchAgent `homebrew.mxcl.ollama` (auto-starts at login), serving the API at `http://127.0.0.1:11434`. Model: `llama3.3:70b` (chosen for dependability over speed; fits the M3 Ultra / 256GB).
 
 **Files** (all in `/Users/max/local-secops/`):
 - `PLAYBOOK.md` — the authoritative command conventions the proposer is grounded on (Infisical flag shapes, project IDs, the local-vs-Railway service distinction, the secret→service restart map). This is what keeps the model from inventing flags.
-- `secops_propose.py` — grounds `llama3.3:70b` on `PLAYBOOK.md` and emits a JSON plan (`intent`, `steps[]`, `destructive`, `rollback`, `notes`). **PROPOSE-ONLY.** Never executes. Uses the literal placeholder `<VALUE_FROM_OPERATOR>` for any secret value; the model is instructed never to print a real value.
+- `secops_propose.py` (inert since 2026-08-18) — grounded `llama3.3:70b` on `PLAYBOOK.md` and emits a JSON plan (`intent`, `steps[]`, `destructive`, `rollback`, `notes`). **PROPOSE-ONLY.** Never executes. Uses the literal placeholder `<VALUE_FROM_OPERATOR>` for any secret value; the model is instructed never to print a real value.
 - `secops_execute.py` — the guardrailed executor. Takes an approved plan JSON (or `--selftest`), DRY-RUN by default, `--execute` to act.
 - `approved_plan.json` — an example approved plan (DEEPSEEK_API_KEY rotation + service restart).
 - `audit.log` — append-only JSONL; every action and every refusal, values redacted.
@@ -71,9 +73,9 @@ Local SecOps does not manage `/connector-auth` or `CONNECTOR_OAUTH_SIGNING_KEYS`
 
 | Actor | May do | May NOT do |
 |---|---|---|
-| Proposer (`llama3.3:70b`) | Draft a plan grounded on PLAYBOOK.md | Execute anything; print a real secret value; invent flags/subcommands |
+| Proposer (`llama3.3:70b`, retired 2026-08-18) | Draft a plan grounded on PLAYBOOK.md | Execute anything; print a real secret value; invent flags/subcommands |
 | Executor (`secops_execute.py`) | Run the allow-listed actions on approved plans | Run any off-list command, touch a non-allow-listed project, run a shell |
-| Vulcan/Mars (operator) | Review a proposed plan; invoke the executor; provide provider-issued third-party values through a secure channel | Bypass review; paste secret values into chat |
+| Vulcan/Mars (operator) | Review the hand-written plan; invoke the executor; provide provider-issued third-party values through a secure channel | Bypass review; paste secret values into chat |
 | Max | Approve/authorize a rotation; supply third-party provider values | — |
 
 **Allow-listed actions (only these):**
@@ -91,12 +93,8 @@ Secret NAME must match `^[A-Z0-9_]{2,64}$`. `env` must be in the per-project all
 
 **Standard rotation of a secret we own (e.g., an internal API key / HMAC key):**
 
-1. Propose (nothing runs):
-   ```bash
-   cd /Users/max/local-secops
-   ./secops_propose.py "rotate INTERNAL_API_KEY on ai-market-backend and note it reaches prod via a Railway redeploy"
-   ```
-2. Vulcan reviews the emitted JSON: confirm `intent`, each `command`, `reversible`/`risk` flags, and that no step prints a value. Save the vetted plan to a file (e.g. `approved_plan.json`).
+1. Write the plan JSON by hand (same shape as `/Users/max/local-secops/approved_plan.json`: `intent`, `steps[]` with `description`, `command`, `reversible`, `risk`, `handles_secret_value`, plus `destructive`, `rollback`, `notes`). For a self-generated value use the literal placeholder `<VALUE_FROM_OPERATOR>` in the `set` command. Keep plans out of the repo (e.g. `~/koskadeux-state/<session>/`).
+2. Before any `ai-market-backend` `prod` write, run the flag-drift check in [infisical-secrets.md](infisical-secrets.md) (the next sync pushes the whole set). Export the token first: `export INFISICAL_TOKEN=$(cat ~/.config/infisical/sysadmin-token)`.
 3. Dry-run the executor (previews only):
    ```bash
    ./secops_execute.py approved_plan.json
@@ -132,10 +130,10 @@ Secret NAME must match `^[A-Z0-9_]{2,64}$`. `env` must be in the per-project all
 ## When it breaks
 
 - **"REFUSED: ..." on execute** — expected guardrail behaviour, not a bug. Read the reason (off-list command, non-allow-listed projectId, bad NAME, shell metacharacter, HALT present, unresolved placeholder). Fix the plan, don't loosen the executor.
-- **Proposer returns non-JSON / invents a flag** — check that `PLAYBOOK.md` still matches reality (Infisical flag shapes, project IDs). The proposer is only as correct as its grounding; drift in PLAYBOOK.md is the usual root cause.
+- **(history) Proposer returns non-JSON / invents a flag** — check that `PLAYBOOK.md` still matches reality (Infisical flag shapes, project IDs). The proposer is only as correct as its grounding; drift in PLAYBOOK.md is the usual root cause.
 - **`get` round-trip fails after a `set` that returned rc=0** — check the Infisical token validity (`~/.config/infisical/sysadmin-token`) and that the project/env are correct.
 - **`delete` returns a non-zero rc** — CLI delete is unreliable under this identity; the executor already uses the raw REST API path. A transient non-200 (rc=98/curl error) can occur; re-run and confirm via a follow-up `get` that the key is gone. (audit.log shows historical rc=98 followed by a clean rc=0 delete.)
-- **Ollama unreachable (`127.0.0.1:11434`)** — check the LaunchAgent: `brew services list | grep ollama`. If stopped, `brew services start ollama`.
+- **`secops_propose.py` fails with `URLError: Connection refused`** — expected: the local model was removed 2026-08-18. Write the plan by hand (How to operate, step 1).
 - **Nothing executes at all** — check for a stray `HALT` file in the dir.
 
 Every run and refusal is in `audit.log` (JSONL, values redacted) — read it first when diagnosing.
@@ -144,14 +142,13 @@ Every run and refusal is in `audit.log` (JSONL, values redacted) — read it fir
 
 ## Repair
 
-- **Restart the model runtime:** `brew services restart ollama`.
 - **Re-prove the executor end-to-end** (safe, disposable key on koskadeux-mcp, set→get→delete):
   ```bash
   cd /Users/max/local-secops && ./secops_execute.py --selftest --execute
   ```
   A clean run appends three execute records (set rc=0, selftest_get rc=0, delete rc=0) to audit.log and leaves no residue.
 - **Token expired / rotated:** replace `~/.config/infisical/sysadmin-token` with a current SysAdmin machine-identity token (see `infisical-secrets.md#machine-identities`). Never commit it.
-- **Playbook out of date:** edit `PLAYBOOK.md` to current Infisical/service reality, then re-run a propose to confirm the model tracks it.
+- **Playbook out of date:** edit `PLAYBOOK.md` to current Infisical/service reality.
 
 ---
 
@@ -176,14 +173,13 @@ Planned/known extension points:
 ## Maintenance
 
 **Kill switches:**
-- Stop the model: `brew services stop ollama`
 - Freeze all execution: `touch /Users/max/local-secops/HALT` (remove the file to re-enable)
 
 **Audit:** `audit.log` (append-only JSONL, values redacted). Every action and refusal is recorded with a UTC timestamp, mode (`dry_run`/`execute`/`refuse`), and rc.
 
 **Invocation model:** operator/Vulcan-invoked only. No scheduler, no daemon, no autonomous rotation. The proposer never executes; the executor is DRY-RUN unless `--execute` is passed.
 
-**Dependencies:** Ollama LaunchAgent; SysAdmin machine-identity token at `~/.config/infisical/sysadmin-token`; self-hosted Infisical at `secrets.ai.market`.
+**Dependencies:** SysAdmin machine-identity token at `~/.config/infisical/sysadmin-token`; self-hosted Infisical at `secrets.ai.market`.
 
 ## §L. Topic router & self-containment
 
