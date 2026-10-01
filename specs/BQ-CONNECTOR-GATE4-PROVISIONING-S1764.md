@@ -1587,3 +1587,103 @@ Receipt `koskadeux-state/s1786/step3-receipt.json`: before/after deployment IDs,
 ### 3.7 Execution record
 
 Step 3 passed on 2026-10-01 (execution 3, after the §3.4a region move): eight of eight windows passed. See `customer-mcp-connector.md` "Gate 4 Step 3 done" and `koskadeux-state/s1786/step3-receipt.json`.
+
+## Gate 4 STEP 4 operator procedure — audit alert (S1786)
+
+This makes Step 4 executable on the Grafana Cloud **Free** plan (org `aimarket`, stack `1527021`, `prod-us-east-3`; about 760 of 10,000 active series on 2026-10-01; `infisical-secrets.md` "Grafana Cloud tokens"). Max decided on 2026-10-01 (Event `8cf5166e`) to finish and submit the connector without waiting on Anthropic ticket #135998017. Flags and the global switch stay off throughout.
+
+### 4.0 Design
+
+Alerts are evaluated in Grafana Cloud, not by any host we run, and reach the issue channel through the existing pull model.
+
+1. **Ingestion.** The resource exports OTLP to the stack's OTLP gateway, using its own write-only token (`connector-otlp-write`, metrics and traces write). `app/core/observability.py` reads `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_HEADERS` (`Authorization=Basic <base64(1527021:token)>`, the same unencoded form the backend uses) and `OTEL_EXPORTER_OTLP_PROTOCOL`. Series carry `job="ai-market-connector"` (the resource's `service.name`).
+2. **Evaluation.** Prometheus-style rules sit in the stack's hosted Mimir ruler (namespace `connector`, group `connector-audit`, 1-minute interval). They are installed with `connector-alerting` (metrics read, rules and alerts read/write) as Mimir user `2978270`. The hosted Grafana instance (status `paused`) is not involved.
+3. **Delivery.** Firing alerts stay in the stack's hosted Mimir Alertmanager (user `1487075`, `/alertmanager/api/v2/alerts`, verified 200 on 2026-10-01 with an empty list). No webhook or receiver is configured. The issue-channel watcher gains a read-only `grafana` adapter (koskadeux-mcp, MP build, Tier 3 review) that polls that endpoint each cycle. It keeps alerts labelled `issue_channel="true"` and turns them into canonical issues through the existing normalise, sanitise, episode, ticket and resolution path, with `service`, `alertname`, window and counts. Payloads, args and IPs are never included. A resolved alert resolves its episode the way other providers do. If the adapter cannot read Alertmanager, its provider entry is marked incomplete, and the existing provider-health surfacing reports it. That is the job-health route.
+
+### 4.1 Rules (`connector-audit`)
+
+```yaml
+groups:
+- name: connector-audit
+  interval: 1m
+  rules:
+  - alert: ConnectorAuditWriteFailureRatio
+    expr: (sum(increase(connector_audit_write_failures_total{job="ai-market-connector"}[5m])) or vector(0)) / clamp_min(sum(increase(connector_requests_total{job="ai-market-connector",method="tools/call"}[5m])) or vector(0), 1) > 0.001
+    labels: {issue_channel: "true", service: ai-market-connector, severity: critical}
+    annotations: {summary: "Connector audit write failures above 0.1% of tools/call over 5m"}
+  - alert: ConnectorAuditWriteFailures
+    expr: sum(increase(connector_audit_write_failures_total{job="ai-market-connector"}[5m])) > 0
+    labels: {issue_channel: "true", service: ai-market-connector, severity: critical}
+    annotations: {summary: "Connector audit write failures in the last 5m"}
+  - alert: ConnectorTelemetryAbsent
+    expr: absent_over_time(target_info{job="ai-market-connector"}[15m])
+    labels: {issue_channel: "true", service: ai-market-connector, severity: warning}
+    annotations: {summary: "No connector telemetry for 15m"}
+```
+
+The exact label names (`job`, `method`) are confirmed against live series in §4.3 before the rules are installed. A mismatch is corrected in a reviewed delta, not ad hoc.
+
+**Heartbeat.** Counters appear only after their first increment, so `target_info` for the connector exists only while some metric has been recorded since start. To keep the absence alert meaningful on a quiet or dark connector, each watcher cycle (5 minutes) makes one unauthenticated `GET https://connect.ai.market/mcp` before polling Alertmanager. That request passes the edge and the pre-auth limiter and returns 405 or 503, which increments `connector_requests_total` and refreshes the series. It is one request per 5 minutes from one Railway address, far under the 60/min/IP pre-auth limit. If the heartbeat itself fails, the adapter marks the observation incomplete.
+
+### 4.2 Credentials and variables
+
+- **Resource Railway:** add `OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-us-east-3.grafana.net/otlp` and `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` with `skipDeploys:true`.
+- **Infisical `/connector-resource`:** add `OTEL_EXPORTER_OTLP_HEADERS`, built in a protected process from `/grafana-ops` `GRAFANA_STACK_ID` and `GRAFANA_CONNECTOR_OTLP_WRITE_TOKEN`; never printed. This write runs the `railway-connector-resource-prod` sync, which redeploys the resource only (S1771). The resource is dark, so no restart window is needed. Run the flag and value drift check first (READ FIRST, `infisical-secrets.md`). A write in this folder triggers only its own sync (S1771 canary proof), but the drift check is cheap.
+- **Watcher Railway (`issue-channel-watcher`):** add the literal `GRAFANA_ALERTING_TOKEN` and the non-secret `GRAFANA_ALERTMANAGER_URL` and `GRAFANA_ALERTMANAGER_USER=1487075`. This follows the watcher's existing literal-variable practice (`DEEPSEEK_API_KEY`) and is set at the watcher deploy in §4.5.
+- **`/grafana-ops`:** add the non-secret `GRAFANA_ALERTMANAGER_USER=1487075`.
+
+### 4.3 Ingestion proof
+
+After the resource redeploy, check `/healthz`, `/readyz`, PRM and `/mcp` as in §3.3. Then send 12 `POST /mcp` probes, wait 2 minutes, and query Mimir as the alerting token:
+
+- `count by (__name__) ({job="ai-market-connector"})` must list `connector_requests_total` and `target_info`;
+- `sum(connector_requests_total{job="ai-market-connector"})` must be at least 12.
+
+Record the observed label set for `connector_requests_total`, which must contain a method label, and confirm the rule labels. `connector_audit_write_failures_total` appears only after a failure; §4.6 creates one.
+
+### 4.4 Install rules
+
+`POST {GRAFANA_PROM_URL}/api/prom/config/v1/rules/connector` with the YAML group as body (`Content-Type: application/yaml`), then read it back with `GET .../rules/connector`. Rollback is `DELETE .../config/v1/rules/connector/connector-audit`.
+
+### 4.5 Watcher adapter (build)
+
+The adapter is `koskadeux_mcp/issue_channel/adapters/grafana.py` plus a `sources.yaml` `grafana` entry with `default_action: record_only` and no dispatch rule, like `council_providers`. It does:
+
+- heartbeat GET;
+- `GET /alertmanager/api/v2/alerts?active=true&silenced=false&inhibited=false&filter=issue_channel="true"`, with a timeout of at most 10 s;
+- maps each alert to an issue keyed by `alertname`, `service` and `fingerprint`;
+- emits `grafana_check_failed` on any read failure.
+
+Tests cover parse, empty list, firing to resolved, unreachable, malformed and the heartbeat failure path. Deploy with the watcher's normal release procedure (`issue-channel.md`), after Gate 3.
+
+### 4.6 Controlled failure proof (test host, then production observation)
+
+**On a non-customer test host,** run the pinned connector image locally on Koskadeux. Use `OTEL_SERVICE_NAME` forced to `ai-market-connector` by code, and add `OTEL_RESOURCE_ATTRIBUTES=deployment.environment=s1786-test`. Point it at a disposable Postgres with no `connector_audit_events` insert grant, so every required audit write fails, and the same OTLP token. Enable it locally only:
+
+- set `CONNECTOR_ENABLED=true` and the global row `disabled=false` in that disposable database;
+- make one `tools/call` with a locally minted test grant.
+
+Confirm the following:
+
+- `connector_audit_write_failures_total{deployment_environment="s1786-test"}` appears;
+- both audit rules fire within 3 minutes;
+- the watcher creates exactly one deduplicated ticket per alert;
+- after the local host stops, the alerts resolve and the episodes resolve.
+
+Then stop the test host, so `ConnectorTelemetryAbsent` covers only production. If the rules must exclude the test environment afterwards, add `deployment_environment!="s1786-test"` in a reviewed delta.
+
+**No-data proof:** set the watcher heartbeat off for one run window (config flag) and confirm `ConnectorTelemetryAbsent` fires and tickets after 15 minutes, then restore the heartbeat and confirm it resolves.
+
+### 4.7 Rollback and record
+
+Rollback, in order:
+
+1. Delete the rule group.
+2. Disable the `grafana` source in `sources.yaml` (watcher redeploy).
+3. Remove `OTEL_EXPORTER_OTLP_HEADERS` from `/connector-resource`; this sync redeploys the resource.
+4. Remove the two resource Railway variables.
+5. Revoke the tokens per `infisical-secrets.md`.
+
+Tickets are kept.
+
+**Record:** the receipt `koskadeux-state/s1786/step4-receipt.json`, an Event Ledger entry, `customer-mcp-connector.md` "Gate 4 Step 4 done", and an `issue-channel.md` section for the `grafana` provider.
