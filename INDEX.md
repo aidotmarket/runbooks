@@ -544,7 +544,7 @@
 - Path: `runbooks/data-delivery-p2p.md`
 - Purpose: File delivery is peer to peer. The buyer gets the bytes directly from the seller's AIM Data install or from the seller's own cloud storage. ai.market holds the order record and issues download permission (a token, or a short-lived scoped credential or signed link on the seller's own storage). It never stores, stages, caches, relays or proxies the bytes of a delivered data file, on disk, in memory beyond a pass-through, or in any object store it owns.
 - Owner: `vulcan`
-- Last verified: `2026-09-22`
+- Last verified: `2026-10-01`
 - Aliases: P2P delivery rule, peer-to-peer delivery, no custody of delivered files, delivery custody, automatic rejection reason, stream-to-disk, /tmp/fulfillment
 - Error signatures: none
 - Status: current
@@ -979,6 +979,15 @@
 - Last verified: `2026-07-04`
 - Aliases: none
 - Error signatures: none
+- Status: current
+
+## Railway region placement and consolidation
+- Path: `railway-region-placement.md`
+- Purpose: **Rule (Max, 2026-10-01, Event `ec51bcab`):** run each service in the region with the lowest latency to what it talks to. In practice that means the region of its datastores. For `ai-market` and `infisical secrets-management.`, Postgres, Redis and Qdrant are in `us-west2` and have volumes there, so their app services belong in `us-west2`. A service in another region pays a cross-continent round trip on every query. S1786 measured this on the connector: 6 to 8 of 12 limiter calls to Redis missed their 100 ms budget from `us-east4`, against 12 of 12 after the move (see customer-mcp-connector.md "Gate 4 Step 3 done").
+- Owner: `unassigned`
+- Last verified: `2026-10-01`
+- Aliases: region move, region consolidation, us-west2, us-east4, multiRegionConfig, service placement, latency region
+- Error signatures: limiter Redis budget exceeded
 - Status: current
 
 ## Reload when idle (T-2026-000602)

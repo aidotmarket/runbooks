@@ -1,7 +1,7 @@
 ---
 title: Data delivery is peer-to-peer only (ai.market never holds a delivered file)
 owner: vulcan
-last_verified: '2026-09-22'
+last_verified: '2026-10-01'
 aliases: [P2P delivery rule, peer-to-peer delivery, no custody of delivered files, delivery custody, automatic rejection reason, stream-to-disk, /tmp/fulfillment]
 error_signatures: []
 ---
@@ -34,7 +34,18 @@ Any Council voter (GLM, DeepSeek, Gemini) or peer (Vulcan, Mars) reviewing a spe
 
 The Council request standard (`REVIEW_PROTOCOL`, see `runbooks/council.md`) carries this reason once the S1737 change to it merges; until then include this paragraph in the request body of any delivery-touching review.
 
-## Current state (verified 2026-09-22, S1737, backend `origin/main` 6acf09761)
+## Current state (verified 2026-10-01, S1790, backend `origin/main` 42c7cda6)
+
+No path on ai.market carries, stages or relays delivered bytes. Chunk F (spec `specs/AIM-DATA-LEGACY-REMOVAL-S1756.md`, backend #566, migration `s1790_legacy_delivery_removal`) deleted the legacy trust-channel fulfilment, `DeliveryService` (`_queue_delivery_request`, `stream_from_vz`), the `/tmp/fulfillment` staging in `fulfillment_listener_service.py`, the delivery staging task, raw-download and AIM Data device-S3 doors, manifest delivery and AIM `relay_mode`, and dropped the six delivery tables. Outside checks after deploy: `GET /api/v1/deliveries/<uuid>`, `POST /api/v1/vz/register` and `GET /orders/<uuid>/download-file` return 404.
+
+| Path | What it does | Live? |
+| --- | --- | --- |
+| AIM Data gateway direct delivery | Buyer downloads from the seller's own gateway door under ai.market-signed permission | Yes (flag-gated) |
+| Seller Workspace (AWS S3 / Cloudflare R2) | Buyer downloads from the seller's bucket with a scoped, short-lived credential | Yes |
+| Public-URL reference listings | Buyer is given the public source URL | Yes |
+| Listing public sample (`listing_asset_store.py`, `public_sample_service.py`) | Stores and serves the seller-chosen public sample | Kept: permitted public-sample exception (Max S1739, CORE v9.19) |
+
+### History: state before chunk F (verified 2026-09-22, S1737, backend `origin/main` 6acf09761)
 
 | Path | What it does today | Live? | Plan step / ticket |
 | --- | --- | --- | --- |
@@ -78,7 +89,7 @@ cd /Users/max/Projects/ai-market && DSN="$(scripts/test-db-dsn.sh 2>/dev/null)" 
   -c "select 'relay_sessions', count(*) from aim_sessions where connection_mode='relay'" \
   -c "select 'delivery_tables_present', count(*) from information_schema.tables where table_schema='public' and table_name in ('order_staging','transfer_session_members','transfer_chunk_receipts','transfer_part_receipts','order_delivery_members','buyer_download_meter')" \
   -c "select 'sample_rows (allowed)', (select count(*) from listing_sample_assets)+(select count(*) from seller_sample_assets)+(select count(*) from listing_asset_tombstones)"; unset DSN
-# Before the storage deletion ships, the six delivery tables still exist: also run  select (select count(*) from order_staging)+(select count(*) from transfer_session_members)+(select count(*) from transfer_chunk_receipts)+(select count(*) from transfer_part_receipts)+(select count(*) from order_delivery_members)+(select count(*) from buyer_download_meter);  and expect 0.
+# Before chunk F (2026-10-01) the six delivery tables existed and this check applied; they are now dropped:  select (select count(*) from order_staging)+(select count(*) from transfer_session_members)+(select count(*) from transfer_chunk_receipts)+(select count(*) from transfer_part_receipts)+(select count(*) from order_delivery_members)+(select count(*) from buyer_download_meter);  and expect 0.
 ```
 
 Expected: `MULTI_FILE_DATASETS_ENABLED`, `DEMO_FULFILLMENT` `<unset>` or `false`, `FULFILLMENT_STAGING_DIR` `<unset>`; `delivery_objects 0`, `delivery_multipart_uploads 0`, `other_prefix_objects 0`; disk `ABSENT` or `0`; `legacy_row_columns`, `datasets_sample_data` and `relay_sessions` 0; `relay_columns_present` 0 once the storage deletion has shipped (before it, also run `select count(*) filter (where relay_mode), count(relay_registered_at) from aim_nodes` and expect 0, 0); `delivery_tables_present` 0 once the storage deletion has shipped (6 before, with 0 rows). Sample objects and sample rows are allowed (seller-chosen public samples, CORE v9.19) and are reported for information only. Anything else: see below.
