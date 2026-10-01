@@ -14,7 +14,7 @@ error_signatures:
 
 **Fetch trigger:** before Council dispatch or voter validation.
 
-> **Superseded roster (Max `d0a534e6`, 2026-10-01):** the current panel is GLM, DeepSeek and codex2, unanimous; CC is non-voting; Gemini is not dispatched. See `runbooks/council.md` CURRENT PANEL. The d50cbd80 package and tiering rules still apply; its CC roster does not.
+> **Current panel (Max `d0a534e6`, 2026-10-01):** the current panel is GLM, DeepSeek and codex2, unanimous; CC is non-voting; Gemini is not dispatched. See `runbooks/council.md` CURRENT PANEL. The d50cbd80 package and tiering rules still apply; its CC roster does not.
 >
 > **Earlier ACTIVE OVERRIDE - Max S1738, Event Ledger `d50cbd80` (2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review. CC holds the third voting seat with GLM and DeepSeek; the full panel remains unanimous. Apply the option A package standard and option C tiering and raiser-only fold re-review in `runbooks/council.md` ACTIVE OVERRIDE to the older roster and dispatch text below.
 >
@@ -59,7 +59,7 @@ separate current gateway tool.
 
 Source: CORE §5.
 
-> **Superseded roster (Max `d0a534e6`, 2026-10-01):** the current panel is GLM, DeepSeek and codex2, unanimous; CC is non-voting; Gemini is not dispatched. See `runbooks/council.md` CURRENT PANEL. The d50cbd80 package and tiering rules still apply; its CC roster does not. **S1721 base roster, subject to the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`:** GLM, DeepSeek and Gemini form the base panel. Through 2026-10-05 CC holds Gemini's seat, Gemini is not dispatched, and unanimity applies. Kimi is removed. All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and dispatch configuration live in `infra:council-comms`.
+> **Current panel (Max `d0a534e6`, 2026-10-01):** the current panel is GLM, DeepSeek and codex2, unanimous; CC is non-voting; Gemini is not dispatched. See `runbooks/council.md` CURRENT PANEL. The d50cbd80 package and tiering rules still apply; its CC roster does not. **S1721 base roster, subject to the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`:** GLM, DeepSeek and Gemini form the base panel. Through 2026-10-05 CC holds Gemini's seat, Gemini is not dispatched, and unanimity applies. Kimi is removed. All voters evaluate independently across all dimensions. No assigned specialties — strengths emerge from debate. Frontier models only, always. Current model strings and dispatch configuration live in `infra:council-comms`.
 
 > Vulcan and Mars are two cooperating frontier-model instances (current model strings live in the registry, not here), **peers of equal authority** over shell, git, dispatch, and Living State.
 

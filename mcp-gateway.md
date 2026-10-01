@@ -66,7 +66,7 @@ handlers require restarting `koskadeux_server.py` (`com.koskadeux.mcp`), not the
 | `lilly_server.py` | — | `com.koskadeux.lilly` | Companion service. |
 | `council-hall` | — | `com.koskadeux.council-hall` | Council hall service. |
 
-For current review dispatch, follow the CURRENT PANEL block in `runbooks/council.md` (Max `d0a534e6`, 2026-10-01): GLM, DeepSeek and codex2, unanimous; CC non-voting; Gemini not dispatched. Superseded wording follows. Previously: follow the d50cbd80 ACTIVE OVERRIDE in
+For current review dispatch, follow the CURRENT PANEL block in `runbooks/council.md` (Max `d0a534e6`, 2026-10-01): GLM, DeepSeek and codex2, unanimous; CC non-voting; Gemini not dispatched. The d50cbd80 option A package standard and option C tiering still apply. Superseded roster wording follows. Previously: follow the d50cbd80 ACTIVE OVERRIDE in
 `runbooks/council.md`: GLM and DeepSeek are required, CC holds Gemini's third
 voting seat through 2026-10-05, Gemini is not dispatched, and the panel is
 unanimous. Its option A package standard and option C tiering also apply.
