@@ -22,7 +22,7 @@ error_signatures:
 
 This runbook supersedes the retired Primary/Worker discipline: `vulcan` and `mars` are two cooperating instances of the same frontier model with equal authority over shell, git, dispatch, and Living State.
 
-**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+**Superseded roster (Max `d0a534e6`, 2026-10-01):** the current panel is GLM, DeepSeek and codex2, unanimous; CC is non-voting; Gemini is not dispatched. See `runbooks/council.md` CURRENT PANEL. The d50cbd80 package and tiering rules below still apply; its CC roster does not. **Earlier override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
 
 ## Capabilities
 

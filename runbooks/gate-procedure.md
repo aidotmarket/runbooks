@@ -14,7 +14,7 @@ error_signatures:
 
 **Fetch trigger:** authoring, review, build dispatch, or gate recovery.
 
-**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+**Superseded roster (Max `d0a534e6`, 2026-10-01):** the current panel is GLM, DeepSeek and codex2, unanimous; CC is non-voting; Gemini is not dispatched. See `runbooks/council.md` CURRENT PANEL. The d50cbd80 package and tiering rules below still apply; its CC roster does not. **Earlier override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
 
 **Source:** CORE §5.
 
@@ -53,7 +53,7 @@ Source: CORE §5.
 
 > CCP is the **full-ceremony gate flow, reserved for expensive-to-reverse work** (schema, auth, money, customer data) per the Charter's risk sizing. Low-risk reversible internal work does not run the full CCP — it gets one reviewer, one round.
 
-> **Voters:** Under the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`, GLM and DeepSeek are required, CC holds Gemini's third seat through 2026-10-05, and Gemini is not dispatched. The panel is unanimous. The two instances orchestrate and synthesize; never voters. Max is final authority, not a voter. MP builds; it never votes on its own work. Kimi is removed.
+> **Superseded roster (Max `d0a534e6`, 2026-10-01):** the current panel is GLM, DeepSeek and codex2, unanimous; CC is non-voting; Gemini is not dispatched. See `runbooks/council.md` CURRENT PANEL. The d50cbd80 package and tiering rules below still apply; its CC roster does not. **Voters:** Under the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md`, GLM and DeepSeek are required, CC holds Gemini's third seat through 2026-10-05, and Gemini is not dispatched. The panel is unanimous. The two instances orchestrate and synthesize; never voters. Max is final authority, not a voter. MP builds; it never votes on its own work. Kimi is removed.
 
 > - **Round 1 (Positions):** voters evaluate independently, full position, each sees only the spec.
 > - **Round 2 (Debate):** voters see Round 1 positions; react, challenge, concede, or hold.
