@@ -63,8 +63,8 @@ Files, all in `koskadeux-state/s1786/`:
 
 | File | sha256 |
 |---|---|
-| `region_consolidate.py` | `ff952d26698ed902374d32cd869d38809b22a50c7cb73294fb83d404778724ef` |
-| `test_region_consolidate.py` | `545ea79191c9dfbb46a63a084cee093624c1c4d323d1484ff3727bb21c7618df` |
+| `region_consolidate.py` | `80d2a49bd0071022052e53a8df0a04f9bc0e5df8bcc4329eb0b8f4eb43fbffa0` |
+| `test_region_consolidate.py` | `6ef3905ee8f4c36acda088a33d2bfa27a47b3158cc0bd7e6ee0a8b07606a8897` |
 | `region_inventory.py` | `76cc3f906d2c9401a19847eb028fa02d459a68710a95861ff5523d559561dfca` |
 
 The offline tests cover these cases:
@@ -105,7 +105,7 @@ The offline tests cover these cases:
 - settlement within the recovery deadline;
 - recovery and restore both using the settling pass.
 
-All 43 pass. The watcher readiness pattern was checked against live logs: `receipts/watcher-readiness-sample.json` shows 28 matching lines in 113.
+All 46 pass. The watcher readiness pattern was checked against live logs: `receipts/watcher-readiness-sample.json` shows 28 matching lines in 113.
 
 The tool is a dry run unless `--execute` is given, handles one service per call, and journals every step to `receipts/consolidation-journal.jsonl`.
 
@@ -122,12 +122,12 @@ The tool is a dry run unless `--execute` is given, handles one service per call,
    8. `gateway-signer`
    9. `Infisical`
 
-   Stop at the first nonzero exit. The move target is the captured config with its single region replaced by `us-west2`, so the replica count is preserved. If the placement update does not start a deployment within 45 seconds, the tool redeploys the **running deployment's own image** with `deploymentRedeploy(id, usePreviousImageTag: true)`. It never uses `serviceInstanceRedeploy`, which builds the branch head (see the first live attempt below).
+   Stop at the first nonzero exit. The move target is the captured config with its single region replaced by `us-west2`, so the replica count is preserved. Right after the placement update the tool deploys explicitly and pins acceptance to the deployment it created. A repo-built service gets `serviceInstanceDeployV2(commitSha = the captured commit)`, which uses the service's new placement and the captured code. An image-sourced service gets `serviceInstanceRedeploy`, which pulls its configured image. Recovery uses the same call with the captured placement and the same captured commit, so it restores the captured code as well. `serviceInstanceRedeploy` is never used on a repo service: it builds the branch head (see the first live attempt below). A deployment redeploy is not used either, because it keeps that deployment's own configuration.
 
    A service is accepted only when all of these hold, read **after** readiness:
    - the latest deployment is the one this call created, and its status is `SUCCESS` (cron: `SUCCESS` or `SLEEPING`);
    - its `multiRegionConfig` equals the target exactly, region and replicas;
-   - its image digest, commit and deploy manifest equal the captured ones;
+   - its commit and deploy manifest equal the captured ones; for an image-sourced service (no commit), its image digest too. A repo-built service is rebuilt in the new region, so its digest can differ;
    - RUNNING instances exist only on that deployment and equal its replica count. For cron, zero are RUNNING once any triggered run has finished; the cron predecessor is covered by this same check across all deployments;
    - `api.ai.market/health` returns 200;
    - its readiness check passes:
@@ -156,7 +156,7 @@ The tool is a dry run unless `--execute` is given, handles one service per call,
 
 ## First live attempt (S1786, 2026-10-01 18:14–18:21 UTC)
 
-Under a peer HOLD, capture ran and `move ai-market-backup --execute` started. The placement update did not start a deployment, so the tool (then v11, sha256 `787f87c0…`) sent `serviceInstanceRedeploy`. Railway built the branch head, backend `main` `9b2b276b`, not the running commit `20eb5d72`; the us-west2 deployment `008c7cb2` reached `SUCCESS` with a different image digest. Acceptance correctly refused it (`image_same: false`) and recovery put the service back in `us-east4` (deployment `628a63ba`, `SUCCESS`, original digest, exit 2). The service now runs `9b2b276b` in its original region. No other service was touched; the HOLD was released. v12 redeploys the exact previous image and also compares the commit. The run needs a fresh capture, because the 18:14 receipt has no commit field and the backup deployment changed.
+Under a peer HOLD, capture ran and `move ai-market-backup --execute` started. The placement update did not start a deployment, so the tool (then v11, sha256 `787f87c0…`) sent `serviceInstanceRedeploy`. Railway built the branch head, backend `main` `9b2b276b`, not the running commit `20eb5d72`; the us-west2 deployment `008c7cb2` reached `SUCCESS` with a different image digest. Acceptance correctly refused it (`image_same: false`) and recovery put the service back in `us-east4` (deployment `628a63ba`, `SUCCESS`, original digest, exit 2). The service now runs `9b2b276b` in its original region (deployment `628a63ba` metadata: commit `9b2b276ba5de4d9b9faa142e2e08590186545d96`, digest `sha256:e1398b28…`, the same digest as before the attempt). No other service was touched; the HOLD was released. v13 deploys the captured commit explicitly in the new placement and treats the commit as the code identity. The run needs a fresh capture, because the 18:14 receipt has no commit field and the backup deployment changed.
 
 ## When it breaks
 
