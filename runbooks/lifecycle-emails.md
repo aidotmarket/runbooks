@@ -78,7 +78,7 @@ mail directly.
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan | Verify exact production SHA and observe task results | Read-only deployment identity and sanitized task evidence | Read-only until a separately reviewed deployment or rollback is authorized | COMPLETE — exact deployment and the successful operator-triggered daily selection/claim sweep are recorded; drain/delivery and recipient inbox delivery were not re-verified |
+| Vulcan | Verify exact production SHA and observe task results | Read-only deployment identity and sanitized task evidence | Read-only until a separately reviewed deployment or rollback is authorized | COMPLETE — exact deployment and the successful operator-triggered daily selection/claim sweep are recorded; drain/delivery and recipient inbox delivery were not re-verified in S1588 (S1786 later verified them; see the S1786 section) |
 
 ## How to operate
 
