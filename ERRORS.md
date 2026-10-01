@@ -1052,6 +1052,10 @@
 
 - [Listing licences and signed records](runbooks/listing-licenses.md)
 
+## `limiter Redis budget exceeded`
+
+- [Railway region placement and consolidation](railway-region-placement.md)
+
 ## `Listing published, disclosure snapshot pending`
 
 - [AIM Data Seller Publish Journey](aim-data-seller-publish-journey.md)
