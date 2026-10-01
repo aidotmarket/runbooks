@@ -1751,13 +1751,12 @@ Follow the watcher's normal release procedure (`issue-channel.md`) after Gate 3.
 
 ### 4.6 Controlled proofs (non-customer test host)
 
-On Koskadeux, run the pinned connector image locally with:
+On Koskadeux, run the pinned connector image locally, using the Step 5 test-host kit and harness (S1786; `koskadeux-state/s1786/step5-kit/`, files and sha256 pinned in §5.2 and `SHA256SUMS`, rehearsed end to end on 2026-10-01). The image's verifier only trusts the canonical issuer and JWKS URL, so a "local issuer" cannot work on its own; the harness serves the local public JWKS for the canonical URL in-process (§5.2 **Harness**), with the §5.2 token recipe (EC P-256, ES256, `typ=at+jwt`, all required claims). Differences from §5.2:
 
-- `OTEL_RESOURCE_ATTRIBUTES=service.namespace=s1786-test` and the same OTLP token;
-- a disposable local Postgres with the connector schema, where the runtime role has **no** `INSERT` on `connector_audit_events`, so every required audit write fails;
-- local Redis;
-- `CONNECTOR_ENABLED=true` and the global row `disabled=false` in that database only;
-- a grant row and signing material created in the local database for a local test user, using a local issuer and keyset (never production keys or users).
+- `OTEL_RESOURCE_ATTRIBUTES=service.namespace=s1786-test`, the same OTLP endpoint and token as production, and `OTEL_SERVICE_NAME=ai-market-connector`;
+- the kit's fixtures for the user, organization, client, auth session, grant and the global switch row; listings, tool switch rows and Qdrant are not needed (the one failing call uses `get_my_account`, which needs no tool row);
+- the runtime role gets the kit's `runtime_grants.sql` **minus** `INSERT` on `connector_audit_events`, so every required audit write fails; verify with `has_table_privilege(<runtime role>, 'connector_audit_events', 'INSERT') = false` before starting;
+- local Redis; `CONNECTOR_ENABLED=true` and the global row `disabled=false` in that database only; never production keys, users or data.
 
 Install the test group `connector-audit-s1786-test`. It contains exactly three rules, each with the label `test: "true"`:
 
@@ -1773,7 +1772,7 @@ Wait until `/alertmanager/api/v2/alerts` lists `ConnectorAlertingWatchdogTest`. 
 - The test series carry `job="s1786-test/ai-market-connector"`.
 - No series from the test host carries `job="ai-market-connector"`.
 
-**Failure proof.** As soon as `/readyz` is 200, make exactly one `tools/call`.
+**Failure proof.** As soon as `/readyz` is 200, make exactly one `tools/call` (`get_my_account`, with the kit's `run_calls.py` token and `Host: connect.ai.market`).
 
 - Within 3 minutes `ConnectorAuditWriteFailures` (test) fires with `failures` ≥ 1.
 - The watcher creates exactly one `[TEST]` ticket.
