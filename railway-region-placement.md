@@ -36,9 +36,9 @@ A region change writes only `multiRegionConfig`. Railway then starts a new deplo
 
   This trades duplicate emission for a pause of a few minutes. The pause is bounded:
 
-- **One deadline per pass.** Every Beat pass, move or recovery, runs under one 12-minute monotonic deadline. It covers stop, zero-RUNNING confirmation, deployment discovery, deployment, readiness and acceptance. Every wait inside the pass is capped by what is left of it, and a pass that runs out of time fails.
-- **Admission reserves recovery time.** The move is admitted only if at least 27 minutes remain before the next Beat crontab tick: one move pass, one full recovery pass, and 3 minutes of margin. This is checked at precheck and again immediately before Beat is stopped.
-- **Recovery is never refused for clearance.** If the move fails, the recovery pass runs at once under its own 12-minute deadline. While Beat is down, a tick can be missed but never duplicated.
+- **One deadline per pass.** Every Beat pass, move or recovery, runs under one 12-minute monotonic deadline. It covers stop, zero-RUNNING confirmation, deployment discovery, deployment, readiness and acceptance. Every wait, sleep, Railway request (including each page of the deployment listing) and health request inside the pass is capped by what is left of it. A request that would start after the deadline is refused. Acceptance that finishes after the deadline is a failure.
+- **Admission reserves recovery time.** The move is admitted only if at least 27 minutes remain before the next Beat crontab tick: one move pass, one full recovery pass, and 3 minutes of margin. This is checked at precheck and again immediately before Beat is stopped. A refusal at either check changes nothing and exits 3; recovery runs only if a mutation was actually attempted.
+- **Recovery is never refused for clearance.** If the move fails after a mutation, the recovery pass runs at once under its own 12-minute deadline. A standalone `restore` skips the clearance check too. While Beat is down, a tick can be missed but never duplicated.
 
 The crontab ticks (UTC) are:
 
@@ -63,8 +63,8 @@ Files, all in `koskadeux-state/s1786/`:
 
 | File | sha256 |
 |---|---|
-| `region_consolidate.py` | `1fa2f2e0d30f4945514c71640d2c08cc285834989dc049ff3740de483e3038c3` |
-| `test_region_consolidate.py` | `ca47d342c924976b4682df65bfa44730a86df4b3d81d50d0e6710432e065343c` |
+| `region_consolidate.py` | `32f6d8ca1afe530ce146d07084be8278f674c6d227fea420ca5c6c9aca8c2451` |
+| `test_region_consolidate.py` | `3fcb5e7ca5ffaaecb29d3acbee87ab3f8fd0c7913538c945232b7c00a870c0e3` |
 | `region_inventory.py` | `76cc3f906d2c9401a19847eb028fa02d459a68710a95861ff5523d559561dfca` |
 
 The offline tests cover these cases:
@@ -84,9 +84,14 @@ The offline tests cover these cases:
 - a failed Beat move running recovery without a clearance check;
 - the clearance check applying only on admission;
 - a single deadline capping every wait;
-- a move refused when the image changed since capture.
+- a move refused when the image changed since capture;
+- a second-check admission refusal exiting 3 with zero mutations;
+- a failure before any mutation not triggering recovery;
+- a standalone restore ignoring clearance;
+- request timeouts capped by the deadline and refused after it;
+- acceptance after the deadline failing.
 
-All 18 pass. The watcher readiness pattern was checked against live logs: `receipts/watcher-readiness-sample.json` shows 28 matching lines in 113.
+All 23 pass. The watcher readiness pattern was checked against live logs: `receipts/watcher-readiness-sample.json` shows 28 matching lines in 113.
 
 The tool is a dry run unless `--execute` is given, handles one service per call, and journals every step to `receipts/consolidation-journal.jsonl`.
 
