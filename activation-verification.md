@@ -1,7 +1,7 @@
 ---
 title: Activation Verification Runbook
 owner: unassigned
-last_verified: '2026-07-11'
+last_verified: '2026-10-01'
 aliases: []
 error_signatures: []
 ---
@@ -45,7 +45,7 @@ Canonical six-service scope for this runbook:
 | `koskadeux-mcp` (`com.koskadeux.mcp`) | Koskadeux `launchd`, local Python on `:8765` | `launchctl kickstart -k gui/$UID/com.koskadeux.mcp` | `http://127.0.0.1:8765/health` |
 | `ai-market-backend` | Railway production | `git push origin main` triggers async auto-deploy | `https://api.ai.market/health` |
 | `ai-market-frontend` | Railway service `ai-market-frontend` | merge to `main` triggers a Railway deploy | `https://ai.market/` |
-| `ops.ai.market` | Cloudflare Pages | `git push origin main` triggers Pages deploy | `https://ops.ai.market/` |
+| `ops.ai.market` | Railway static site (see `ops-ai-market.md`) | merge to `main` triggers a Railway deploy | `https://ops.ai.market/` |
 | `council-hall` (`com.koskadeux.council-hall`) | Koskadeux `launchd`, FastAPI on `:8770` | `launchctl kickstart -k gui/$UID/com.koskadeux.council-hall` | `http://127.0.0.1:8770/health` |
 | `ag_server` (`com.koskadeux.ag_server`) | Koskadeux `launchd`, FastAPI on `:8766` | `launchctl kickstart -k gui/$UID/com.koskadeux.ag_server` | `http://127.0.0.1:8766/health` |
 Interpretation rules:
@@ -145,15 +145,15 @@ curl -fsS https://ai.market/ | grep -F "<marker introduced by the change>"
 Expected output: the changed DOM marker, copy, metadata tag, or asset URL is
 present on the live site. Pages behind sign-in render client-side, so for those
 grep the page's own JS chunk instead: fetch the page HTML, take its
-`/_next/static/chunks/...js` URLs and grep them for the new copy.
+`/_next/static/chunks/...js` URLs and grep them for the new copy. This can miss chunks loaded later through the Next.js build manifest, and only copy written verbatim in the source is greppable, so a miss is not proof of absence; a hit is proof of presence.
 
 Confirm the Railway deployment ran for the merge commit (Railway auth per
-`koskadeux.md`, "Railway auth / env"). The Deploy Receipt workflow only waits
-120 s and checks for HTTP 200, so it is not proof on its own:
+`koskadeux.md`, "Railway auth / env"). The Deploy Receipt workflow waits 120 s, then polls up
+to 12 x 15 s for HTTP 200; it never checks the commit, so it is not proof on its own:
 ```bash
 source ~/bin/railway-env.sh
 cd /Users/max/Projects/ai-market/ai-market-frontend
-railway deployment list --service ai-market-frontend --json   # newest entry: status SUCCESS, meta.commitHash = merge SHA
+railway deployment list -e production --service ai-market-frontend --json   # newest entry: status SUCCESS, meta.commitHash = merge SHA
 ```
 **4. `ops.ai.market`**
 Identify:
