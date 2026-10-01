@@ -1781,12 +1781,12 @@ Wait until `/alertmanager/api/v2/alerts` lists `ConnectorAlertingWatchdogTest`. 
 
 Then restore the rule. Wait until Alertmanager lists it again and the issue resolves after two complete observations. No issue may name `connector-audit`.
 
-**Expected test tickets in total:** six, all prefixed `[TEST]`:
+**Expected test tickets in total:** five, all prefixed `[TEST]`:
 
-- two from the failure proof plus three from its phase coverage;
+- one from the first failure plus three from phase coverage;
 - one from the no-data proof;
 
-plus one `[TEST]` watchdog issue, also written as a ticket. That makes seven artifacts.
+plus one `[TEST]` watchdog issue, also written as a ticket. That makes six artifacts.
 
 **Cleanup.**
 
