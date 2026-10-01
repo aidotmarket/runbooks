@@ -300,7 +300,7 @@
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
 
-## `child setpgid`
+## `child setpgid: Operation not permitted`
 
 - [Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)](koskadeux.md)
 
@@ -1251,10 +1251,6 @@
 ## `open_response_schema_mismatch`
 
 - [Council Hall Deliberation](runbooks/council-hall-deliberation.md)
-
-## `Operation not permitted`
-
-- [Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)](koskadeux.md)
 
 ## `operator does not exist: userstatus = character varying`
 

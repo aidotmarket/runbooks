@@ -167,6 +167,8 @@ Canonical value: Infisical `ai-market-backend` (project `bd272d48-…`), `prod`,
 5. Koskadeux: `/Users/max/koskadeux-mcp/.env`. `koskadeux_server.py` calls `load_dotenv(.env, override=True)`, so this file wins over anything the launcher exports. Replace the one line from Infisical (never print the value; verify equality), then `launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp`. Missed in T-909: the restarted MCP kept sending the old key and Living State writes, the peer bus, support tickets and `kd_session_close` all returned HTTP 401 `Invalid or missing Internal API Key`.
 6. The e2e harness reads it at run time; nothing to restart.
 
+Other Koskadeux jobs pick up a rotation by themselves: `com.koskadeux.railway-alert-parity` fetches the key from Infisical backend prod on every run (`bin/railway-alert-parity-env.sh`), and `com.koskadeux.ticket-probe-reconciler` re-reads `koskadeux-mcp/.env` on its next interval, so item 5 covers it. The gateway does not use this key.
+
 Verify: backend heartbeat 200 with the new key, a Living State event write, `peer_msg_inbox`, and a support-ticket read.
 
 ### Koskadeux `.env` shadow copies

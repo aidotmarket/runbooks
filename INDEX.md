@@ -789,7 +789,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-07-17`
 - Aliases: Titan-1, titan-1.md
-- Error signatures: launchd user jobs exit 78 after a Koskadeux reboot, child setpgid, Operation not permitted
+- Error signatures: launchd user jobs exit 78 after a Koskadeux reboot, child setpgid: Operation not permitted
 - Status: current
 
 ## Lifecycle Emails

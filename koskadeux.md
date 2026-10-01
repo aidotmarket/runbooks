@@ -7,8 +7,7 @@ aliases:
 - titan-1.md
 error_signatures:
 - launchd user jobs exit 78 after a Koskadeux reboot
-- 'child setpgid'
-- Operation not permitted
+- 'child setpgid: Operation not permitted'
 ---
 
 # Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)
