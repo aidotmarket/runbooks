@@ -1675,6 +1675,7 @@ Alerts are evaluated in Grafana Cloud, not by any host we run. They reach the is
    - recurrence with the same fingerprint → new episode;
    - silenced → suppressed, not resolved;
    - one expected group's watchdog missing while another group's is present → exactly one missing-watchdog issue naming that group;
+   - missing-watchdog recovery: one healthy observation does not resolve; two consecutive complete observations with the watchdog present and unsilenced do; a silenced or incomplete observation never counts;
    - unreachable or malformed responses → incomplete;
    - `test="true"` → `[TEST]` prefix.
 
