@@ -72,7 +72,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   trigger: Key compromise or scheduled rotation
   pre_conditions:
     - Maintenance window (brief Qdrant + backend restart)
-  tool_or_endpoint: Railway variableUpsert + Infisical secrets raw API
+  tool_or_endpoint: Railway variableCollectionUpsert with skipDeploys:true + Infisical secrets raw API; the Qdrant restart is E-04 (never a variable-triggered deploy)
   argument_sourcing:
     arg: new key = python secrets.token_urlsafe(48)
   idempotency: NOT_IDEMPOTENT
@@ -111,9 +111,10 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
     serviceInstanceUpdate(source.image) alone does not deploy.
     serviceInstanceRedeploy reuses the previous deployment's image reference, so a just-changed source.image is ignored.
     serviceInstanceDeployV2 deploys the instance's current source.image.
-    variableUpsert without skipDeploys auto-deployed with the previous deployment's image reference (only variableUpsert was rehearsed; treat other variable APIs the same until proven otherwise).
+    variableUpsert without skipDeploys auto-deployed (step F). In F the source and the previous deployment both held the same pinned reference, so which one a variable-triggered deploy uses is UNVERIFIED. Treat it as the risky case: assume the previous deployment's reference.
     variableDelete did not deploy within 120 s; follow it with serviceInstanceDeployV2.
-    Production deployment f60cd9f5 still carries the untagged reference qdrant/qdrant. Until a serviceInstanceDeployV2 replaces it, serviceInstanceRedeploy and variable-triggered deploys pull the newest release.
+    Production deployment f60cd9f5 still carries the untagged reference qdrant/qdrant. Until a serviceInstanceDeployV2 replaces it, serviceInstanceRedeploy pulls the newest release (shown by C), and a variable-triggered deploy may do the same (UNVERIFIED, assumed).
+    Therefore every Qdrant variable write uses skipDeploys:true (variableCollectionUpsert) and is read back. Then confirm source.image is the accepted pin, then run exactly one serviceInstanceDeployV2. variableDelete has no skipDeploys flag: run serviceInstanceDeployV2 straight after it and check that no other deployment appeared in between.
   argument_sourcing:
     arg: the service instance source.image, which must be qdrant/qdrant@sha256:<digest> (since S1786 the pin is 1.19.1, sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10)
   idempotency: NOT_IDEMPOTENT
@@ -144,8 +145,8 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   component_ref: Qdrant service
   root_cause: key missing/mismatched between Qdrant service and backend
   repair_entry_point: Railway variableUpsert (QDRANT__SERVICE__API_KEY on svc 6f7211f0; QDRANT_API_KEY on backend svc 4a68ea36) + Infisical bd272d48
-  change_pattern: set the SAME key on backend (env + Infisical) FIRST, redeploy backend, THEN set/redeploy Qdrant so the backend already authenticates when enforcement turns on
-  rollback_procedure: remove QDRANT__SERVICE__API_KEY from the Qdrant service + redeploy to revert to open (emergency only)
+  change_pattern: set the SAME key on backend (env + Infisical) FIRST, redeploy backend, THEN stage the Qdrant variable with skipDeploys:true and restart Qdrant through E-04 (serviceInstanceDeployV2), so the backend already authenticates when enforcement turns on
+  rollback_procedure: remove QDRANT__SERVICE__API_KEY from the Qdrant service, then restart through E-04, to revert to open (emergency only)
   integrity_check: E-01 (unauth 401, with-key 200) + backend /backup-status collection_source=qdrant_api
 - id: G-02
   symptom_ref: F-02
