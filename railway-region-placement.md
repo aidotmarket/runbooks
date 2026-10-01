@@ -36,10 +36,18 @@ A region change writes only `multiRegionConfig`. Railway then starts a new deplo
 
   This trades duplicate emission for a pause of a few minutes. The pause is bounded:
 
-- the new Beat must reach `SUCCESS` within 8 minutes and pass readiness within 2 minutes, or the tool restores it at once;
-- the tool requires at least 25 minutes before the next Beat crontab tick, which covers stop, deploy, readiness and a full restore with margin. It checks this at precheck and again immediately before the stop.
+- **One deadline per pass.** Every Beat pass, move or recovery, runs under one 12-minute monotonic deadline. It covers stop, zero-RUNNING confirmation, deployment discovery, deployment, readiness and acceptance. Every wait inside the pass is capped by what is left of it, and a pass that runs out of time fails.
+- **Admission reserves recovery time.** The move is admitted only if at least 27 minutes remain before the next Beat crontab tick: one move pass, one full recovery pass, and 3 minutes of margin. This is checked at precheck and again immediately before Beat is stopped.
+- **Recovery is never refused for clearance.** If the move fails, the recovery pass runs at once under its own 12-minute deadline. While Beat is down, a tick can be missed but never duplicated.
 
-The crontab ticks (UTC) are hourly at :20 and :35, plus daily at 02:45, 03:00, 04:00, 04:17, 04:30, 05:00 and 15:00. In practice Beat can move only when started between :36 and :55 past an hour that has no daily tick in the next 25 minutes. Interval tasks such as the one-minute heartbeat resume when Beat starts.
+The crontab ticks (UTC) are:
+
+- hourly at :20 and :35;
+- daily at 02:45, 03:00, 04:00, 04:30 and 15:00;
+- 05:00, which is Sunday-only but treated as daily, the safe direction;
+- 04:17, the connector audit purge from backend PR #562, counted now.
+
+In practice Beat can move only when started between :36 and :53 past an hour with no daily tick in the next 27 minutes. Interval tasks such as the one-minute heartbeat resume when Beat starts.
 - **Workers, watcher and signer.** These may briefly overlap with their predecessor, as on any deploy. Concurrent Celery workers are a supported mode. Acceptance requires the predecessor to have zero RUNNING instances before the move is reported done.
 - **Infisical** has no healthcheck, so the API can return errors while the new container starts. Native syncs push to Railway and are not affected at runtime. Move it last, with no Infisical `prod` write in flight. Its readiness check, a status 200 followed by an auth refresh, is bounded; a timeout restores it.
 - **Cron backups** (`ai-market-backup` 02:00 UTC, `infisical-backup` 03:00 UTC) move only while no execution is RUNNING. Never move them within 15 minutes of their schedule. If the deploy triggers one execution, acceptance waits up to 15 minutes for it to finish; backups are written under timestamped names. The cron schedule is part of the compared manifest.
@@ -55,8 +63,8 @@ Files, all in `koskadeux-state/s1786/`:
 
 | File | sha256 |
 |---|---|
-| `region_consolidate.py` | `049cd763741d2b4d07626dd6f5321a79c191b18b259aa1bc8d70a6bf4ff044cb` |
-| `test_region_consolidate.py` | `3040487d32c1c588c5506b5dbb9d4087c4192e93dbf3f1d8141283b7b6872441` |
+| `region_consolidate.py` | `1fa2f2e0d30f4945514c71640d2c08cc285834989dc049ff3740de483e3038c3` |
+| `test_region_consolidate.py` | `ca47d342c924976b4682df65bfa44730a86df4b3d81d50d0e6710432e065343c` |
 | `region_inventory.py` | `76cc3f906d2c9401a19847eb028fa02d459a68710a95861ff5523d559561dfca` |
 
 The offline tests cover these cases:
@@ -72,14 +80,18 @@ The offline tests cover these cases:
 - pagination past the first page of deployments;
 - an older RUNNING deployment blocking acceptance;
 - a cron run that crashes during the wait;
-- `verify` rejecting an unexpected region.
+- `verify` rejecting an unexpected region;
+- a failed Beat move running recovery without a clearance check;
+- the clearance check applying only on admission;
+- a single deadline capping every wait;
+- a move refused when the image changed since capture.
 
-All 14 pass. The watcher readiness pattern was checked against live logs: `receipts/watcher-readiness-sample.json` shows 28 matching lines in 113.
+All 18 pass. The watcher readiness pattern was checked against live logs: `receipts/watcher-readiness-sample.json` shows 28 matching lines in 113.
 
 The tool is a dry run unless `--execute` is given, handles one service per call, and journals every step to `receipts/consolidation-journal.jsonl`.
 
-1. Run `capture` once. It writes `receipts/consolidation-pre.v2.json` with the placement, deployment id, image digest, deploy manifest and volume evidence for each service, and refuses to overwrite an existing receipt.
-2. Post a peer HOLD: there must be no backend merge or deploy, and no Infisical `prod` write, while moves run. Check that no backup cron is due within 15 minutes.
+1. Post a peer HOLD: there must be no backend merge or deploy, and no Infisical `prod` write, while moves run. Check that no backup cron is due within 15 minutes.
+2. Run `capture` **after** the HOLD, immediately before the moves. It writes `receipts/consolidation-pre.v2.json` with the placement, deployment id, image digest, deploy manifest and volume evidence for each service. It refuses to overwrite an existing receipt; move a stale one to `receipts/archive/` first. `move` refuses with exit 3 if a service's image or manifest has changed since capture, which means a deploy happened. That way a routine release can never be mistaken for a failed move and rolled back.
 3. Run `move <service> --execute` in this order:
    1. `ai-market-backup`
    2. `infisical-backup`
@@ -113,7 +125,7 @@ The tool is a dry run unless `--execute` is given, handles one service per call,
    Exit codes: 0 accepted; 3 refused at precheck with nothing changed; 2 move failed and the service was restored with the same acceptance; 1 restore failed (escalate).
 4. Afterwards:
    - Run `status`.
-   - Run `verify <service> moved` (or `prior` after a restore) for any service you want to re-check. It compares against the independently expected placement, runs readiness, and exits 4 on failure.
+   - Run `verify <service> moved` (or `prior` after a restore) for any service you want to re-check. For Beat, readiness accepts the boot line or any periodic `Scheduler: Sending due task` line. It compares against the independently expected placement, runs readiness, and exits 4 on failure.
    - Check that tonight's backups at 02:00 and 03:00 UTC ran: S3 objects plus a health record with `status=ok`.
    - Check that the watcher freshness stays green ([issue-channel.md](issue-channel.md)).
    - Check that the celery worker heartbeat stays fresh.
