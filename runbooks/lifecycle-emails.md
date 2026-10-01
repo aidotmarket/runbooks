@@ -30,7 +30,7 @@ counts `{selected: 51, claimed: 51}`. No
 `operator does not exist: userstatus = character varying` log has occurred
 since deployment. This proves the repaired selection/claim path. Drain and
 delivery behavior and recipient inbox delivery were not part of this predicate
-repair and were not re-verified here. No browser verification was performed.
+repair and were not re-verified here (S1588; S1786 later verified drain and delivery, see the next section). No browser verification was performed.
 
 ## S1786 verification and buyer-and-seller copy (2026-10-01)
 
