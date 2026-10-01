@@ -796,7 +796,7 @@
 - Path: `runbooks/lifecycle-emails.md`
 - Purpose: This page records the verified state and remaining evidence gaps for Build Queue item `build:bq-signup-lifecycle-emails-s1548`. It is grounded in exact `aidotmarket/ai-market-backend` revision `77dae96fd8a80fe768091061bc3846fb1b5e8d55`. The backend deployment `480d2fdc-c1c1-46a5-a915-3986c04ab84c` completed with status `SUCCESS` and image `sha256:8c9e1ffb594e90197447aebfbda3850216771210a3cbf9f4c1d06af4f9b75fd4`. The same deployed service set records beat deployment `3b46d1e6-5385-486f-a7f2-c2a99895f839` with image `sha256:fdc8443f9fa9c8291630c39ec5e246547a45b42953c0ddaaf1f864f5a62050f4` and worker deployment `8ae9b906-3a48-44d1-9783-bf029e6f055b` with image `sha256:d965f4cd1452ff6eba1b71236547d3901f2628df1ff829a984c31ac3455642ad`.
 - Owner: `vulcan`
-- Last verified: `2026-08-20`
+- Last verified: `2026-10-01`
 - Aliases: none
 - Error signatures: operator does not exist: userstatus = character varying
 - Status: current

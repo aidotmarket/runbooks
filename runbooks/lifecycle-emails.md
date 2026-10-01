@@ -1,7 +1,7 @@
 ---
 title: Lifecycle Emails
 owner: vulcan
-last_verified: '2026-08-20'
+last_verified: '2026-10-01'
 aliases: []
 error_signatures:
 - 'operator does not exist: userstatus = character varying'
@@ -30,14 +30,19 @@ counts `{selected: 51, claimed: 51}`. No
 `operator does not exist: userstatus = character varying` log has occurred
 since deployment. This proves the repaired selection/claim path. Drain and
 delivery behavior and recipient inbox delivery were not part of this predicate
-repair and were not re-verified here. No browser verification was performed.
+repair and were not re-verified here (S1588; S1786 later verified drain and delivery, see the next section). No browser verification was performed.
+
+## S1786 verification and buyer-and-seller copy (2026-10-01)
+
+- **Delivery verified live (counts only).** A signup on 2026-10-01 received the welcome email. The operator signup notice was also sent at 12:32Z, and Resend reports both as `delivered`. Every signup in the previous 14 days (5 of 5) has a `welcome` row with `sent_at` in `lifecycle_email_sends`, and `day3` and `day7` rows are being sent. This closes the drain and delivery gap for welcome, day 3 and day 7. Statements further down that drain or delivery were "not re-verified" describe the S1588 refresh (2026-08-20) and are superseded by this section; signup-notice and attempt-notice delivery to the operator was seen in the same check, and browser verification was not done. Method: read-only prod query (`BEGIN READ ONLY`) on `lifecycle_email_sends` joined to `users`, then `GET https://api.resend.com/emails` with `RESEND_API_KEY`, matching by recipient and subject. Never paste addresses into receipts.
+- **Copy now speaks to buyers and sellers** (Max approved the text, Event `936f61f1`). The backend change is #569, merged as `cf819939e504f3c3d93cc28a1922e543ef72a9b1` and deployed (backend, celery-worker and celery-beat `SUCCESS` at that commit). Subjects: "Welcome to ai.market", "How's it going?", "Getting the most out of ai.market". Sender, timing, claims and unsubscribe are unchanged. Tests: `tests/test_s1548_lifecycle_emails_phase_b.py` and `phase_d.py` (37 passed). Any further copy change needs Max's approval of the exact text and a test update.
 
 ## Capabilities
 
 | Feature/Capability | Status | Backing Code | Test Coverage | Last Verified |
 |---|---|---|---|---|
-| Scheduled claim and drain tasks | PARTIAL | `app/core/celery_app.py; app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Focused tests cover schedules; the operator-triggered daily sweep proves live selection/claim, but scheduled execution and drain/delivery were not re-verified here | 2026-08-20 |
-| Idempotent outbox, suppression, and retry boundary | PARTIAL | `app/models/lifecycle_email_send.py; app/services/lifecycle_email_claims.py; app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Focused tests cover the boundary; live aggregate counts prove 51 selections produced 51 claims, but drain/delivery was not re-verified here | 2026-08-20 |
+| Scheduled claim and drain tasks | PARTIAL | `app/core/celery_app.py; app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Focused tests cover schedules; the operator-triggered daily sweep proves live selection/claim, but scheduled execution and drain/delivery were not re-verified here ; S1786 (2026-10-01): live drain and Resend delivery verified, see the S1786 section | 2026-10-01 |
+| Idempotent outbox, suppression, and retry boundary | PARTIAL | `app/models/lifecycle_email_send.py; app/services/lifecycle_email_claims.py; app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Focused tests cover the boundary; live aggregate counts prove 51 selections produced 51 claims, but drain/delivery was not re-verified here ; S1786 (2026-10-01): live drain and Resend delivery verified, see the S1786 section | 2026-10-01 |
 | Signed lifecycle unsubscribe | PARTIAL | `app/api/v1/endpoints/lifecycle_emails.py; app/services/lifecycle_email_unsubscribe.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | `tests/test_s1548_lifecycle_emails_phase_d.py` | 2026-08-20 |
 | Signup and attempt selection | PARTIAL | `app/tasks/lifecycle_emails.py; app/api/v1/endpoints/ops_signups.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | `tests/test_s1548_lifecycle_emails_phase_b.py; tests/test_s1548_ops_signups_phase_c.py` | 2026-08-20 |
 | Exact production deployment and repaired daily selection/claim path | SHIPPED | `app/tasks/lifecycle_emails.py@77dae96fd8a80fe768091061bc3846fb1b5e8d55` | Backend/beat/worker deployment and image identities are in Overview; live task `bd169cfa-3675-4a61-bf32-cc95c1325555` succeeded with `{selected: 51, claimed: 51}` and no matching failure log since deployment | 2026-08-20 |
@@ -46,7 +51,7 @@ repair and were not re-verified here. No browser verification was performed.
 focused test coverage, but the specific behavior was not fully re-verified live
 here. This runbook work did not rerun those backend tests. `SHIPPED` is limited
 to exact deployment identity and the repaired daily selection/claim path; it
-does not extend to drain/delivery or recipient inbox delivery.
+does not extend to drain/delivery or recipient inbox delivery (S1588 statement; superseded for welcome, day 3 and day 7 by the S1786 section).
 
 ## Architecture & interactions
 
@@ -73,7 +78,7 @@ mail directly.
 
 | Agent | Operation | Skill/Tool | Auth Scope | Coverage Status |
 |---|---|---|---|---|
-| Vulcan | Verify exact production SHA and observe task results | Read-only deployment identity and sanitized task evidence | Read-only until a separately reviewed deployment or rollback is authorized | COMPLETE — exact deployment and the successful operator-triggered daily selection/claim sweep are recorded; drain/delivery and recipient inbox delivery were not re-verified |
+| Vulcan | Verify exact production SHA and observe task results | Read-only deployment identity and sanitized task evidence | Read-only until a separately reviewed deployment or rollback is authorized | COMPLETE — exact deployment and the successful operator-triggered daily selection/claim sweep are recorded; drain/delivery and recipient inbox delivery were not re-verified in S1588 (S1786 later verified them; see the S1786 section) |
 
 ## How to operate
 
@@ -95,7 +100,7 @@ succeeded in `6.481179486960173s` with aggregate counts
 identities are recorded in Overview, and no
 `operator does not exist: userstatus = character varying` log has occurred
 since deployment. This evidence proves the repaired selection/claim path only.
-No drain/delivery, recipient inbox delivery, or browser verification was
+(S1588, superseded for delivery by the S1786 section.) No drain/delivery, recipient inbox delivery, or browser verification was
 performed as part of this runbook refresh.
 
 Retained operator evidence is counts-only: task name, time, exact deployed SHA,
@@ -155,7 +160,7 @@ models, schemas, migrations, or other callers.
 - Lifecycle delivery never targets unverified, inactive, synthetic/test, or opted-out users.
 - Day-3 suppresses only the complete-Stripe-plus-listing case.
 - Exact deployment and the repaired live daily selection/claim path are bound to the evidence in Overview and How to operate.
-- Drain/delivery and recipient inbox delivery remain separate from the repaired predicate and were not re-verified here.
+- Drain/delivery and recipient inbox delivery remain separate from the repaired predicate and were not re-verified in S1588; S1786 verified live drain and Resend delivery (see the S1786 section).
 
 ### H.2 BREAKING predicates
 
@@ -224,14 +229,14 @@ This runbook-only change does not execute those backend tests. Its retained
 acceptance evidence is the exact successful deployment plus the live
 operator-triggered task proving the repaired selection/claim path with
 counts-only output. Drain/delivery, recipient inbox delivery, and browser
-verification were outside this predicate repair and were not re-verified here.
+verification were outside this predicate repair and were not re-verified here (S1588; S1786 later verified drain and delivery).
 
 ## Maintenance
 
 ```yaml lifecycle
-last_refresh_session: S1588
-last_refresh_commit: 77dae96fd8a80fe768091061bc3846fb1b5e8d55
-last_refresh_date: 2026-08-20T20:19:19Z
+last_refresh_session: S1786
+last_refresh_commit: cf819939e504f3c3d93cc28a1922e543ef72a9b1
+last_refresh_date: 2026-10-01T21:20:00Z
 owner_agent: vulcan
 refresh_triggers:
   - any change to lifecycle task schedules, selection, suppression, outbox, retry, or unsubscribe behavior
