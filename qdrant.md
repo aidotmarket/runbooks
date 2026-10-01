@@ -111,15 +111,15 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
     serviceInstanceUpdate(source.image) alone does not deploy.
     serviceInstanceRedeploy reuses the previous deployment's image reference, so a just-changed source.image is ignored.
     serviceInstanceDeployV2 deploys the instance's current source.image.
-    A variable change without skipDeploys auto-deploys with the previous deployment's image reference.
+    variableUpsert without skipDeploys auto-deployed with the previous deployment's image reference (only variableUpsert was rehearsed; treat other variable APIs the same until proven otherwise).
     variableDelete did not deploy within 120 s; follow it with serviceInstanceDeployV2.
     Production deployment f60cd9f5 still carries the untagged reference qdrant/qdrant. Until a serviceInstanceDeployV2 replaces it, serviceInstanceRedeploy and variable-triggered deploys pull the newest release.
   argument_sourcing:
     arg: the service instance source.image, which must be qdrant/qdrant@sha256:<digest> (since S1786 the pin is 1.19.1, sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10)
   idempotency: NOT_IDEMPOTENT
   expected_success:
-    shape: new deployment SUCCESS, meta.imageDigest equals the pinned digest, GET / version unchanged, every collection green with unchanged points_count
-    verification: compare digest, version and per-collection points_count before and after
+    shape: new deployment SUCCESS, meta.imageDigest equals the pinned digest, GET / version unchanged, every collection present and green with points_count at least 99% of the pre-restart record (the backend keeps writing and deleting while Qdrant runs; a larger drop is an open blocker, explained only by matching outbox delete activity)
+    verification: compare digest, version, the collection list and per-collection points_count before and after
   expected_failures:
     - signature: Qdrant redeploy digest differs
       cause: serviceInstanceRedeploy reuses the previous deployment's image reference and ignores a just-changed source.image. Before S1786 the deployment image was untagged qdrant/qdrant, so a redeploy pulled the newest release (S1786, 2026-10-01, 1.18.2 to 1.19.1).
@@ -160,7 +160,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   component_ref: Qdrant service
   root_cause: serviceInstanceRedeploy does not apply a just-changed source.image; it redeploys the previous image reference
   repair_entry_point: Railway GraphQL serviceInstanceUpdate(source.image) on svc 6f7211f0
-  change_pattern: Do not roll back to the older version. Qdrant does not support opening storage with an older release after a newer one has opened it. Check health first (GET / version, every collection green, points_count matches the record). Then set source.image to qdrant/qdrant@<running digest> with no deploy. This is containment only: the running deployment still carries the old image reference (untagged after S1786), and serviceInstanceRedeploy or a variable-triggered deploy would reuse it and could pull another release. The exposure stays open until the next restart goes through E-04 (serviceInstanceDeployV2) and that deployment's meta.image reads qdrant/qdrant@<digest>. Record an Event and correct this page.
+  change_pattern: Do not roll back to the older version. Qdrant does not support opening storage with an older release after a newer one has opened it. Check health first (GET / version, every collection green, points_count at least 99% of the record). Then set source.image to qdrant/qdrant@<running digest> with no deploy. This is containment only: the running deployment still carries the old image reference (untagged after S1786), and serviceInstanceRedeploy or a variable-triggered deploy would reuse it and could pull another release. The exposure stays open until the next restart goes through E-04 (serviceInstanceDeployV2) and that deployment's meta.image reads qdrant/qdrant@<digest>. Record an Event and correct this page.
   rollback_procedure: restore collections from S3 snapshots or rebuild from Postgres (G-02) only if storage is damaged
   integrity_check: E-03 plus every collection green and the instance source.image equal to the running digest; closed only when a later E-04 deployment shows meta.image pinned to the digest
 ```
