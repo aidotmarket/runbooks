@@ -981,6 +981,15 @@
 - Error signatures: none
 - Status: current
 
+## Railway region placement and consolidation
+- Path: `railway-region-placement.md`
+- Purpose: **Rule (Max, 2026-10-01, Event `ec51bcab`):** run each service in the region with the lowest latency to what it talks to. In practice that means the region of its datastores. For `ai-market` and `infisical secrets-management.`, Postgres, Redis and Qdrant are in `us-west2` and have volumes there, so their app services belong in `us-west2`. A service in another region pays a cross-continent round trip on every query. S1786 measured this on the connector: 6 to 8 of 12 limiter calls to Redis missed their 100 ms budget from `us-east4`, against 12 of 12 after the move (see customer-mcp-connector.md "Gate 4 Step 3 done").
+- Owner: `unassigned`
+- Last verified: `2026-10-01`
+- Aliases: region move, region consolidation, us-west2, us-east4, multiRegionConfig, service placement, latency region
+- Error signatures: limiter Redis budget exceeded
+- Status: current
+
 ## Reload when idle (T-2026-000602)
 - Path: `runbooks/reload-when-idle.md`
 - Purpose: One shell script runs on a timer/trigger. It first sources `scripts/runtime_state_paths.sh`. The S1456 candidate fixes its CC task, deployment-marker, and secret-refresh-request paths beneath the one `KOSKADEUX_DURABLE_STATE_DIR` root (default `/Users/max/koskadeux-state`), exporting `KD_CC_TASKS_DIR`, `KD_DEPLOYED_SHA_FILE`, and `KD_SECRET_REFRESH_REQUEST_FILE`. Legacy `KOSKADEUX_STATE_DIR`, `KOSKADEUX_CC_TASKS_DIR`, and `KOSKADEUX_PROBE_STATE_DIR` cannot redirect those records. The independent reload lock remains `/var/tmp/koskadeux/reload_when_idle.lock.d`; only an explicit isolated-test contract can override it.
