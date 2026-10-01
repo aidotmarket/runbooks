@@ -13,7 +13,7 @@ Canonical runbook for everything Cloudflare-fronted at ai.market and vectoraiz.c
 ## What this covers
 
 - The two Cloudflare zones we own (`ai.market`, `vectoraiz.com`) and every live DNS record in them
-- The four production Cloudflare Workers and where each one's source-of-truth lives (or doesn't — see drift)
+- The three production Cloudflare Workers (a fourth, `aim-node-installer`, was deleted in S1790) and where each one's source-of-truth lives (or doesn't — see drift)
 - The `mcp.ai.market` Cloudflare Tunnel that fronts the local Koskadeux MCP gateway on Koskadeux
 - Secrets, deploy commands, verification, and troubleshooting for each piece
 - Five drift items discovered during the S688 audit that need separate follow-up (see §Drift at the bottom)
@@ -90,7 +90,7 @@ The zone contains NS records pointing at name.com nameservers (`ns1cvw.name.com`
 
 **Note:** there is no `mcp.vectoraiz.com` record in this zone. The `mcp.vectoraiz.com.ai.market` record in the ai.market zone (drift item above) may have been intended to live here.
 
-## Cloudflare Workers (4)
+## Cloudflare Workers (3)
 
 | Worker name | Routes | Source-of-truth | Last deploy | Notes |
 |-------------|--------|-----------------|-------------|-------|
@@ -166,9 +166,9 @@ Verify:
 
 Deleted 2026-10-02 on Max's authorisation. It turned out to own the `get.ai.market` **Workers custom domain**, and through it the zone's `get.ai.market` AAAA record (`meta.origin_worker_id` = the custom-domain id, `read_only`). Deleting the script directly would have removed the domain and its DNS record and taken `get.ai.market` offline. Procedure used, for any future custom-domain move:
 
-1. List custom domains: `GET /accounts/<acct>/workers/domains`; list the DNS record and note its `id` and `meta.origin_worker_id`.
-2. Re-bind: `PUT /accounts/<acct>/workers/domains` with `{"hostname","service":"<new worker>","environment":"production","zone_id","override_existing_origin":true}`. Without the override flag the API refuses with code `100116` "Hostname ... already in use by other custom domain". The custom-domain id stayed the same (`2e53f81d…`). The DNS record id was not captured before the move; after it, the record is `92a4f6ff…` and it was unchanged across the following `wrangler deploy`. Public checks 15 s after the move all returned the expected statuses.
-3. Verify public responses, then `DELETE /accounts/<acct>/workers/scripts/<old>`.
+1. Record the before state: `GET /accounts/<acct>/workers/domains` (note the hostname's `id` and `service`, and every other domain attached to the old worker), `GET /zones/<zone>/workers/routes` (routes whose `script` is the old worker), and the DNS record (`GET /zones/<zone>/dns_records?name=<host>`: `id`, `meta.origin_worker_id`).
+2. Re-bind: `PUT /accounts/<acct>/workers/domains` with body `{"hostname":"<host>","service":"<new worker>","environment":"production","zone_id":"<zone id>","override_existing_origin":true}`. Without the override flag the API refused with code `100116` "Hostname ... already in use by other custom domain". `override_existing_origin` is not in Cloudflare's public API schema; it was accepted in S1790 (`success: true`). The custom-domain id stayed the same (`2e53f81d…`). The DNS record id was not captured before the move; after it, the record is `92a4f6ff…`, unchanged across the following `wrangler deploy`.
+3. **Stop unless all of these hold:** the PUT returned `success: true`; a fresh domain listing shows the hostname with `service` = the new worker; the DNS record's `meta.origin_worker_id` equals that domain id; no other domain or route still names the old worker; and a public request to a path **outside** the new worker's routes is answered by the new worker (routes run before the custom-domain origin, so routed paths prove nothing about the domain; in S1790 `/foo` changed from the old worker's `File not found: /install.sh` to the new worker's `Not Found`). Only then `DELETE /accounts/<acct>/workers/scripts/<old>` and list scripts to confirm it is gone.
 4. Declare the domain in the new worker's `wrangler.toml` (`{ pattern = "<host>", custom_domain = true }`) so `wrangler deploy` keeps it; compare the domain list and DNS record id before and after that deploy.
 
 ### `allai-dead-man-switch` — DMS heartbeat Worker
