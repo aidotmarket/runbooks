@@ -33,7 +33,7 @@ Six steps, named for the task:
 | 1 | Connect your storage | a current connection has status `verified` |
 | 2 | Choose your files | a saved listing source exists and `connection_current` is true |
 | 3 | Choose a licence | the draft's `license_selection` is complete (flag on); skipped when licences are off |
-| 4 | Describe and price | every field this step owns is valid (the licence belongs to step 3): title, description, a category from the list, at least one tag, an admissible price (the same rules as `seller_listing_review.py:60-73` and `seller_listing_approval.py:44-47`), and the description is confirmed for the current files (2.4) |
+| 4 | Describe and price | every field this step owns is valid (the licence belongs to step 3): title, description, a category from the list, at least one tag, an admissible price (the same rules as `seller_listing_review.py:60-73`, which approval re-checks through `missing_fields`), and the description is confirmed for the current files (2.4) |
 | 5 | Review | the current draft has an approved review |
 | 6 | Publish | the listing is published |
 
@@ -85,7 +85,7 @@ Money, payouts, checkout, delivery, gateway, the licence text and its hashing, b
 
 ## 4. Build plan and release order
 
-- **Chunk A (backend):** `source_summary` in the assistant request and `source_version` echo; optional `description_source_version` on `ListingDraftContent`; categories read for sellers. No category rule changes in A. Chunk A is safe with today's frontend: nothing sends the new fields, and a free-text category still saves.
+- **Chunk A (backend):** `source_summary` in the assistant request and `source_version` echo; optional `description_source_version` on `ListingDraftContent`; categories read for sellers, and the same slug list passed in the assistant request with the instruction to choose one. No category rule changes in A. Chunk A is safe with today's frontend: nothing sends the new fields, and a free-text category still saves.
 - **Chunk B (frontend):** step function, checklist, task-named tabs, Next buttons and save behaviour, source binding and warning, category dropdown, licence dialog, removal of the dead input (flag on) and the static journey card.
 - **Chunk A2 (backend, one line of rules):** review and publish require a category slug for Seller Workspace drafts. Deployed only after B is live, so no seller on the old editor is blocked.
 - **Chunk C (frontend):** the 2.7 fixes.
@@ -100,8 +100,8 @@ MP builds each chunk. A and A2 go to the full panel (they touch the assistant re
 4. Stale-draft sequences. (a) Draft and accept a description for files A; choose files B: pending proposals and chat clear, step 4 shows the warning, reload keeps it, publish is not offered; asking Allai for B and accepting the new description clears it. (b) A response for A arriving after the switch to B is discarded with its message. (c) With files B chosen, accepting only a title suggestion leaves the warning in place after save and reload. (d) Editing the description by hand after confirming brings the warning back until confirmed again.
 5. Step 4 and Review agree: empty tags, an invalid price, and a non-slug category each mark step 4 not done with the right message, and Review refuses the same drafts with the same reason.
 6. Metadata only: a test captures the outbound assistant request for a source that includes a synthetic sensitive name (`jane.doe@example.com-patients.csv`). The request holds only the fields in 2.4 within the caps; storage calls during drafting are listing calls only, with no object GET; 250 objects produce 200 entries plus a remainder count.
-7. Categories: the dropdown shows the 12 table rows; a licence saves with an empty category; after A2, review refuses a draft without a slug with the step-4 message, a legacy draft keeps its stored value until changed, and a newly published listing appears under its node in the MCP `/categories` tree.
-8. Licence: with the flag on, the free-text licence input is absent and the preview shows the selected licence; the dialog opens, traps focus, closes on Esc and returns focus to the button.
+7. Categories: the dropdown shows the 12 table rows; a licence saves with an empty category; after A2, review refuses a draft without a slug with the step-4 message, a legacy draft keeps its stored value until changed, and a newly published listing appears under its node in the top-level MCP `/categories` tree (the `?parent=` branch reads a column the table lacks; out of scope, recorded on T-2026-000908).
+8. Licence: with the flag on, the free-text licence input is absent and the preview shows the selected licence; the dialog is labelled, opens, traps focus, closes on Esc and returns focus to the button; the confirmation box stays locked until both the licence and the covenant dialogs have been opened.
 9. Staged release: with A deployed and the old frontend, a draft with a free-text category still saves and a listing still publishes; after B and A2, the rules in 7 hold.
 10. Max repeats the walk as max@kisa.cat and signs it off before Sergey's switch.
 
