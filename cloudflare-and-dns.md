@@ -1,7 +1,7 @@
 ---
 title: Cloudflare and DNS
 owner: unassigned
-last_verified: '2026-10-01'
+last_verified: '2026-10-02'
 aliases: []
 error_signatures: []
 ---
@@ -94,9 +94,9 @@ The zone contains NS records pointing at name.com nameservers (`ns1cvw.name.com`
 
 | Worker name | Routes | Source-of-truth | Last deploy | Notes |
 |-------------|--------|-----------------|-------------|-------|
-| `get-ai-market` | `get.ai.market/`, `get.ai.market/aim-data*`, `get.ai.market/aim-node*` | `aidotmarket/cf-get-worker` (standalone repo; wrangler) | 2026-10-01 (S1790, version `56f683e4`, cf-get-worker `7235c492`) | Retired-installer pointer. AIM Data and AIM Node are both retired (AIM Node is deprecated and not a product); no route installs anything and nothing is fetched from GitHub (see below). |
+| `get-ai-market` | custom domain `get.ai.market` (owns the AAAA `100::` record) plus routes `get.ai.market/`, `/aim-data*`, `/aim-channel*`, `/aim-node*` | `aidotmarket/cf-get-worker` (standalone repo; wrangler) | 2026-10-02 (S1790, version `5f8ec316`, cf-get-worker `f4f82f99`) | Retired-installer pointer. AIM Data and AIM Node are both retired (AIM Node is deprecated and not a product); no route installs anything and nothing is fetched from GitHub (see below). |
 | `vectoraiz-installer` | `get.vectoraiz.com/*` | **Dashboard-only / API-only — NO source repo** ⚠ | 2026-02-25 | Proxies vectoraiz installer scripts. Has channel routing (stable/RC/marketplace). Has `GITHUB_TOKEN` binding. **Drift: source-control this Worker — see §Drift item 2.** |
-| `aim-node-installer` | `[Unknown — Worker Routes API requires elevated token]` | **Dashboard-only / API-only — NO source repo** ⚠ | 2026-04-08 | Source preview shows it proxies the `aidotmarket/aim-node` GitHub repo with routes for `/rc`, `/windows`, `/aim-node/rc`, `/aim-node/windows`. Has `GITHUB_TOKEN` binding. Likely superseded by `get-ai-market`'s `/aim-node*` route handling; SysAdmin to confirm and decommission. |
+| ~~`aim-node-installer`~~ | — | — | **Deleted 2026-10-02 (S1790, Max authorised).** | It held the `get.ai.market` custom domain and answered every path outside `get-ai-market`'s routes with a broken AIM Node page (`/rc` 502, others 404). The domain was re-bound to `get-ai-market` first, then the script deleted. Code backup: `/Users/max/koskadeux-state/s1790/aim-node-installer-backup/worker.js`. |
 | `allai-dead-man-switch` | (cron-only — no HTTP routes) | `aidotmarket/ai-market-backend` → `workers/` (wrangler) | 2026-03-12 | Monitors allAI Brain heartbeat at `https://api.ai.market/api/v1/internal/heartbeat/brain`, alerts via Telegram on consecutive failures. Cron `*/5 * * * *`. KV namespace `DMS_KV` (`d82ea459cc3e4025a41393b8b8190ce9`). Secret mirrors `HEARTBEAT_URL`, `INTERNAL_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` — see Worker-secret rotation discipline below. |
 
 ### `get-ai-market` — retired installer routes (AIM Data, AIM Node)
@@ -162,13 +162,14 @@ Verify:
     curl -sL https://get.vectoraiz.com | head -5
     curl -sI https://get.vectoraiz.com/market | grep x-vectoraiz
 
-### `aim-node-installer` — likely deprecated
+### `aim-node-installer` — deleted (S1790)
 
-**Source-of-truth: Dashboard-only.** Last deploy 2026-04-08 via wrangler (author max@ai.market) but no local wrangler.toml found, so the source directory was deleted or never landed in a repo.
+Deleted 2026-10-02 on Max's authorisation. It turned out to own the `get.ai.market` **Workers custom domain**, and through it the zone's `get.ai.market` AAAA record (`meta.origin_worker_id` = the custom-domain id, `read_only`). Deleting the script directly would have removed the domain and its DNS record and taken `get.ai.market` offline. Procedure used, for any future custom-domain move:
 
-Source preview (retrieved via API): proxies `aidotmarket/aim-node` GitHub repo. Routes: `/rc`, `/aim-node/rc`, `/windows`, `/aim-node/windows`, fallback `/install.sh`.
-
-Likely superseded by `get-ai-market`'s `/aim-node*` route. SysAdmin verify (a) whether anything still routes to this Worker, (b) if not, delete it to remove the knowledge leak.
+1. List custom domains: `GET /accounts/<acct>/workers/domains`; list the DNS record and note its `id` and `meta.origin_worker_id`.
+2. Re-bind: `PUT /accounts/<acct>/workers/domains` with `{"hostname","service":"<new worker>","environment":"production","zone_id","override_existing_origin":true}`. Without the override flag the API refuses with code `100116` "Hostname ... already in use by other custom domain". The custom-domain id stayed the same (`2e53f81d…`). The DNS record id was not captured before the move; after it, the record is `92a4f6ff…` and it was unchanged across the following `wrangler deploy`. Public checks 15 s after the move all returned the expected statuses.
+3. Verify public responses, then `DELETE /accounts/<acct>/workers/scripts/<old>`.
+4. Declare the domain in the new worker's `wrangler.toml` (`{ pattern = "<host>", custom_domain = true }`) so `wrangler deploy` keeps it; compare the domain list and DNS record id before and after that deploy.
 
 ### `allai-dead-man-switch` — DMS heartbeat Worker
 
@@ -223,7 +224,7 @@ When the DMS breaks:
 
 ### Worker deploy patterns (shared reference)
 
-**Multipart ES-modules deploy** (required for any Worker with `export default` syntax — applies to `vectoraiz-installer`, `aim-node-installer`, anything else dashboard-deployed):
+**Multipart ES-modules deploy** (required for any Worker with `export default` syntax — applies to `vectoraiz-installer` and anything else dashboard-deployed):
 
     CF_TOKEN=$(infisical secrets get CLOUDFLARE_API_TOKEN \
       --projectId bd272d48-c5a1-4b52-9d24-12066ae4403c \
@@ -337,7 +338,7 @@ These are the gaps between documented state and live state, discovered during th
 
 2. **`vectoraiz-installer` Worker has no source repo.** Last deploy was 2026-02-25 via direct API upload. Worker code can only be retrieved by API export. *Action:* extract current worker.js, commit to a Worker source repo (`aidotmarket/cf-vectoraiz-installer` recommended, mirroring `cf-get-worker`), redeploy via wrangler to confirm round-trip.
 
-3. **`aim-node-installer` Worker is probably stale.** No local source, no wrangler config. Functionality appears subsumed by `get-ai-market`'s `/aim-node*` routes. *Action:* SysAdmin verify nothing actively routes to this Worker, then delete the script.
+3. **CLOSED S1790: `aim-node-installer` deleted** (see its section). Original note: **`aim-node-installer` Worker is probably stale.** No local source, no wrangler config. Functionality appears subsumed by `get-ai-market`'s `/aim-node*` routes. *Action:* SysAdmin verify nothing actively routes to this Worker, then delete the script.
 
 4. **DNS record `mcp.vectoraiz.com.ai.market` is a 4-label oddity.** Points to the same tunnel as `mcp.ai.market`. Looks like a typo where someone meant to create `mcp.vectoraiz.com` (in the vectoraiz.com zone) but accidentally typed it as a subdomain of ai.market. *Action:* delete unless someone deliberately set this up.
 
@@ -396,6 +397,7 @@ List active Workers:
 - **2026-03-12** — `allai-dead-man-switch` Worker shipped (`ai-market-backend/workers/`); cron `*/5 * * * *` heartbeat monitor.
 - **2026-03-20** — `vectoraiz-installer` Worker last documented update (per old `cloudflare-worker.md` runbook).
 - **2026-04-08** — `aim-node-installer` Worker deployed (no source repo found; likely superseded by `get-ai-market`).
+- **2026-10-02** — `get.ai.market` custom domain re-bound from `aim-node-installer` to `get-ai-market`; `aim-node-installer` deleted (S1790).
 - **2026-04-09** — `get-ai-market` Worker shipped (repo `aidotmarket/cf-get-worker`); canonical installer hub for AIM Data + AIM Node.
 - **Pre-S572** — Resource registry + `mcp-gateway.md` claim Tailscale Funnel replaced Cloudflare Tunnel for `mcp.ai.market`. **Migration did not complete** — cloudflared remains the active transport (S688 verification).
 - **S688 (2026-05-22)** — Live audit; this runbook authored. Five drift items filed.
