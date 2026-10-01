@@ -155,18 +155,18 @@
 
 ## AIM Node Release Process
 - Path: `aim-node-release-process.md`
-- Purpose: Builds and publishes new AIM Node versions. Creates GitHub releases, triggers GHCR Docker multi-arch builds, and runs smoke tests.
+- Purpose: **DEPRECATED — NOT A PRODUCT (Max, S1790, 2026-10-01):** AIM Node is deprecated and is not a product; its features were to go into AIM Data, which is itself now replaced by the AIM Data Gateway (aim-data-gateway.md). `aidotmarket/aim-node` is archived, and `get.ai.market/aim-node*` returns a retired notice (see cloudflare-and-dns.md). Do not describe AIM Node as a live product, build on it, or release it. Everything below is history.
 - Owner: `unassigned`
-- Last verified: `2026-04-08`
+- Last verified: `2026-10-01`
 - Aliases: none
 - Error signatures: none
 - Status: current
 
 ## AIM Node — The Runtime
 - Path: `aim-node.md`
-- Purpose: The universal network client for ai.market. Same codebase, two modes: **provider** (wraps a model/pipeline endpoint, serves it to buyers) and **consumer** (searches marketplace, sends requests via local HTTP proxy). Peer-to-peer — all model/pipeline traffic flows directly between buyer and seller nodes. ai.market never sees or touches payloads.
+- Purpose: **DEPRECATED — NOT A PRODUCT (Max, S1790, 2026-10-01):** AIM Node is deprecated and is not a product; its features were to go into AIM Data, which is itself now replaced by the AIM Data Gateway (aim-data-gateway.md). `aidotmarket/aim-node` is archived, and `get.ai.market/aim-node*` returns a retired notice (see cloudflare-and-dns.md). Do not describe AIM Node as a live product, build on it, or release it. Everything below is history.
 - Owner: `unassigned`
-- Last verified: `2026-04-07`
+- Last verified: `2026-10-01`
 - Aliases: none
 - Error signatures: none
 - Status: current

@@ -1,12 +1,14 @@
 ---
 title: AIM Node Release Process
 owner: unassigned
-last_verified: '2026-04-08'
+last_verified: '2026-10-01'
 aliases: []
 error_signatures: []
 ---
 
 # AIM Node Release Process
+
+**DEPRECATED — NOT A PRODUCT (Max, S1790, 2026-10-01):** AIM Node is deprecated and is not a product; its features were to go into AIM Data, which is itself now replaced by the AIM Data Gateway ([aim-data-gateway.md](aim-data-gateway.md)). `aidotmarket/aim-node` is archived, and `get.ai.market/aim-node*` returns a retired notice (see [cloudflare-and-dns.md](cloudflare-and-dns.md)). Do not describe AIM Node as a live product, build on it, or release it. Everything below is history.
 
 ## What it does
 
