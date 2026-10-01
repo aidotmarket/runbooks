@@ -3,7 +3,7 @@ title: Infisical Secrets Management
 owner: unassigned
 last_verified: '2026-09-27'
 aliases: []
-error_signatures: ['error code: 1010', FST_ERR_CTP_EMPTY_JSON_BODY]
+error_signatures: ['error code: 1010', FST_ERR_CTP_EMPTY_JSON_BODY, 'Invalid or missing Internal API Key']
 ---
 
 # Infisical Secrets Management
@@ -155,6 +155,23 @@ The backend reads its process environment, populated through the documented nati
 4. Verify the new credential works before revoking the old one. Restart/redeploy only when needed and authorized; do not manually overwrite Railway as the routine path.
 
 A failed sync requires investigation, not an assumed manual push. Never enable or trigger a sync using stale shared values.
+
+### INTERNAL_API_KEY consumers (verified in the T-2026-000909 rotation, 2026-10-01)
+
+Canonical value: Infisical `ai-market-backend` (project `bd272d48-…`), `prod`, path `/`. A rotation is not done until every consumer below carries the new value:
+
+1. Railway `ai-market-backend` (native Infisical sync), then redeploy it.
+2. Railway services that read it by reference `${{ai-market-backend.INTERNAL_API_KEY}}`: `ai-market-backup`, `celery-beat`, `celery-worker`, `gateway-door-worker`, `seller-profile-worker`, `issue-channel-watcher`. Redeploy each. Keep every one of them a reference, never a literal copy (`ai-market-backup` was a literal copy until this rotation).
+3. GitHub repo secret `INTERNAL_API_KEY` on `aidotmarket/ai-market-backend` (Daily Health Check workflow); set with `GITHUB_ORG_ADMIN_TOKEN`.
+4. Cloudflare Worker `allai-dead-man-switch` secret.
+5. Koskadeux: `/Users/max/koskadeux-mcp/.env`. `koskadeux_server.py` calls `load_dotenv(.env, override=True)`, so this file wins over anything the launcher exports. Replace the one line from Infisical (never print the value; verify equality), then `launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp`. Missed in T-909: the restarted MCP kept sending the old key and Living State writes, the peer bus, support tickets and `kd_session_close` all returned HTTP 401 `Invalid or missing Internal API Key`.
+6. The e2e harness reads it at run time; nothing to restart.
+
+Verify: backend heartbeat 200 with the new key, a Living State event write, `peer_msg_inbox`, and a support-ticket read.
+
+### Koskadeux `.env` shadow copies
+
+Because of `override=True` (item 5 above), any rotated key that also sits in `koskadeux-mcp/.env` keeps its old value in the MCP process. After any rotation, compare `.env` key names against the rotated set and check equality with Infisical without printing values. Found stale in T-909 and fixed (S1790): `OPENAI_API_KEY` (replaced from backend prod), plus dead `OPENAI_API_KEY_FALLBACK` and `GATEWAY_ADMIN_PASSWORD` lines (removed). `DEEPSEEK_API_KEY` and `GLM_z_AI_API_KEY` are not in `.env`; `scripts/launch_mcp_server.sh` fetches them from Infisical `koskadeux-mcp` prod at launch, so a restart picks up a rotation. The gateway reads `GATEWAY_ADMIN_PASSWORD` from Infisical backend prod through `/Users/max/bin/launch_with_infisical.sh`; it calls `load_dotenv()` without override, so the injected value wins.
 
 ### Stripe API keys (`acct_1SuHQHRucxd97j0A`)
 

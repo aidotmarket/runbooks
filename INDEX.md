@@ -735,7 +735,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-09-27`
 - Aliases: none
-- Error signatures: error code: 1010, FST_ERR_CTP_EMPTY_JSON_BODY
+- Error signatures: error code: 1010, FST_ERR_CTP_EMPTY_JSON_BODY, Invalid or missing Internal API Key
 - Status: current
 
 ## Infrastructure Discovery
@@ -789,7 +789,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-07-17`
 - Aliases: Titan-1, titan-1.md
-- Error signatures: launchd user jobs exit 78 after a Koskadeux reboot
+- Error signatures: launchd user jobs exit 78 after a Koskadeux reboot, child setpgid, Operation not permitted
 - Status: current
 
 ## Lifecycle Emails
