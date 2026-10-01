@@ -1,12 +1,13 @@
 ---
 title: Qdrant — Vector Database (hosting, auth, backups)
 owner: sysadmin
-last_verified: '2026-06-30'
+last_verified: '2026-10-01'
 aliases: []
 error_signatures:
 - unauth returns 200
 - backend qdrant calls 401 after rotation
 - HTTP 401
+- Qdrant redeploy digest differs
 ---
 
 # Qdrant — Vector Database (hosting, auth, backups)
@@ -99,6 +100,23 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
       cause: wrong or missing api-key
   next_step_success: done
   next_step_failure: G-01
+- id: E-04
+  trigger: Any Qdrant restart or redeploy (variable change, config change)
+  pre_conditions:
+    - Peers told; backend search falls back to SQL while Qdrant restarts (one replica plus a volume, so the old container stops first; knowledge_base_v2 holds about 1.7M points and loads for about 2 minutes, and the public domain returns 502 meanwhile)
+    - Record the running deployment's meta.imageDigest and GET / version
+  tool_or_endpoint: Railway GraphQL serviceInstance(source.image) and the latest deployment's meta.image and meta.imageDigest
+  argument_sourcing:
+    arg: the service instance source.image, which must be qdrant/qdrant@sha256:<digest> (since S1786 the pin is 1.19.1, sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10)
+  idempotency: NOT_IDEMPOTENT
+  expected_success:
+    shape: new deployment SUCCESS, meta.imageDigest equals the pinned digest, GET / version unchanged, every collection green with unchanged points_count
+    verification: compare digest, version and per-collection points_count before and after
+  expected_failures:
+    - signature: Qdrant redeploy digest differs
+      cause: serviceInstanceRedeploy reuses the previous deployment's image reference and ignores a just-changed source.image. Before S1786 the deployment image was untagged qdrant/qdrant, so a redeploy pulled the newest release (S1786, 2026-10-01, 1.18.2 to 1.19.1).
+  next_step_success: done
+  next_step_failure: G-03
 ```
 
 ## When it breaks
@@ -108,6 +126,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
 | F-01 | Backend embedding/search fails with 401 | backend QDRANT_API_KEY missing or mismatched vs Qdrant service key | compare Infisical/Railway backend QDRANT_API_KEY vs Qdrant QDRANT__SERVICE__API_KEY | G-01 | CONFIRMED |
 | F-02 | /backup-status qdrant status=corrupt, collections show no_backups | live collection has no S3 snapshot prefix (real backup gap) | read collection_results in /backup-status | G-02 | CONFIRMED |
 | F-03 | unauth /collections returns 200 | auth not enforced (key unset or stale deploy) | curl without api-key header | G-01 | CONFIRMED |
+| F-04 | Qdrant runs a different version after a redeploy | redeploy reused the untagged image reference and pulled a newer release | compare the latest deployment's meta.imageDigest and GET / version with the record taken before the restart | G-03 | CONFIRMED |
 
 ## Repair
 
@@ -128,6 +147,14 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   change_pattern: enumerate live collections from the Qdrant API (with api-key) and snapshot each to s3 under qdrant/{collection}/
   rollback_procedure: n/a (additive). If a collection is lost entirely, canonical recovery is a REBUILD FROM POSTGRES, not the S3 snapshot — listings rebuild via POST /api/v1/search/reindex (reindex_all). The S3 snapshot only saves the re-embed window.
   integrity_check: /backup-status qdrant aggregate=ok (every live collection has a fresh prefix)
+- id: G-03
+  symptom_ref: F-04
+  component_ref: Qdrant service
+  root_cause: serviceInstanceRedeploy does not apply a just-changed source.image; it redeploys the previous image reference
+  repair_entry_point: Railway GraphQL serviceInstanceUpdate(source.image) on svc 6f7211f0
+  change_pattern: Do not roll back to the older version. Qdrant does not support opening storage with an older release after a newer one has opened it. Check health first (GET / version, every collection green, points_count matches the record). Then set source.image to qdrant/qdrant@<running digest> with no deploy, so the next restart keeps the running version. Record an Event and correct this page.
+  rollback_procedure: restore collections from S3 snapshots or rebuild from Postgres (G-02) only if storage is damaged
+  integrity_check: E-03 plus every collection green and the instance source.image equal to the running digest
 ```
 
 ## Changes and maintenance

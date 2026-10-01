@@ -1428,6 +1428,10 @@
 
 - [Branch Landed Verification](runbooks/branch-landed-verification.md)
 
+## `Qdrant redeploy digest differs`
+
+- [Qdrant — Vector Database (hosting, auth, backups)](qdrant.md)
+
 ## `quarantine table has n_live_tup > 0 or n_tup_ins/upd/del > 0`
 
 - [Schema Rationalization / Quarantine / Drop](schema-rationalization.md)
