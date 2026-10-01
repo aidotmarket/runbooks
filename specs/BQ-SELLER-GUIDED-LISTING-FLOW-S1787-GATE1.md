@@ -1,4 +1,4 @@
-# BQ-SELLER-GUIDED-LISTING-FLOW-S1787: Gate 1, a guided seller listing flow (R2)
+# BQ-SELLER-GUIDED-LISTING-FLOW-S1787: Gate 1, a guided seller listing flow (R3)
 
 **Build Queue entity:** `build:bq-seller-guided-listing-flow-s1787` (P1, owner Vulcan).
 **Tickets:** T-2026-000908 (consolidated scope), T-2026-000877 (the walkthrough notes, item by item; the thread is reproduced in the review package). T-2026-000878 (Markdown licence editor) stays separate.
@@ -33,7 +33,7 @@ Six steps, named for the task:
 | 1 | Connect your storage | a current connection has status `verified` |
 | 2 | Choose your files | a saved listing source exists and `connection_current` is true |
 | 3 | Choose a licence | the draft's `license_selection` is complete (flag on); skipped when licences are off |
-| 4 | Describe and price | every field Review admits on is valid: title, description, a category from the list, at least one tag, an admissible price (the same rules as `seller_listing_review.py:60-73` and `seller_listing_approval.py:44-47`), and the description is confirmed for the current files (2.4) |
+| 4 | Describe and price | every field this step owns is valid (the licence belongs to step 3): title, description, a category from the list, at least one tag, an admissible price (the same rules as `seller_listing_review.py:60-73` and `seller_listing_approval.py:44-47`), and the description is confirmed for the current files (2.4) |
 | 5 | Review | the current draft has an approved review |
 | 6 | Publish | the listing is published |
 
@@ -54,9 +54,9 @@ When a step becomes done, its bottom shows "Next: <step name> →". A selection 
 ### 2.4 Allai drafts from the files, and the page knows which files the text was written for
 
 - **What Allai is given.** The assistant request gains one bounded field, `source_summary`, built by the backend from the saved listing source (never from the browser): `source_version`, object count, total bytes, and up to 200 entries of `{basename, size, extension}`. Basenames only (no bucket, prefix or path), each cut to 120 characters, and the whole field capped at 16 KB; beyond the caps it carries only a count of the remainder. No object is fetched, opened or sampled for this: the summary comes from the stored source record (`app/schemas/seller_listing_source.py`), which already holds each object key and size, and the source record version (CORE S1/P2 unchanged).
-- **Disclosure.** Above the draft button the step says: "Allai reads your file names and sizes to write the draft. It never opens your files." File names stay private; they appear publicly only if the seller keeps them in text they approve, and Review's existing public-anonymity checks (ai-market-backend `runbooks/public-seller-anonymity.md`) still apply to that text.
+- **Disclosure.** Above the draft button the step says: "Allai reads your file names and sizes to write the draft. It never opens your files." File names stay private unless the seller keeps them in the text: any file name in an approved description or title becomes public, and no automatic check removes it. The step says so next to the description: "Anything you keep here, including file names, will be public."
 - **Binding drafts to files.** The assistant response echoes `source_version`. Proposals from a response whose `source_version` is not the current saved source are discarded with "Your files changed while Allai was drafting. Ask again." Choosing new files clears pending proposals and the chat history.
-- **Stamp.** `ListingDraftContent` gains optional `description_source_version`. It is set only when the seller accepts Allai proposals bound to the current source version, or presses "This description matches my files" after writing or editing it by hand. Saving other fields does not change it.
+- **Stamp.** `ListingDraftContent` gains optional `description_source_version`. It is set only when the seller accepts Allai's **description** proposal bound to the current source version, or presses "This description matches my files". Accepting only a title, category or tags proposal does not set it, and any later manual edit of the description clears it until the seller confirms again.
 - **Warning.** If the saved source version differs from `description_source_version` (or the stamp is missing), step 4 is not done and shows "Your files changed after this description was written" with two buttons: "Ask Allai to update it" and "This description matches my files".
 - **Where suggestions are.** A fixed hint above the chat, and the assistant's instructions, say the suggestions are in the boxes under each field on the left.
 
@@ -65,9 +65,9 @@ When a step becomes done, its bottom shows "Next: <step name> →". A selection 
 The single source is the existing `categories` table (12 top-level rows in production: financial-data, alternative-data, consumer-retail, healthcare-life-sciences, geospatial-location, environmental-climate, technology-web, government-public, energy-utilities, transportation-logistics, real-estate-property, ai-machine-learning). It is already the join target for the MCP `/categories` tree and the datasets filter, so listings that use its slugs start appearing there. No new config list.
 
 - A read-only endpoint (or the existing categories read, if one is reachable to sellers) serves slug and name to the editor dropdown; the assistant request carries the same list, and the assistant is instructed to choose one slug from it.
-- Draft saves accept an empty category (so a licence can be saved before describing) and reject a non-empty value that is not a slug, with a message naming the step (R1).
-- Review and publish require a slug for new Seller Workspace listings.
-- Existing listings and their 18 free-text values are untouched; public search facets keep reading the listing's own value (`listing_search_service.py`). A seller editing a draft with an old value sees "Choose a category from the list" and the field empty.
+- Draft saves keep accepting any category value, as today, so the current editor keeps working during the staged release; the new editor's dropdown can only send a slug or empty, and an empty category saves (so a licence can be saved before describing).
+- Review and publish require a slug for Seller Workspace listings (chunk A2, after the new editor is live), with a message naming step 4 (R1).
+- Existing listings and their 18 free-text values are untouched; public search facets keep reading the listing's own value (`listing_search_service.py`). A draft holding an old free-text value keeps it stored until the seller picks from the list; the dropdown shows "Choose a category from the list" with nothing selected, step 4 is not done, and saving other fields does not change the stored value.
 - `CATEGORY_TAXONOMY` in `app/knowledge/listing_knowledge.py` stays allAI's knowledge guidance about each domain; it is not a listing vocabulary. The frontend fallback list in `lib/marketplaceCategories.ts` is not used by the editor. Reconciling the public facet labels with the table is a follow-up, recorded on T-2026-000908.
 
 ### 2.6 Licence: one place, readable without leaving the page
@@ -77,7 +77,7 @@ The single source is the existing `categories` table (12 top-level rows in produ
 
 ### 2.7 Smaller fixes from the same walkthrough (T-877 items from S1759)
 
-Title, tags and category inputs grow to fit or wrap; "Use suggestion" reliably applies a title (reproduce first); Review shows "Files included (n)" beside the confirmations; the Publish button and "Refresh publication status" get spacing; the listing page uses one date rule for "Published"; the licence cards appear once; the approved listing preview sizes to its content instead of a fixed-height box; a seller viewing their own listing sees "This is your listing" instead of the buy form. Individual (non-business) buyer acceptance is T-2026-000884 and stays there. The #93 deferred nits (a)-(g) (quoted in the review package) are fixed where they touch the same components.
+Title, tags and category inputs grow to fit or wrap; an accepted and saved title is what Review shows (Max saw the old title in Review after accepting and saving; reproduce first); Review shows "Files included (n)" beside the confirmations; the Publish button and "Refresh publication status" get spacing; the listing page uses one date rule for "Published"; the licence cards appear once; the approved listing preview sizes to its content instead of a fixed-height box, both in the seller's Review and on the buyer listing page; a seller viewing their own listing sees "This is your listing" instead of the buy form. Individual (non-business) buyer acceptance is T-2026-000884 and stays there. The #93 deferred nits (a)-(g) (quoted in the review package) are fixed where they touch the same components.
 
 ## 3. Out of scope
 
@@ -85,7 +85,7 @@ Money, payouts, checkout, delivery, gateway, the licence text and its hashing, b
 
 ## 4. Build plan and release order
 
-- **Chunk A (backend):** `source_summary` in the assistant request and `source_version` echo; optional `description_source_version` on `ListingDraftContent`; categories read for sellers; draft-save rule (empty or slug). Enforcement at review/publish is NOT in A. Chunk A is safe with today's frontend: nothing sends the new fields, and a free-text category still saves.
+- **Chunk A (backend):** `source_summary` in the assistant request and `source_version` echo; optional `description_source_version` on `ListingDraftContent`; categories read for sellers. No category rule changes in A. Chunk A is safe with today's frontend: nothing sends the new fields, and a free-text category still saves.
 - **Chunk B (frontend):** step function, checklist, task-named tabs, Next buttons and save behaviour, source binding and warning, category dropdown, licence dialog, removal of the dead input (flag on) and the static journey card.
 - **Chunk A2 (backend, one line of rules):** review and publish require a category slug for Seller Workspace drafts. Deployed only after B is live, so no seller on the old editor is blocked.
 - **Chunk C (frontend):** the 2.7 fixes.
@@ -97,10 +97,10 @@ MP builds each chunk. A and A2 go to the full panel (they touch the assistant re
 1. A new synthetic seller, with no operator guidance, goes from a verified connection to a published listing using only the checklist and Next buttons (Playwright, production-like data, no real money).
 2. At every point in that walk the checklist names exactly one next step, and every disabled control says why (R1).
 3. No step asks to save an unchanged selection (R2).
-4. Stale-draft sequence: request a draft for files A, switch to files B before accepting, accept, save, reload. Step 4 stays not done until the seller redrafts for B or confirms the description; publish is not offered.
+4. Stale-draft sequences. (a) Draft and accept a description for files A; choose files B: pending proposals and chat clear, step 4 shows the warning, reload keeps it, publish is not offered; asking Allai for B and accepting the new description clears it. (b) A response for A arriving after the switch to B is discarded with its message. (c) With files B chosen, accepting only a title suggestion leaves the warning in place after save and reload. (d) Editing the description by hand after confirming brings the warning back until confirmed again.
 5. Step 4 and Review agree: empty tags, an invalid price, and a non-slug category each mark step 4 not done with the right message, and Review refuses the same drafts with the same reason.
 6. Metadata only: a test captures the outbound assistant request for a source that includes a synthetic sensitive name (`jane.doe@example.com-patients.csv`). The request holds only the fields in 2.4 within the caps; storage calls during drafting are listing calls only, with no object GET; 250 objects produce 200 entries plus a remainder count.
-7. Categories: the dropdown shows the 12 table rows; an off-list value is rejected at draft save with the step message; a licence saves with an empty category; after A2 a newly published listing appears under its node in the MCP `/categories` tree.
+7. Categories: the dropdown shows the 12 table rows; a licence saves with an empty category; after A2, review refuses a draft without a slug with the step-4 message, a legacy draft keeps its stored value until changed, and a newly published listing appears under its node in the MCP `/categories` tree.
 8. Licence: with the flag on, the free-text licence input is absent and the preview shows the selected licence; the dialog opens, traps focus, closes on Esc and returns focus to the button.
 9. Staged release: with A deployed and the old frontend, a draft with a free-text category still saves and a listing still publishes; after B and A2, the rules in 7 hold.
 10. Max repeats the walk as max@kisa.cat and signs it off before Sergey's switch.
