@@ -1,7 +1,7 @@
 ---
 title: Customer MCP connector — build and operations
 owner: unassigned
-last_verified: '2026-09-30'
+last_verified: '2026-10-01'
 aliases: [customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market]
 error_signatures: ["You are being ratelimited. Please try again later", insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'", connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED]
 ---
@@ -147,6 +147,38 @@ Backend PR #523 delivered core Chunk 3: the resource request edge, stateless MCP
 Mars verified at about 22:36 CEST: `https://connect.ai.market/healthz` returned HTTP 200 `{"status":"ok"}`; `/readyz` returned HTTP 503 `{"status":"unavailable"}`, expected until the restricted DSN, Redis reference, and connector tables are ready. Both `GET /.well-known/oauth-protected-resource` and `GET /.well-known/oauth-protected-resource/mcp` returned HTTP 200 with resource `https://connect.ai.market/mcp`, `authorization_servers` [`https://auth.ai.market`], nine sorted scopes, and `bearer_methods_supported` [`header`]. `POST /mcp` returned HTTP 503 with a JSON-RPC `CONNECTOR_DISABLED` error and action `wait`. `https://api.ai.market/health` returned HTTP 200, and `GET https://api.ai.market/api/v1/connector-oauth/status` returned `{"enabled":false}`. All four connector flags remain `false`.
 
 Verify after a resource deploy while flags are off: require HTTP 200 `{"status":"ok"}` from `/healthz`; until Gate 4, expect HTTP 503 `{"status":"unavailable"}` from `/readyz`. Check both protected resource metadata URLs for HTTP 200 and the resource, authorization server, nine sorted scopes, and header bearer method above. Check `POST /mcp` for HTTP 503 JSON-RPC `CONNECTOR_DISABLED` with action `wait`. Check backend `/health` for HTTP 200 and `/api/v1/connector-oauth/status` for `{"enabled":false}`. Before enable, complete the Gate 4 prerequisites above and require `/readyz` to return HTTP 200.
+
+### Resource entrypoint and start command (S1786, 2026-10-01)
+
+Backend PR #561 merged as `874dde0333a1d81f0eaa011ca15e49bae457b9a8` (Event `79e56e35`). Gate 3: DeepSeek, codex2 in the GLM seat per `e4c8ed6f`, and CC in the Gemini seat per `d50cbd80`.
+
+The resource now starts from **`app.mcp.connector.server:app`**, not `asgi:app`. `server.py` marks the process as the connector resource before importing the app, and every uvicorn worker imports it. With that mark, `DOWNLOAD_TOKEN_SECRET_KEY` and `INTERNAL_API_KEY` are not required at startup. Importing `asgi.py` (tests, the backend) never sets the mark. See backend `runbooks/connector-process-role.md`.
+
+The resource service has no attached source, so its start command lives on the service instance, not in `railway.connector.json`. Set it with `serviceInstanceUpdate` `startCommand`:
+
+```
+sh -c 'exec uvicorn app.mcp.connector.server:app --host 0.0.0.0 --port ${PORT:-8080} --workers ${CONNECTOR_WORKERS:-2} --log-level ${LOG_LEVEL:-info} --timeout-graceful-shutdown 20 --limit-concurrency ${CONNECTOR_MAX_CONCURRENCY:-50}'
+```
+
+Order matters when the command changes:
+
+1. `railway up` the archive that contains `server.py`, keeping the old command (deployment `f7a47432`, SUCCESS).
+2. Update `startCommand`, then call `serviceInstanceRedeploy`; the update alone did not create a deployment (deployment `9d175cd2`, SUCCESS, 2 instances RUNNING in us-west2).
+
+Never set the new command on a deployment whose code lacks `server.py`.
+
+Verification on 2026-10-01 at about 15:41 CEST:
+
+| Check | Result |
+|---|---|
+| `/healthz` | 200 |
+| `/readyz` | 200 |
+| Both PRM URLs | 200 |
+| `POST /mcp` | 503 `CONNECTOR_DISABLED`, action `wait` |
+| API `/health` | 200 |
+| `connector-oauth/status` | `{"enabled":false}` |
+| Auth `/readyz` | 200 |
+| Auth `/oauth/authorize` | 404 |
 
 ### Connector switch administration (P0, runbook SQL)
 
