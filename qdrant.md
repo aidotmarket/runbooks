@@ -160,9 +160,9 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   component_ref: Qdrant service
   root_cause: serviceInstanceRedeploy does not apply a just-changed source.image; it redeploys the previous image reference
   repair_entry_point: Railway GraphQL serviceInstanceUpdate(source.image) on svc 6f7211f0
-  change_pattern: Do not roll back to the older version. Qdrant does not support opening storage with an older release after a newer one has opened it. Check health first (GET / version, every collection green, points_count matches the record). Then set source.image to qdrant/qdrant@<running digest> with no deploy, so the next restart keeps the running version. Record an Event and correct this page.
+  change_pattern: Do not roll back to the older version. Qdrant does not support opening storage with an older release after a newer one has opened it. Check health first (GET / version, every collection green, points_count matches the record). Then set source.image to qdrant/qdrant@<running digest> with no deploy. This is containment only: the running deployment still carries the old image reference (untagged after S1786), and serviceInstanceRedeploy or a variable-triggered deploy would reuse it and could pull another release. The exposure stays open until the next restart goes through E-04 (serviceInstanceDeployV2) and that deployment's meta.image reads qdrant/qdrant@<digest>. Record an Event and correct this page.
   rollback_procedure: restore collections from S3 snapshots or rebuild from Postgres (G-02) only if storage is damaged
-  integrity_check: E-03 plus every collection green and the instance source.image equal to the running digest
+  integrity_check: E-03 plus every collection green and the instance source.image equal to the running digest; closed only when a later E-04 deployment shows meta.image pinned to the digest
 ```
 
 ## Changes and maintenance
