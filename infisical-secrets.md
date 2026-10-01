@@ -270,6 +270,41 @@ A plain `infisical secrets delete NAME` under machine-identity auth returns `400
 - Prohibited-write probe (harmless no-op even if wrongly permitted): `PUT /repos/aidotmarket/<repo>/actions/workflows/<id>/enable` on an already-enabled workflow → expect 403 `Resource not accessible by personal access token`. That error string is the normal fine-grained scope refusal, not an auth outage.
 - Least-privilege probe: `GET .../contents/README.md` → 403 when Contents is not granted.
 
+## Grafana Cloud tokens (S1786, 2026-10-01)
+
+Grafana Cloud org `aimarket` (id `1670288`) runs on the **Free** plan. Its one stack, `aimarket` (id `1527021`), is in `prod-us-east-3`. On 2026-10-01 the stack showed about 760 active metric series against the free plan's 10,000. The grafana.com stack status read `paused`, which affects the hosted Grafana UI; metric ingestion and queries still worked.
+
+Access policies, all scoped to `stack:1527021`:
+
+| Policy | Scopes | Used by |
+|---|---|---|
+| `stack-1527021-otlp-write` | metrics/logs/traces/profiles write, metrics:import, alerts:write, rules:write | Backend OTLP export (`OTEL_EXPORTER_OTLP_HEADERS`) and root `GRAFANA_API_TOKEN`. It has **no read scope**, so `GRAFANA_API_TOKEN` queries return `authentication error: invalid scope requested`. |
+| `connector-otlp-write` (`dadcb089…`) | metrics:write, traces:write | Token `connector-otlp-write-s1786b`, for the connector's own telemetry (Gate 4 Step 4) |
+| `connector-alerting` (`ce43f25b…`) | metrics:read, rules:read/write, alerts:read/write | Token `connector-alerting-s1786b`, for installing and checking connector alert rules |
+
+Both new tokens have no expiry. Their values are only in `ai-market-backend`/`prod` folder **`/grafana-ops`**, which has **no secret sync**, so writing there redeploys nothing. The folder holds:
+
+- `GRAFANA_CONNECTOR_OTLP_WRITE_TOKEN`
+- `GRAFANA_CONNECTOR_ALERTING_TOKEN`
+- `GRAFANA_STACK_ID` (`1527021`, the OTLP basic-auth user)
+- `GRAFANA_PROM_INSTANCE_ID` (`2978270`, the Mimir basic-auth user)
+- `GRAFANA_PROM_URL`
+- `GRAFANA_ALERTMANAGER_URL`
+- `GRAFANA_OTLP_ENDPOINT`
+
+Do not copy these into a synced folder except through a reviewed Step 4 procedure.
+
+**How they were made.** Mars minted them from Max's logged-in grafana.com browser session, by calling the grafana.com API from that tab:
+
+- create the access policy: `POST /api/v1/accesspolicies?region=prod-us-east-3&orgId=1670288`;
+- create the token: `POST /api/v1/tokens?…` with `accessPolicyId`;
+- send an `X-Request-Id` header (a random UUID) on every write, or the API returns 403 `Missing Request ID`;
+- read the secret from the response field `token`; it is shown only once.
+
+**Verify (names only, never echo the value).** Run a Mimir query with basic auth `GRAFANA_PROM_INSTANCE_ID`:`GRAFANA_CONNECTOR_ALERTING_TOKEN` against `GRAFANA_PROM_URL/api/prom/api/v1/query`. On 2026-10-01 it returned 200 with `service_name="ai-market-backend"`, and `/api/prom/rules` returned 200 `{}`.
+
+**Revoke.** `DELETE /api/v1/tokens/<id>?region=prod-us-east-3&orgId=1670288`, or use the Access Policies page.
+
 ## Failure signatures (S1612 additions)
 
 | Symptom | Cause | Fix |
