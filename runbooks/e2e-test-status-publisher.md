@@ -56,7 +56,7 @@ error_signatures:
 
 Prose: after a harness run assembles its report, the runtime constructs a publisher from config and calls `publish`. If no state URL or credential is configured the publisher is a no-op (dormant). Otherwise it GETs the current record, merges this run's per-charter outcomes onto the existing per-item coverage (a charter's `covers` sets passed/failed, its `covers_partial` sets partial, and failed outranks passed within the same run), trims the recent-run ring to 20, redacts the whole body, enforces the 64 KiB ceiling, and PUT/PATCHes it back under an optimistic version lock. The ops Test page reads the resulting record and renders it; it never writes.
 
-**Active review override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
+**Current panel (Max `d0a534e6`, 2026-10-01):** the current panel is GLM, DeepSeek and codex2, unanimous; CC is non-voting; Gemini is not dispatched. See `runbooks/council.md` CURRENT PANEL. The d50cbd80 package and tiering rules below still apply; its CC roster does not. **Earlier override (Max S1738, `d50cbd80`, 2026-09-25 to 2026-10-05):** Gemini is not dispatched for any review; CC holds its third voting seat alongside GLM and DeepSeek, with unanimity required. Apply the option A package standard and option C tiering and raiser-only fold re-review in [runbooks/council.md ACTIVE OVERRIDE](council.md#overview) to any older roster or dispatch wording below.
 
 ## Agent capabilities
 
