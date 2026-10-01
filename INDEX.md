@@ -461,7 +461,7 @@
 
 ## Council Review Collection, Gate Recording, and Lane Coordination
 - Path: `runbooks/council-review-collection.md`
-- Purpose: **Current review authority:** Follow the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md` before dispatch: GLM and DeepSeek are required, CC holds Gemini's third voting seat through 2026-10-05, Gemini is not dispatched, and the panel is unanimous. Apply its option A package standard and option C tiering and fold re-review rule. Kimi dispatch and the older roster/transport examples below are historical diagnostics, not current instructions.
+- Purpose: **Current review authority:** Follow the CURRENT PANEL block (Max `d0a534e6`, 2026-10-01: GLM, DeepSeek, codex2; CC non-voting) in `runbooks/council.md`; its d50cbd80 packaging and tiering rules still apply. Superseded roster wording follows. Follow the d50cbd80 ACTIVE OVERRIDE in `runbooks/council.md` before dispatch: GLM and DeepSeek are required, CC holds Gemini's third voting seat through 2026-10-05, Gemini is not dispatched, and the panel is unanimous. Apply its option A package standard and option C tiering and fold re-review rule. Kimi dispatch and the older roster/transport examples below are historical diagnostics, not current instructions.
 - Owner: `mars`
 - Last verified: `2026-07-30`
 - Aliases: council-verdict-collection, gate-recording

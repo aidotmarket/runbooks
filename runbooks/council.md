@@ -35,7 +35,7 @@ This runbook is maintained by Vulcan. Neither instance is senior to the other.
 > Max, verbatim: "We will stay with GLM Deepseek and Codex2 for reviews"
 > - The voting panel is **GLM, DeepSeek and codex2** (gpt-6.1-sol, Codex CLI, account max@kisa.cat). Full-panel gates need all three, unanimous. GLM is back in its own seat (a GLM review ran successfully on 2026-10-01). codex2 holds the third seat, which CC held for Gemini under d50cbd80; it has no expiry until Max changes the panel. The e4c8ed6f midnight expiry no longer applies.
 > - CC is a non-voting second opinion again. Gemini is not dispatched.
-> - Gate record wording: "GLM, DeepSeek, codex2/gpt-6.1-sol in third seat per d0a534e6".
+> - Gate record: name the three voters (GLM, DeepSeek, codex2) and include the exact note `roster_notes()` emits, byte for byte: `codex2/gpt-6.1-sol in third seat per d0a534e6`.
 > - Unchanged: option A packaging and option C tiering below (d50cbd80), unanimity, rerun-once, and account independence (codex2 never reviews codex2-account builds; default MP never reviews its own builds).
 > - Code: `council_reviewers.py` `required_reviewer_order()` still returns the e4c8ed6f/d50cbd80 windows until koskadeux-mcp branch `build/council-panel-glm-deepseek-codex2-s1786` is merged and deployed; until then, controllers apply this block by hand.
 > - Package practice (S1786): `council_request` prepends the standard preamble itself. Put only the request body in `review_package_path`; never copy a previous request file, whose preamble and any controller block would carry another review's SHAs.

@@ -18,7 +18,7 @@ error_signatures:
 
 # Council Review Collection, Gate Recording, and Lane Coordination
 
-**Current review authority:** Follow the d50cbd80 ACTIVE OVERRIDE in
+**Current review authority:** Follow the CURRENT PANEL block (Max `d0a534e6`, 2026-10-01: GLM, DeepSeek, codex2; CC non-voting) in `runbooks/council.md`; its d50cbd80 packaging and tiering rules still apply. Superseded roster wording follows. Follow the d50cbd80 ACTIVE OVERRIDE in
 `runbooks/council.md` before dispatch: GLM and DeepSeek are required, CC holds
 Gemini's third voting seat through 2026-10-05, Gemini is not dispatched, and
 the panel is unanimous. Apply its option A package standard and option C
@@ -62,13 +62,13 @@ Canonical live-roster reference: `state_request(action=get, key=infra:council-co
 | mars | dispatch reviews, collect verdicts, record gates, coordinate lane | council_request, state_request, peer_msg tools | full operator | COMPLETE |
 | vulcan | same as mars (symmetric peer) | same | full operator | COMPLETE |
 | mp | builder only; excluded from reviewing its own work | dispatch_mp_build | build lane | COMPLETE |
-| GLM, DeepSeek, CC (d50cbd80 temporary third seat) | Current review voters; follow `runbooks/council.md` ACTIVE OVERRIDE | per infra:council-comms | read-only at SHA | COMPLETE |
+| GLM, DeepSeek, codex2 (d0a534e6; CC non-voting) | Current review voters; follow `runbooks/council.md` CURRENT PANEL | per infra:council-comms | read-only at SHA | COMPLETE |
 
 ## How to operate
 
 ```yaml operate
 - id: E-01
-  trigger: Historical Kimi/GLM dispatch example for diagnosing a commit review, including commits in repos other than koskadeux-mcp; use the current d50cbd80 panel and dispatch rules in runbooks/council.md instead.
+  trigger: Historical Kimi/GLM dispatch example for diagnosing a commit review, including commits in repos other than koskadeux-mcp; use the current d0a534e6 panel and dispatch rules in runbooks/council.md instead.
   pre_conditions:
     - dispatch SHA is a full 40-hex commit reachable in a local checkout
     - the checkout has fetched the SHA
