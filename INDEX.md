@@ -544,7 +544,7 @@
 - Path: `runbooks/data-delivery-p2p.md`
 - Purpose: File delivery is peer to peer. The buyer gets the bytes directly from the seller's AIM Data install or from the seller's own cloud storage. ai.market holds the order record and issues download permission (a token, or a short-lived scoped credential or signed link on the seller's own storage). It never stores, stages, caches, relays or proxies the bytes of a delivered data file, on disk, in memory beyond a pass-through, or in any object store it owns.
 - Owner: `vulcan`
-- Last verified: `2026-09-22`
+- Last verified: `2026-10-01`
 - Aliases: P2P delivery rule, peer-to-peer delivery, no custody of delivered files, delivery custody, automatic rejection reason, stream-to-disk, /tmp/fulfillment
 - Error signatures: none
 - Status: current
