@@ -1824,9 +1824,9 @@ Tickets and episodes are kept.
 
 **Record:** receipt `koskadeux-state/s1786/step4-receipt.json`, an Event Ledger entry, `customer-mcp-connector.md` "Gate 4 Step 4 done", and an `issue-channel.md` `grafana` provider section.
 
-## Gate 4 STEP 5 operator procedure — D2 runtime settings, test-host proof, readiness (S1786, v2)
+## Gate 4 STEP 5 operator procedure — D2 runtime settings, test-host proof, readiness (S1786, v3)
 
-This turns line 113 (Step 5) into an executable procedure. Flags and the global switch stay off throughout; no customer traffic is possible. v2 folds the v1 review (DeepSeek, codex2, CC): rollback removes the Railway copies of the secrets, the secret write runs in a restart window, the test host gets its switch rows and audit key, the assertions use the real output contract, and the semantic proof cannot pass on lexical results.
+This turns line 113 (Step 5) into an executable procedure. Flags and the global switch stay off throughout; no customer traffic is possible. v2 folds the v1 review (DeepSeek, codex2, CC): rollback removes the Railway copies of the secrets, the secret write runs in a restart window, the test host gets its switch rows and audit key, the assertions use the real output contract, and the semantic proof cannot pass on lexical results. v3 applies Max's two decisions of 2026-10-01: the restart window is approved to run as soon as this procedure passes review, and the connector gets a new **read-only** Qdrant key instead of the backend's full-access key.
 
 ### 5.0 Facts (read 2026-10-01, names and nonsecret values only)
 
@@ -1842,29 +1842,37 @@ This turns line 113 (Step 5) into an executable procedure. Flags and the global 
 - **Current resource state.**
   - Missing `QDRANT_*` and `VERTEX_GEMINI_KEY`, so D2 search degrades to `sql_fallback`.
   - Service-instance `healthcheckPath=/healthz`, `healthcheckTimeout` unset, `numReplicas=2`, `us-west2`.
-- **Key scope (open, Max).** The copied `QDRANT_API_KEY` is the backend's full-access key; D2 reads only the listings collection. Before the Step 7 enable, either Max accepts that residual in the Event Ledger, or a read-only Qdrant key replaces it through a separately reviewed change. Step 5 itself keeps the resource dark.
+- **Qdrant key (Max, 2026-10-01: new read-only key).** Railway service `Qdrant` (`6f7211f0-8308-4f5b-b8c4-197547e80177`), image `qdrant/qdrant` (untagged), running digest `sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c`, version 1.18.2, one replica in `us-west2`, volume `qdrant-volume` at `/qdrant/storage`. Its Railway-only variables include `QDRANT__SERVICE__API_KEY` (the backend's full-access key) and no `QDRANT__SERVICE__READ_ONLY_API_KEY`. Qdrant ≥ 1.7 accepts a second, read-only key through that variable: it may run searches and reads on every collection and gets 403 on any write. The connector receives only that read-only key, as its `QDRANT_API_KEY`. The backend keeps its key unchanged.
+- **Qdrant restart.** Setting the variable needs one Qdrant redeploy. With one replica and a volume, Railway stops the old container before the new one starts: Qdrant is unavailable for the restart and collection load. Backend search falls back to SQL (`listing_search_service.py` `_sql_fallback_search`, `SEARCH_DEGRADED_NON_SEMANTIC`); index writes go through the reconciler outbox and retry. Because the image is untagged, the redeploy could pull a newer `latest`; the procedure pins the running digest first.
 
 ### 5.1 Writes, in this order, each with readback
 
-0. **Preflight (read only).** Record deployment IDs, commit and image digest of backend, resource, auth and `issue-channel-watcher`; the sync inventory (names, IDs, destinations, `lastSyncJobId`); and the resource's names-only variable set. Refuse if a fifth sync exists, a sync is not `success`, or any service is not `SUCCESS`.
+0. **Preflight (read only).** Record deployment IDs, commit and image digest of backend, resource, auth, `issue-channel-watcher` and `Qdrant`; the sync inventory (names, IDs, destinations, `lastSyncJobId`); and the resource's names-only variable set. Refuse if a fifth sync exists, a sync is not `success`, or any service is not `SUCCESS`.
 1. **Nonsecret Railway variables (resource only, `skipDeploys:true`).** One collection upsert: `QDRANT_HOST` and `QDRANT_PORT`, equal to the backend values.
    - Read back the exact values.
-   - Assert the four deployment IDs are unchanged.
-2. **Secrets, in a Max-approved restart window.** Write `QDRANT_API_KEY` and `VERTEX_GEMINI_KEY` to Infisical `ai-market-backend`/`prod` folder `/connector-resource`, in the protected interpreter of §2.2, using §2.5b's `health`, `wait_sync` and `wait_deploys` helpers. Rules:
-   - Read each value from the root `prod` path. Never print a value. Compare only SHA-256 fingerprints.
+   - Assert all recorded deployment IDs are unchanged.
+2. **Read-only Qdrant key (restart window, part 1).** In the protected interpreter:
+   - Generate `RO = secrets.token_urlsafe(48)`; never print it. Assert its fingerprint differs from the backend key's.
+   - Pin the Qdrant image: `serviceInstanceUpdate` `source.image = "qdrant/qdrant@sha256:75eab8c4…e50c"` (full digest from 5.0); read it back. Refuse if the running digest differs from 5.0 at execution.
+   - `variableCollectionUpsert` on `Qdrant` with only `{QDRANT__SERVICE__READ_ONLY_API_KEY: RO}`, `replace:false`, `skipDeploys:true`; read back names (one added, none removed) and the fingerprint.
+   - `serviceInstanceRedeploy` Qdrant. Wait for `SUCCESS`, digest equal to 5.0, `GET /` returns version 1.18.2 with the backend key.
+   - Prove the key split against production, read-only and with no data change: with `RO`, `GET /collections/listings` returns 200 and a fixed probe vector search returns 200; `PUT /collections/s1786_ro_probe` (a collection that does not exist) returns 403 and the collection list is unchanged. With the backend key, `GET /collections/listings` returns 200.
+   - Check backend API `/health` 200 and that one public listing search on the API returns 200.
+3. **Secrets (restart window, part 2).** Write `QDRANT_API_KEY = RO` and `VERTEX_GEMINI_KEY` to Infisical `ai-market-backend`/`prod` folder `/connector-resource`, in the same protected interpreter (§2.2), using §2.5b's `health`, `wait_sync` and `wait_deploys` helpers. Infisical `/connector-resource` is the source of truth for the read-only key; Qdrant's Railway copy must keep the same fingerprint. Rules:
+   - Read `VERTEX_GEMINI_KEY` from the root `prod` path. Never print a value. Compare only SHA-256 fingerprints.
    - Run the flag and value drift check (`infisical-secrets.md`) **immediately before** the write, and stop on any drift.
    - Settle every sync whose `lastSyncJobId` changes: wait for a new job in `success`. A failed or stuck job stops the procedure and runs 5.4 step 2.
    - Permitted restarts: backend, resource, auth and watcher may each redeploy once or stay put. Each one that redeploys must reach `SUCCESS` and pass its §2.5b health check (backend API `/health` 200, auth `/readyz` 200, resource `/healthz` 200 and `/mcp` 503, watcher `SUCCESS` plus issue-channel freshness green). Any other service changing, or a second redeploy, stops the procedure.
-   - Read back: the folder holds exactly the four expected names, with matching fingerprints. On the resource, compare the fingerprints of the **effective** Railway values of the two names with the folder. Both names must be absent from `/connector-auth`, from the auth and watcher services, and from any resource variable that the sync did not write: the resource's names after the write must equal the preflight names plus exactly these two plus the two from step 1.
-3. **The four defaulted settings.** Assert unset on backend and resource. Then read the effective values from both running deployments with a one-line `python -c` through `railway ssh` (or the Railway shell) that imports `app.core.config.settings` and prints only those four nonsecret values; they must be equal and equal the 5.0 defaults.
-4. **Resource state after the window.**
+   - Read back: the folder holds exactly the four expected names; `QDRANT_API_KEY` there equals `RO` (and Qdrant's `QDRANT__SERVICE__READ_ONLY_API_KEY`) and differs from the root `QDRANT_API_KEY`; `VERTEX_GEMINI_KEY` equals the root. On the resource, compare the fingerprints of the **effective** Railway values of the two names with the folder. Both names must be absent from `/connector-auth`, from the auth and watcher services, and from any resource variable that the sync did not write: the resource's names after the write must equal the preflight names plus exactly these two plus the two from step 1.
+4. **The four defaulted settings.** Assert unset on backend and resource. Then read the effective values from both running deployments with a one-line `python -c` through `railway ssh` (or the Railway shell) that imports `app.core.config.settings` and prints only those four nonsecret values; they must be equal and equal the 5.0 defaults.
+5. **Resource state after the window.**
    - `SUCCESS` with 2 instances RUNNING in `us-west2`; record the deployment ID, commit and image digest.
    - Check `/healthz` 200, `/readyz` 200, both PRM URLs 200, and `POST /mcp` 503 `CONNECTOR_DISABLED`.
    - Check API `/health` 200 and `connector-oauth/status` `{"enabled":false}`.
 
 ### 5.2 Test-host D2 proof (non-customer)
 
-On Koskadeux, run the **same image digest** as 5.1 step 4. Record the digest. Nothing here reads or writes production vectors, rows or users; the only production read is the listings collection's vector size and distance, read-only.
+On Koskadeux, run the **same image digest** as 5.1 step 5. Record the digest. Nothing here reads or writes production vectors, rows or users; the only production read is the listings collection's vector size and distance, read-only.
 
 **Environment**
 - A disposable local Postgres, migrated to the image's alembic head, with:
@@ -1914,8 +1922,9 @@ All flags stay false throughout. Roll back in reverse order, with readbacks:
 
 1. Restore `healthcheckPath=/healthz` (same pinned shape) and redeploy.
 2. Secrets, in a restart window: run the drift check, then delete `QDRANT_API_KEY` and `VERTEX_GEMINI_KEY` from `/connector-resource` (§2.4 deletion call), settling syncs and permitted restarts as in 5.1 step 2. Because `disableSecretDeletion=true`, the Railway copies remain: remove them with `remove_or_restore_connector_vars(RES, {'QDRANT_API_KEY','VERTEX_GEMINI_KEY'})` (§2.4, `skipDeploys:true`, retained names and references verified).
-3. Remove `QDRANT_HOST` and `QDRANT_PORT` with `remove_or_restore_connector_vars(RES, {'QDRANT_HOST','QDRANT_PORT'})`, then `serviceInstanceRedeploy` the resource.
-4. Read back: the four names absent from the folder, the resource's Railway variables and its running environment (`railway ssh` names-only check); the resource's names equal the preflight set; deployment `SUCCESS`; and the dark checks from 5.1 step 4.
+3. Read-only key: remove `QDRANT__SERVICE__READ_ONLY_API_KEY` from `Qdrant` with a single-name `variableCollectionUpsert` replacement of the Qdrant service built the same way as §2.4's helper (full raw name set minus that name, `replace:true`, `skipDeploys:true`, retained names and references verified; the helper's allow-list is not extended, this is a Step 5-only call), then `serviceInstanceRedeploy` Qdrant at the pinned digest. Prove `RO` now gets 401 and the backend key 200. The image pin stays (it is the version that was running).
+4. Remove `QDRANT_HOST` and `QDRANT_PORT` with `remove_or_restore_connector_vars(RES, {'QDRANT_HOST','QDRANT_PORT'})`, then `serviceInstanceRedeploy` the resource.
+5. Read back: the four names absent from the folder, the resource's Railway variables and its running environment (`railway ssh` names-only check); the resource's names equal the preflight set; deployment `SUCCESS`; and the dark checks from 5.1 step 5.
 
 An incomplete rollback is an open blocker.
 
