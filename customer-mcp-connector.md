@@ -278,12 +278,12 @@ What the no-deploy proof showed (S1771): a Railway `variableCollectionUpsert` wi
 
 ### Gate 4 Step 3 done: trusted edge peer and region (S1786, 2026-10-01)
 
-Mars ran Step 3 per `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` §3 (runbooks #378, #380, #383, each approved by the full panel). The final receipt is `koskadeux-state/s1786/step3-receipt.json` (SHA-256 `4255d5329bd5f8195ef62146c07da19a2d74ef67b0f5981688886a6a153d4f51`). Flags and the global switch stayed off throughout.
+Mars ran Step 3 per `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` §3 (runbooks #378, #380 and #383; each carries its full-panel gate record as a PR comment). The final receipt is `koskadeux-state/s1786/step3-receipt.json` (SHA-256 `4255d5329bd5f8195ef62146c07da19a2d74ef67b0f5981688886a6a153d4f51`). Flags and the global switch stayed off throughout.
 
 - **Setting:** `CONNECTOR_TRUSTED_PROXY_CIDRS=100.64.0.0/24` on `ai-market-connector` only, live in deployment `90eda905-421c-4e58-ab19-416c1f154755`. Railway's edge reaches the container from socket peers in `100.64.0.2`–`.23`. Before the setting, every caller shared about 20 edge-peer rate-limit buckets.
 - **Proof:** eight single-source windows, P1–P4 from the cloud workspace and from the Koskadeux host. All passed with 12 of 12 probes recorded in public caller buckets, none on an edge peer, and no `1.2.3.4`/`5.6.7.8` bucket. A client-supplied `X-Forwarded-For`, forged, invalid or prepended, never chose the bucket. Not measured: per-replica attribution, hop count, and whether the edge strips or appends.
-- **Region:** both connector services ran in `us-east4-eqdc4a` with one instance each, while Redis, Postgres and the backend run in `us-west2`. The pre-auth limiter's 100 ms Redis budget then expired on a third to a half of requests, which fell back to per-process limits. Both services now run in `us-west2` with two instances each:
-  - resource deployment `45bcc9b6-cb6f-4878-8439-4e318aca6016`;
+- **Region:** both connector services ran in `us-east4-eqdc4a` with one instance each, while Redis, Postgres and the backend run in `us-west2`. In that placement only 6 and 8 of 12 probes reached Redis. The likely cause, confirmed by the 12 of 12 result after the move, is the pre-auth limiter's 100 ms Redis budget expiring across the continent; those requests fell back to per-process limits. Both services now run in `us-west2` with two instances each:
+  - resource deployment `45bcc9b6-cb6f-4878-8439-4e318aca6016` for the move, superseded by `90eda905` when the CIDR was applied;
   - auth deployment `dfe2e9f7-f371-4353-a620-b162a90dd362`;
   - tool `koskadeux-state/s1786/region_move.d87911e9423d.py`, journal `receipts/region-journal.jsonl`.
 
@@ -293,7 +293,7 @@ Mars ran Step 3 per `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` §3 (runboo
   - Execution 2 lost probes to the limiter fallback, which led to the region finding.
 
   Receipts: `koskadeux-state/s1786/receipts/{exec1,exec2,rbcheck}/`.
-- **Recorded, not changed:** these services also run in `us-east4` while their data stores are in `us-west2`: `ai-market-celery-worker`, `ai-market-celery-beat`, `ai-market-seller-profile-worker`, `gateway-signer`, `ai-market-gateway-door-worker`, `issue-channel-watcher` and `ai-market-backup`. Each database or Redis call they make crosses the continent. Moving them is a separate decision.
+- **Recorded, not changed:** these services also run in `us-east4` while their data stores are in `us-west2`: `ai-market-celery-worker`, `ai-market-celery-beat`, `ai-market-seller-profile-worker`, `gateway-signer`, `ai-market-gateway-door-worker` and `issue-channel-watcher`. `ai-market-backup` is also configured there but had no running instance at the time. Each database or Redis call they make crosses the continent. Moving them is a separate decision.
 
 Rollback for Step 3: `koskadeux-state/s1786/apply_step3.py rollback --execute` (spec §3.5). Region rollback: `region_move.d87911e9423d.py restore --execute` restores the captured prior placement.
 
