@@ -63,8 +63,8 @@ Files, all in `koskadeux-state/s1786/`:
 
 | File | sha256 |
 |---|---|
-| `region_consolidate.py` | `b3a3bc8a02f574b7ac22b05f1bfe0b3c027545ad8b7b5ed40be966797eb1bbe1` |
-| `test_region_consolidate.py` | `a5ba2375c294134b64d8acc4235e9940e16273a73d2dcd51062fdb520c72db70` |
+| `region_consolidate.py` | `787f87c013ba136f501c01838d351be65a1b37b64bcf53ad1acbdc0d5acf48a3` |
+| `test_region_consolidate.py` | `590997786c0b328ebce12a906d5486c21565346aa24bc9c043a9928663c3ed05` |
 | `region_inventory.py` | `76cc3f906d2c9401a19847eb028fa02d459a68710a95861ff5523d559561dfca` |
 
 The offline tests cover these cases:
@@ -90,6 +90,7 @@ The offline tests cover these cases:
 - a standalone restore ignoring clearance;
 - a mutation answered with HTTP 400, 500, 502 or 504, inside or outside a Beat pass, exiting 1 with no recovery;
 - an unknown mutation during automatic recovery or a standalone restore ending with `mutation_unfenced` and no `restore_result`, naming the pending mutation;
+- the pending update's complete placement payload kept in the `mutation_unfenced` line;
 - request timeouts capped by the deadline and refused after it;
 - acceptance after the deadline failing;
 - a trickling response returning control at the deadline;
@@ -157,7 +158,7 @@ The tool is a dry run unless `--execute` is given, handles one service per call,
 
 - **The tool exits 3.** A precheck refused (placement drift, unhealthy service, or Beat outside its window); nothing was changed.
 - **The tool exits 1.** Read the last journal line.
-  - `mutation_unfenced` (phase `move`, `recovery` or `restore`): a Railway change may still land. Make **no** further change to that service, by tool or dashboard; elapsed time or an unchanged `status` proves nothing. The outcome is resolved only when Railway shows the effect of the pending mutation named in the line: for `serviceInstanceUpdate`, the service's configured placement equals the value that call set; for `serviceInstanceRedeploy` or a deployment call, a deployment created after the journal timestamp exists and is terminal. Once resolved, the pending call is spent and `restore <service> --execute` may run. If the effect never appears, leave the service as it is (it keeps running where it was), keep the HOLD on that service, and escalate to Max with the journal line; a later mutation needs his decision.
+  - `mutation_unfenced` (phase `move`, `recovery` or `restore`): a Railway change may still land. The line names the pending call and its complete variables (service, environment, deployment ID or the full placement). Make **no** further change to that service, by tool or dashboard. Nothing the tool or `status` can observe proves that the specific pending call is spent: placement can already match, a deployment can come from an earlier call, and a `deploymentStop` has no new deployment to look for. So there is no observation-based release: keep the HOLD on that service and escalate to Max at once with the journal line. Do not assume the service is running. If the pending call was a `deploymentStop` on Beat, scheduled tasks may be stopped until Max decides how to resolve it; say so in the escalation. Any further change to that service waits for his decision.
   - `restore_result ok=false`: the restore itself got definite answers but failed acceptance. Run `status` and put the service back by hand in the Railway dashboard (Settings → Regions).
   - Either way, record what happened in the journal and on the Event Ledger.
 - **The deployment never leaves `DEPLOYING`.** The tool gives up after 15 minutes and restores. Check whether `us-west2` has capacity, then retry later.
