@@ -1,7 +1,7 @@
 ---
 title: Lifecycle Emails
 owner: vulcan
-last_verified: '2026-08-20'
+last_verified: '2026-10-01'
 aliases: []
 error_signatures:
 - 'operator does not exist: userstatus = character varying'
@@ -31,6 +31,11 @@ counts `{selected: 51, claimed: 51}`. No
 since deployment. This proves the repaired selection/claim path. Drain and
 delivery behavior and recipient inbox delivery were not part of this predicate
 repair and were not re-verified here. No browser verification was performed.
+
+## S1786 verification and buyer-and-seller copy (2026-10-01)
+
+- **Delivery verified live (counts only).** A signup on 2026-10-01 received the welcome email. The operator signup notice was also sent at 12:32Z, and Resend reports both as `delivered`. Every signup in the previous 14 days (5 of 5) has a `welcome` row with `sent_at` in `lifecycle_email_sends`, and `day3` and `day7` rows are being sent. This closes the drain and delivery gap noted above for welcome, day 3 and day 7. Method: read-only prod query (`BEGIN READ ONLY`) on `lifecycle_email_sends` joined to `users`, then `GET https://api.resend.com/emails` with `RESEND_API_KEY`, matching by recipient and subject. Never paste addresses into receipts.
+- **Copy now speaks to buyers and sellers** (Max approved the text, Event `936f61f1`). The backend change is #569, merged as `cf819939e504f3c3d93cc28a1922e543ef72a9b1` and deployed (backend, celery-worker and celery-beat `SUCCESS` at that commit). Subjects: "Welcome to ai.market", "How's it going?", "Getting the most out of ai.market". Sender, timing, claims and unsubscribe are unchanged. Tests: `tests/test_s1548_lifecycle_emails_phase_b.py` and `phase_d.py` (37 passed). Any further copy change needs Max's approval of the exact text and a test update.
 
 ## Capabilities
 
