@@ -967,9 +967,9 @@
 - Path: `qdrant.md`
 - Purpose: Qdrant stores **derived** data only. It is NOT a system of record. Every collection is an embedding index rebuilt from Postgres:
 - Owner: `sysadmin`
-- Last verified: `2026-06-30`
+- Last verified: `2026-10-01`
 - Aliases: none
-- Error signatures: unauth returns 200, backend qdrant calls 401 after rotation, HTTP 401
+- Error signatures: unauth returns 200, backend qdrant calls 401 after rotation, HTTP 401, Qdrant redeploy digest differs
 - Status: current
 
 ## Queue-Overlay Archival Cutover (Reform WS11)

@@ -1,12 +1,13 @@
 ---
 title: Qdrant — Vector Database (hosting, auth, backups)
 owner: sysadmin
-last_verified: '2026-06-30'
+last_verified: '2026-10-01'
 aliases: []
 error_signatures:
 - unauth returns 200
 - backend qdrant calls 401 after rotation
 - HTTP 401
+- Qdrant redeploy digest differs
 ---
 
 # Qdrant — Vector Database (hosting, auth, backups)
@@ -71,7 +72,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   trigger: Key compromise or scheduled rotation
   pre_conditions:
     - Maintenance window (brief Qdrant + backend restart)
-  tool_or_endpoint: Railway variableUpsert + Infisical secrets raw API
+  tool_or_endpoint: Railway variableCollectionUpsert with skipDeploys:true + Infisical secrets raw API; the Qdrant restart is E-04 (never a variable-triggered deploy)
   argument_sourcing:
     arg: new key = python secrets.token_urlsafe(48)
   idempotency: NOT_IDEMPOTENT
@@ -99,6 +100,32 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
       cause: wrong or missing api-key
   next_step_success: done
   next_step_failure: G-01
+- id: E-04
+  trigger: Any Qdrant restart or redeploy (variable change, config change)
+  pre_conditions:
+    - Peers told; backend search falls back to SQL while Qdrant restarts (one replica plus a volume, so the old container stops first; knowledge_base_v2 holds about 1.7M points and loads for about 2 minutes, and the public domain returns 502 meanwhile)
+    - Record the running deployment's meta.imageDigest and GET / version
+  tool_or_endpoint: Railway GraphQL serviceInstanceDeployV2(serviceId, environmentId) ONLY; read serviceInstance(source.image) and the new deployment's meta.image and meta.imageDigest
+  notes: |
+    Rehearsed S1786 on a scratch image service (receipt koskadeux-state/s1786/step5/image-rehearsal.json):
+    serviceInstanceUpdate(source.image) alone does not deploy.
+    serviceInstanceRedeploy reuses the previous deployment's image reference, so a just-changed source.image is ignored.
+    serviceInstanceDeployV2 deploys the instance's current source.image.
+    variableUpsert without skipDeploys auto-deployed (step F). In F the source and the previous deployment both held the same pinned reference, so which one a variable-triggered deploy uses is UNVERIFIED. Treat it as the risky case: assume the previous deployment's reference.
+    variableDelete did not deploy within 120 s; follow it with serviceInstanceDeployV2.
+    Production deployment f60cd9f5 still carries the untagged reference qdrant/qdrant. Until a serviceInstanceDeployV2 replaces it, serviceInstanceRedeploy pulls the newest release (shown by C), and a variable-triggered deploy may do the same (UNVERIFIED, assumed).
+    Therefore every Qdrant variable write uses skipDeploys:true (variableCollectionUpsert) and is read back. Then confirm source.image is the accepted pin, then run exactly one serviceInstanceDeployV2. variableDelete has no skipDeploys flag: run serviceInstanceDeployV2 straight after it and check that no other deployment appeared in between.
+  argument_sourcing:
+    arg: the service instance source.image, which must be qdrant/qdrant@sha256:<digest> (since S1786 the pin is 1.19.1, sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10)
+  idempotency: NOT_IDEMPOTENT
+  expected_success:
+    shape: new deployment SUCCESS, meta.imageDigest equals the pinned digest, GET / version unchanged, every collection present and green with points_count at least 99% of the pre-restart record (the backend keeps writing and deleting while Qdrant runs; a larger drop is an open blocker, explained only by matching outbox delete activity)
+    verification: compare digest, version, the collection list and per-collection points_count before and after
+  expected_failures:
+    - signature: Qdrant redeploy digest differs
+      cause: serviceInstanceRedeploy reuses the previous deployment's image reference and ignores a just-changed source.image. Before S1786 the deployment image was untagged qdrant/qdrant, so a redeploy pulled the newest release (S1786, 2026-10-01, 1.18.2 to 1.19.1).
+  next_step_success: done
+  next_step_failure: G-03
 ```
 
 ## When it breaks
@@ -108,6 +135,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
 | F-01 | Backend embedding/search fails with 401 | backend QDRANT_API_KEY missing or mismatched vs Qdrant service key | compare Infisical/Railway backend QDRANT_API_KEY vs Qdrant QDRANT__SERVICE__API_KEY | G-01 | CONFIRMED |
 | F-02 | /backup-status qdrant status=corrupt, collections show no_backups | live collection has no S3 snapshot prefix (real backup gap) | read collection_results in /backup-status | G-02 | CONFIRMED |
 | F-03 | unauth /collections returns 200 | auth not enforced (key unset or stale deploy) | curl without api-key header | G-01 | CONFIRMED |
+| F-04 | Qdrant runs a different version after a redeploy | redeploy reused the untagged image reference and pulled a newer release | compare the latest deployment's meta.imageDigest and GET / version with the record taken before the restart | G-03 | CONFIRMED |
 
 ## Repair
 
@@ -116,9 +144,9 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   symptom_ref: F-01
   component_ref: Qdrant service
   root_cause: key missing/mismatched between Qdrant service and backend
-  repair_entry_point: Railway variableUpsert (QDRANT__SERVICE__API_KEY on svc 6f7211f0; QDRANT_API_KEY on backend svc 4a68ea36) + Infisical bd272d48
-  change_pattern: set the SAME key on backend (env + Infisical) FIRST, redeploy backend, THEN set/redeploy Qdrant so the backend already authenticates when enforcement turns on
-  rollback_procedure: remove QDRANT__SERVICE__API_KEY from the Qdrant service + redeploy to revert to open (emergency only)
+  repair_entry_point: Railway variableCollectionUpsert with replace:false and skipDeploys:true (QDRANT__SERVICE__API_KEY on svc 6f7211f0, restarted only through E-04; QDRANT_API_KEY on backend svc 4a68ea36 through Infisical bd272d48, whose sync redeploys the backend)
+  change_pattern: set the SAME key on backend (env + Infisical) FIRST, redeploy backend, THEN stage the Qdrant variable with skipDeploys:true and restart Qdrant through E-04 (serviceInstanceDeployV2), so the backend already authenticates when enforcement turns on
+  rollback_procedure: remove QDRANT__SERVICE__API_KEY from the Qdrant service, then restart through E-04, to revert to open (emergency only)
   integrity_check: E-01 (unauth 401, with-key 200) + backend /backup-status collection_source=qdrant_api
 - id: G-02
   symptom_ref: F-02
@@ -128,6 +156,14 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   change_pattern: enumerate live collections from the Qdrant API (with api-key) and snapshot each to s3 under qdrant/{collection}/
   rollback_procedure: n/a (additive). If a collection is lost entirely, canonical recovery is a REBUILD FROM POSTGRES, not the S3 snapshot — listings rebuild via POST /api/v1/search/reindex (reindex_all). The S3 snapshot only saves the re-embed window.
   integrity_check: /backup-status qdrant aggregate=ok (every live collection has a fresh prefix)
+- id: G-03
+  symptom_ref: F-04
+  component_ref: Qdrant service
+  root_cause: serviceInstanceRedeploy does not apply a just-changed source.image; it redeploys the previous image reference
+  repair_entry_point: Railway GraphQL serviceInstanceUpdate(source.image) on svc 6f7211f0
+  change_pattern: Do not roll back to the older version. Qdrant does not support opening storage with an older release after a newer one has opened it. Check health first (GET / version, every collection green, points_count at least 99% of the record). Then set source.image to qdrant/qdrant@<running digest> with no deploy. This is containment only: the running deployment still carries the old image reference (untagged after S1786), serviceInstanceRedeploy reuses it (shown by rehearsal C), and a variable-triggered deploy may too (UNVERIFIED, assumed; see E-04). Either could pull another release. The exposure stays open until the next restart goes through E-04 (serviceInstanceDeployV2) and that deployment's meta.image reads qdrant/qdrant@<digest>. Record an Event and correct this page.
+  rollback_procedure: restore collections from S3 snapshots or rebuild from Postgres (G-02) only if storage is damaged
+  integrity_check: E-03 plus every collection green and the instance source.image equal to the running digest; closed only when a later E-04 deployment shows meta.image pinned to the digest
 ```
 
 ## Changes and maintenance
@@ -210,10 +246,12 @@ scenario_set:
     scenario: Rotate the Qdrant API key during a maintenance window, backend-first.
     expected_answers:
       - kind: tool_call
-        tool: railway-variableUpsert
+        tool: railway-variableCollectionUpsert
         argument_keys:
           - serviceId
-          - name
+          - variables
+          - replace
+          - skipDeploys
     weight: 0.0909
   - id: I-04
     type: isolate
@@ -255,10 +293,12 @@ scenario_set:
     scenario: Restore matched keys on backend and Qdrant after a 401 incident.
     expected_answers:
       - kind: tool_call
-        tool: railway-variableUpsert
+        tool: railway-variableCollectionUpsert
         argument_keys:
           - serviceId
-          - name
+          - variables
+          - replace
+          - skipDeploys
     weight: 0.0909
   - id: I-08
     type: repair
