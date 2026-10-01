@@ -1,12 +1,14 @@
 ---
 title: AIM Data Release Process
 owner: unassigned
-last_verified: '2026-09-21'
+last_verified: '2026-10-01'
 aliases: []
 error_signatures: []
 ---
 
 # AIM Data Release Process
+
+**RETIRED (S1790, 2026-10-01):** `aidotmarket/aim-data` is archived (read-only) on Max's GO, after the legacy delivery paths were removed from the backend (chunk F, backend `42c7cda6`). Its README points to the replacement, the AIM Data Gateway (`aidotmarket/aim-data-gateway`, see [aim-data-gateway.md](aim-data-gateway.md)). ai.market no longer accepts deliveries from this product. Everything below is history. To unarchive (only on Max's decision): `gh repo unarchive aidotmarket/aim-data` with `GITHUB_ORG_ADMIN_TOKEN` as `GH_TOKEN` (see [infisical-secrets.md](infisical-secrets.md) GitHub Tokens).
 
 ## What it does
 

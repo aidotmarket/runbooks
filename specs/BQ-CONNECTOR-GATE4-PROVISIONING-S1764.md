@@ -1822,3 +1822,140 @@ No other ticket or episode may appear, test or production.
 Tickets and episodes are kept.
 
 **Record:** receipt `koskadeux-state/s1786/step4-receipt.json`, an Event Ledger entry, `customer-mcp-connector.md` "Gate 4 Step 4 done", and an `issue-channel.md` `grafana` provider section.
+
+## Gate 4 STEP 5 operator procedure — D2 runtime settings, test-host proof, readiness (S1786, v7)
+
+This turns line 113 (Step 5) into an executable procedure. Flags and the global switch stay off throughout; no customer traffic is possible. v2 folds the v1 review (DeepSeek, codex2, CC): rollback removes the Railway copies of the secrets, the secret write runs in a restart window, the test host gets its switch rows and audit key, the assertions use the real output contract, and the semantic proof cannot pass on lexical results. v3 applies Max's two decisions of 2026-10-01: the restart window is approved to run as soon as this procedure passes review, and the connector gets a new **read-only** Qdrant key instead of the backend's full-access key. v4 folds the v2/v3 reviews: deployment baselines are re-taken through §2.5b's `window_action`, the read-only probe no longer creates anything, the Qdrant rollback deletes one variable instead of replacing the set, and a failure part-way has its own rollback branch. v5 folds the v4 reviews (codex2, GLM): a reviewed resource commit stop gate, headroom checked before the first resource restart, one secret per window action with every sync job and deployment counted, a runnable test-host harness, a connector-identity settings readback, a stronger semantic proof, a pinned Qdrant image mutation, and rollback that proceeds from a failed deployment. v6 folds the v5 reviews (GLM, DeepSeek, codex2): an exact ES256 token and fixture recipe the verifier accepts, a rollback that never routes through `window_action`, per-secret accounting during rollback, a sync quiet period, and a final readback that covers all four services. v7 folds codex2's v6 review: `rollback_settle` is bounded, and the fixtures come from a rehearsed kit with the real column names.
+
+### 5.0 Facts (read 2026-10-01, names and nonsecret values only)
+
+- **Resource code (reviewed identity).** The resource runs backend `5f3efc85a707e2f94a9b19f84efd53afdf0c7a53` (deployment `37f916b4-8125-4900-b32a-40c714afde86`, 2026-10-01, Event `9d2d6b03`). Against `874dde03`, the v1–v4 review base, it changes `app/core/config.py` (Terms 1.2 publication settings only), `app/mcp/connector/{asgi,health,telemetry}.py` (telemetry build T) and unrelated backend services; no D2 setting, search, projection, switch or tool file changed (`git diff --stat 874dde03 5f3efc85 -- app/`). **Stop gate:** 5.1 preflight refuses unless the resource's live deployment reports commit `5f3efc85` and records its image digest; any other commit needs a fresh reviewed D2 diff before Step 5 runs. That digest is used everywhere below. PR #561 means the D2 settings import no longer needs `DOWNLOAD_TOKEN_SECRET_KEY` or `INTERNAL_API_KEY`. Do **not** copy those.
+- **Licensing trio.** `LISTING_LICENSES_ENABLED`, `TERMS_1_1_EFFECTIVE_AT` and `X402_ENABLED` are already on the resource from Step 2 §2.3. Step 5 re-verifies them; it does not write them.
+- **What D2 reads.**
+  - Qdrant: `app/core/qdrant_client.py` reads `QDRANT_HOST`, `QDRANT_PORT` and `QDRANT_API_KEY`.
+  - Embeddings: `app/core/llm.py` reads `VERTEX_GEMINI_KEY`, `LLM_EMBEDDING_MODEL`, `LLM_EMBEDDING_DIMENSIONS` and `VERTEX_EMBEDDING_LOCATION`.
+  - Search: `SEARCH_SCORE_THRESHOLD`. `get_listing` is SQL only.
+- **Where the values live.** Infisical `ai-market-backend`/`prod` root holds `QDRANT_HOST`, `QDRANT_PORT`, `QDRANT_API_KEY` and `VERTEX_GEMINI_KEY` (names-only export, 2026-10-01); the root sync sends them to the backend. Folder `/connector-resource` holds only `CONNECTOR_AUDIT_HMAC_KEY` and `SECRET_KEY`.
+- **Defaulted settings.** Neither service sets `SEARCH_SCORE_THRESHOLD`, `VERTEX_EMBEDDING_LOCATION`, `LLM_EMBEDDING_MODEL` or `LLM_EMBEDDING_DIMENSIONS`, so both use the code defaults `0.72`, `us-west1`, `gemini/gemini-embedding-001` and `768`. Line 113 says "provision"; for these four, v2 provisions by assertion: unset on both services, and the effective values read from **both** running images are equal (5.1 step 3). Qdrant stores only vector size and distance, so the model and location match is established by that image comparison, not by the collection. If the backend ever sets one, copy that exact value instead.
+- **Sync behaviour.** `infisical-secrets.md`: any Infisical `prod` write can trigger every native sync (root `railway-backend-prod`, `railway-connector-auth-prod`, `railway-issue-channel-watcher-events-prod`, `railway-connector-resource-prod`) and a root re-push redeploys the backend. So the 5.1 secret write runs in a restart window, like Step 2 §2.5.
+- **Current resource state.**
+  - Missing `QDRANT_*` and `VERTEX_GEMINI_KEY`, so D2 search degrades to `sql_fallback`.
+  - Service-instance `healthcheckPath=/healthz`, `healthcheckTimeout` unset, `numReplicas=2`, `us-west2`.
+- **Qdrant key (Max, 2026-10-01: new read-only key).** Railway service `Qdrant` (`6f7211f0-8308-4f5b-b8c4-197547e80177`), image `qdrant/qdrant` (untagged), running digest `sha256:75eab8c4ba42096724fdcfde8b4de0b5713d529dde32f285a1f86fdcb2c9e50c`, version 1.18.2, one replica in `us-west2`, volume `qdrant-volume` at `/qdrant/storage`. Its Railway-only variables include `QDRANT__SERVICE__API_KEY` (the backend's full-access key) and no `QDRANT__SERVICE__READ_ONLY_API_KEY`. Qdrant ≥ 1.7 accepts a second, read-only key through that variable: it may run searches and reads on every collection and gets 403 on any write. The connector receives only that read-only key, as its `QDRANT_API_KEY`. The backend keeps its key unchanged.
+- **Qdrant restart.** Setting the variable needs one Qdrant redeploy. With one replica and a volume, Railway stops the old container before the new one starts: Qdrant is unavailable for the restart and collection load. Backend search falls back to SQL (`listing_search_service.py` `_sql_fallback_search`, `SEARCH_DEGRADED_NON_SEMANTIC`); index writes go through the reconciler outbox and retry. Because the image is untagged, the redeploy could pull a newer `latest`; the procedure pins the running digest first.
+
+### 5.1 Writes, in this order, each with readback
+
+0. **Preflight (read only).** Record deployment IDs, commit and image digest of backend, resource, auth, `issue-channel-watcher` and `Qdrant`; the sync inventory (names, IDs, destinations, `lastSyncJobId`); and the resource's names-only variable set. Refuse if a fifth sync exists, a sync is not `success`, any service is not `SUCCESS`, or the resource commit is not `5f3efc85` (5.0 stop gate). **Headroom, before anything can restart the resource:** read `max_connections`, `superuser_reserved_connections` and the current connection count, plus the resource's effective `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`, `CONNECTOR_WORKERS` and replica count (code defaults 5, 5, 2 and 2). Required free connections = (pool + overflow) × workers × replicas + 10 (default 50). The current count already includes the running resource, so this covers old and new deployments overlapping. Refuse if `max_connections − superuser_reserved_connections − current` is below it. Record the values with a timestamp.
+1. **Nonsecret Railway variables (resource only, `skipDeploys:true`).** One collection upsert: `QDRANT_HOST` and `QDRANT_PORT`, equal to the backend values.
+   - Read back the exact values.
+   - Assert all recorded deployment IDs are unchanged.
+2. **Read-only Qdrant key (restart window, part 1).** In the protected interpreter:
+   - Generate `RO = secrets.token_urlsafe(48)`; never print it. Assert its fingerprint differs from the backend key's.
+   - Pin the Qdrant image. First pin the shape by live introspection: `ServiceInstanceUpdateInput.source` is `ServiceSourceInput {image: String, repo: String}` and `ServiceInstance.source` has `image` and `repo` (read 2026-10-01); refuse on any difference. Refuse if the running deployment's `meta.imageDigest` differs from 5.0. Then `serviceInstanceUpdate(serviceId: Qdrant, environmentId, input: {source: {image: "qdrant/qdrant@sha256:<full 5.0 digest>"}})`; read back `serviceInstance.source.image` equal to that string and `repo` null, and record requested and returned values. The update alone does not deploy; the redeploy below does.
+   - `variableCollectionUpsert` on `Qdrant` with only `{QDRANT__SERVICE__READ_ONLY_API_KEY: RO}`, `replace:false`, `skipDeploys:true`; read back names (one added, none removed) and the fingerprint.
+   - `serviceInstanceRedeploy` Qdrant. Wait for `SUCCESS`; the new deployment's `meta.imageDigest` must equal 5.0 and `GET /` must return version 1.18.2 with the backend key. Any other digest stops the procedure and runs 5.4 step 3.
+   - Prove the key split against production, read-only and with no data change: with `RO`, `GET /collections/listings` returns 200 and a fixed probe vector search returns 200; `DELETE /collections/s1786_ro_probe` (a collection that does not exist, so the call changes nothing even if it were allowed) returns 403. Read the collection list with the backend key before and after the probes; it must be unchanged. With the backend key, `GET /collections/listings` returns 200.
+   - Check backend API `/health` 200 and that one public listing search on the API returns 200.
+3. **Secrets (restart window, part 2).** Write `QDRANT_API_KEY = RO` and `VERTEX_GEMINI_KEY` to Infisical `ai-market-backend`/`prod` folder `/connector-resource`, in the same protected interpreter (§2.2), as **two** separate §2.5b `window_action` calls, one per secret (`QDRANT_API_KEY` first, then `VERTEX_GEMINI_KEY`), each with targets `{BACK, RES, AUTH, WATCH}` and sync `railway-connector-resource-prod`; `window_action` checks and then re-takes `BASE_DEPLOYMENTS`. Before the first, set `BASE_DEPLOYMENTS = deployment_snapshot()` once all preflight services read `SUCCESS` after part 1. Around each call, Step 5 adds its own accounting, because `window_action` follows only one sync and each service's latest deployment:
+   - before the write, record `lastSyncJobId` and status of **every** sync in the preflight inventory;
+   - after it, wait until every sync whose job ID changed reaches `success` with a job ID newer than the recorded one, and then until 120 s pass with no sync starting a new job (quiet period); a sync that shows `failed` at any point, or whose job is replaced before it succeeds, stops the procedure (both job IDs go to the receipt);
+   - list each service's deployments created since the write (`deployments(input: {serviceId, environmentId})`, created after the write's timestamp); more than one new deployment for any service in one action, or any new deployment on a service outside the four targets, stops the procedure. Infisical `/connector-resource` is the source of truth for the read-only key; Qdrant's Railway copy must keep the same fingerprint. Rules:
+   - Read `VERTEX_GEMINI_KEY` from the root `prod` path. Never print a value. Compare only SHA-256 fingerprints.
+   - Run the flag and value drift check (`infisical-secrets.md`) **immediately before** the write, and stop on any drift.
+   - Settle every sync whose `lastSyncJobId` changes: wait for a new job in `success`. A failed or stuck job stops the procedure and runs the partial-progress rollback in 5.4.
+   - Permitted restarts: backend, resource, auth and watcher may each redeploy once or stay put. Each one that redeploys must reach `SUCCESS` and pass its §2.5b health check (backend API `/health` 200, auth `/readyz` 200, resource `/healthz` 200 and `/mcp` 503, watcher `SUCCESS` plus issue-channel freshness green). Any other service changing, or a second redeploy, stops the procedure.
+   - Read back: the folder holds exactly the four expected names; `QDRANT_API_KEY` there equals `RO` (and Qdrant's `QDRANT__SERVICE__READ_ONLY_API_KEY`) and differs from the root `QDRANT_API_KEY`; `VERTEX_GEMINI_KEY` equals the root. On the resource, compare the fingerprints of the **effective** Railway values of the two names with the folder. Both names must be absent from `/connector-auth`, from the auth and watcher services, and from any resource variable that the sync did not write: the resource's names after the write must equal the preflight names plus exactly these two plus the two from step 1.
+4. **The four defaulted settings.** Assert unset on backend and resource. Then read the effective values from both running deployments through `railway ssh`, printing only those four nonsecret values. On the **resource**, establish the connector process identity first, exactly as the entrypoint does: `python -c "from app.core.process_role import mark_connector_resource; mark_connector_resource(); from app.core.config import settings as s; print(s.SEARCH_SCORE_THRESHOLD, s.VERTEX_EMBEDDING_LOCATION, s.LLM_EMBEDDING_MODEL, s.LLM_EMBEDDING_DIMENSIONS)"`. On the **backend**, run the same command without the first two statements. Both must print `0.72 us-west1 gemini/gemini-embedding-001 768`.
+5. **Resource state after the window.**
+   - `SUCCESS` with 2 instances RUNNING in `us-west2`; record the deployment ID, commit and image digest.
+   - Check `/healthz` 200, `/readyz` 200, both PRM URLs 200, and `POST /mcp` 503 `CONNECTOR_DISABLED`.
+   - Check API `/health` 200 and `connector-oauth/status` `{"enabled":false}`.
+
+### 5.2 Test-host D2 proof (non-customer)
+
+On Koskadeux, run the **same image digest** as 5.1 step 5. Record the digest. Nothing here reads or writes production vectors, rows or users; the only production read is the listings collection's vector size and distance, read-only.
+
+**Environment**
+- A disposable local Postgres, migrated to the image's alembic head, with:
+  - the connector runtime role and grants as in production;
+  - `connector_switches` rows, local database only: `('global','global')` `disabled=false`, and `('tool','search_listings')`, `('tool','get_listing')`, `('tool','get_activity')`, `('tool','list_data_requests')`, each `disabled=false` (those four declare `explicit_switch_required`; `get_my_account` needs no row);
+  - synthetic fixtures labelled as test data, all four on the **same** subject (for example US grocery checkout transactions) so that one query is a semantic candidate for each:
+    - **L1:** published; complete licence; eligible; `short_description` set; `schema_info` with at least two columns; `source_row_count` ≥ 5; `update_cadence_days` > 0; `price` set.
+    - **L2:** published; licence incomplete; must be ineligible.
+    - **L3:** unpublished.
+    - **L4:** published; eligible; text containing a distinct literal token used only by query b.
+- A local Qdrant (Docker, pinned tag) whose listings collection has the production collection's vector size (768) and distance. Points for L1, L2, L3 and L4, embedded with the real `VERTEX_GEMINI_KEY` (local env var from the protected interpreter, never printed). The L2 and L3 points carry `status=published` in their payload (stale index), so only PostgreSQL hydration can exclude them.
+- Local Redis.
+- Test-host environment, complete: `CONNECTOR_ENABLED=true`; the canonical identity values the settings require, `CONNECTOR_AUTH_ISSUER=https://auth.ai.market`, `CONNECTOR_AUDIENCE=https://connect.ai.market/mcp`, `CONNECTOR_JWKS_URL=https://auth.ai.market/.well-known/jwks.json`; `CONNECTOR_ALLOWED_HOSTS=connect.ai.market` (requests send that `Host` header to the local port); `CONNECTOR_EARLY_ACCESS_ENFORCED=true` and `CONNECTOR_EARLY_ACCESS_USER_IDS=<local test user UUID>`; `DATABASE_URL` for the local database as the runtime role; `REDIS_URL` for local Redis; `QDRANT_HOST`/`QDRANT_PORT` for local Qdrant with a local `QDRANT_API_KEY`; the real `VERTEX_GEMINI_KEY` from the protected interpreter; a fresh local `CONNECTOR_AUDIT_HMAC_KEY` and a fresh local `SECRET_KEY` (both generated on the host, never production values); `CONNECTOR_EXPECTED_PROCESSES=1`; no `CONNECTOR_OAUTH_SIGNING_KEYS`; the 5.0 defaults left unset; no OTLP endpoint.
+- **Harness, not an image change.** The image's verifier fetches the canonical JWKS URL. The test host does not spoof DNS or TLS. It runs the unchanged image with one read-only mounted file, `/harness/s1786_step5_app.py`, as the uvicorn app instead of `app.mcp.connector.server:app`:
+
+  ```python
+  from app.core.process_role import mark_connector_resource
+  mark_connector_resource()
+  import json, os, httpx
+  from app.mcp.connector.asgi import create_app
+  from app.mcp.connector.settings import ConnectorSettings
+  from app.mcp.connector_shared.verifier import ConnectorTokenVerifier
+  JWKS = json.load(open(os.environ["S1786_LOCAL_JWKS_FILE"]))   # public keys only
+  CANON = "https://auth.ai.market/.well-known/jwks.json"
+  def route(req):
+      return httpx.Response(200, json=JWKS) if str(req.url) == CANON else httpx.Response(404)
+  app = create_app(ConnectorSettings.from_env(),
+                   verifier=ConnectorTokenVerifier(client=httpx.AsyncClient(transport=httpx.MockTransport(route))))
+  ```
+
+  Command: `uvicorn s1786_step5_app:app --app-dir /harness --host 127.0.0.1 --port 8080 --workers 1`. Grants and memberships use the image's own database-backed defaults. **Token and fixture recipe** (matches `app/mcp/connector_shared/verifier.py:41-45,59-78` and `app/mcp/connector/auth.py:42-52` at `5f3efc85`):
+  - Key: a fresh EC P-256 keypair generated on the host. The JWKS file holds only the public JWK, `{"keys": [{"kty": "EC", "crv": "P-256", "alg": "ES256", "use": "sig", "kid": "s1786-step5-local", "x": …, "y": …}]}`.
+  - Header: `alg=ES256`, `typ=at+jwt`, `kid=s1786-step5-local`.
+  - Claims: `iss=https://auth.ai.market`, `aud=https://connect.ai.market/mcp`, `sub=<local user UUID>`, `gid=<local grant UUID>`, `jti=<random string>`, `client_id=<local client id>`, `scope="market.read account.read"`, `iat` and `nbf` now, `exp` now + 10 minutes.
+  - Local database rows: created only by the rehearsed kit in `koskadeux-state/s1786/step5-kit/` (`fixtures.py` sha256 `a8458f5c598ee7cdd2c2340e2aeeb7e4a6ca02ab2dc105573d1687ab69a08b09`, `runtime_grants.sql` `486dd28a4c8a50f74790c91fa26e4779119ac3acce876ca3bb1793821efbcf05`, `harness_app.py` `0e0f0a3c0835d0a3e33cd1cd7a9da0aa2b308facb720022230aa779e89db9aad`, `mint_token.py` `36f509d97d9bf13354b6b2b7d717267fbb531d3d7674704fa1d9a381da95e18c`, `run_calls.py` `c71ad8ebf7d841def22984f24948dd4a9132f5e42f6e9b123af013aa83ea64d2`, `rehearse.py` `52adbe0c51918f78648f29ec2efb8580c747d84f91be8873d9299bb633a76f2b` (v2: refuses an occupied Redis port and aborts if the disposable Redis cannot be created; the 2026-10-01 rehearsal ran v1 `323b99cc…`, which created its own Redis successfully); all in `SHA256SUMS`). It uses the migrations' real columns: user, organization and active membership; `connector_oauth_clients` (public client, `token_endpoint_auth_method='none'`); an `auth_sessions` row for `connector_oauth_grants.consent_session_id`; the grant with `organization_id`, `scopes`, `profile='claude'`, `resource='https://connect.ai.market/mcp'`, `client_verified=true`; the five switch rows; L1–L4. Refuse if any file's hash differs.
+  - **Rehearsal (2026-10-01, MP job `f5d5caa14692`, transcript `step5-kit/rehearsal-3.log`):** fresh database on the local PostgreSQL 17.7 server in UTC, full CI-configured `alembic upgrade head` at `5f3efc85` (head `s1787_card_fee_gl`), the backend's own venv (not the image), disposable Redis, no Qdrant. All nine MCP requests returned 200: exactly the five tools; `get_my_account`, `get_activity`, `list_data_requests` succeeded; `get_listing` L1 returned the full `ListingOutput`; L2 and L3 `NOT_FOUND` envelopes were byte-identical after request-ID substitution; `search_listings` for L4's token returned `sql_fallback` with only L4; seven `tool.call` audit rows had all three HMAC fields; teardown removed the database, roles, Redis and keys. The production run repeats this with the recorded image and adds Qdrant and the semantic rows.
+  - Acceptance of the recipe itself: `tools/list` (row 0) authenticates. If it returns 401, fix the fixture, not the image. The private key never leaves the host and is deleted at teardown. Importing `asgi.py` also builds its module-level `app`; that succeeds with the environment above and is not served.
+- A semantic-only query Q for L1: no word of Q appears in any fixture's title, short description, description, tags or `synthetic_queries` (leave `synthetic_queries` empty on all fixtures). Before the proof, in the harness process (same image and environment), record: (i) the raw Qdrant points for Q's embedding with the production filter and threshold, which must include the L1, L2 and L3 point IDs, each at or above `SEARCH_SCORE_THRESHOLD` (0.72); and (ii) the healthy-path lexical candidates, by calling the service's `_lexical_search_candidates` with Q and the production visibility exactly as `ListingSearchService._connector_search` does (`app/services/listing_search_service.py:497`, `629`), which must return zero candidates. Together with row a, that shows L1 reached the result only through the vector path and that hydration removed L2 and L3.
+
+**Assertions, each recorded with request ID and fixture ID**
+
+| # | Call | Required result |
+|---|---|---|
+| 0 | `tools/list` | lists exactly `search_listings`, `get_listing`, `get_my_account`, `get_activity`, `list_data_requests`; `ask_allai` (D4, no switch row) is absent |
+| a | `search_listings` Q, Qdrant running | `search_mode` `hybrid`; L1 returned; L2 and L3 absent although their points match |
+| a2 | `search_listings` Q, Qdrant stopped | `sql_fallback`; zero items (degraded path does not surface L1 either) |
+| b | `search_listings` with L4's literal token, Qdrant stopped | `lexical` or `sql_fallback`, as the code chooses; L4 returned; no `TEMPORARILY_UNAVAILABLE` |
+| c | `get_listing` L1 | `ListingOutput` with `title`, `summary`, `category`, `price`, `update_frequency`, `schema.columns` (≥ 2) and `schema.row_count`, `preview.kind` `schema_stats` |
+| d | `get_listing` L2 and `get_listing` L3 | byte-identical `NOT_FOUND` envelopes, apart from `request_id` |
+| e | `get_my_account`, `get_activity`, `list_data_requests` | succeed for the test user |
+| f | Audit rows | one `tool.call` row per call, with the HMAC fields populated and no request text |
+
+Also record that L2 and L3 were excluded by the connector's production visibility predicate (`ConnectorListingVisibility.sql()`, used by both search hydration and `load_detail`; cite file and line at the recorded commit). Then stop and remove the test host, its database and its Qdrant.
+
+If the D2 proof fails, the D2 tools stay disabled at their tool switches. Whether Steps 6 and 7 go ahead with the non-D2 tools alone is Max's decision.
+
+### 5.3 Healthcheck path
+
+After the 5.2 proof:
+1. Pin the mutation shape by live introspection in the same protected interpreter: `ServiceInstanceUpdateInput.healthcheckPath` is `String`, `serviceInstanceUpdate(serviceId!, environmentId, input!)` and `serviceInstanceRedeploy(serviceId!, environmentId!)` return `Boolean!` (read 2026-10-01). Refuse on a different shape.
+2. Recheck connection headroom exactly as in 5.1 preflight, immediately before this redeploy, and refuse on failure.
+3. `serviceInstanceUpdate` `healthcheckPath=/readyz`, read it back, then `serviceInstanceRedeploy`.
+4. Require `SUCCESS`, both replicas healthy, `/healthz` 200, `/readyz` 200, PRM 200 and `/mcp` 503 `CONNECTOR_DISABLED`, and backend and auth deployment IDs unchanged.
+
+Auth already uses `/readyz`.
+
+### 5.4 Rollback
+
+All flags stay false throughout. Rollback never uses `window_action` or `wait_deploys`: those stop on a failed deployment, and rollback must keep going. Instead it uses `rollback_settle(label)`: poll every sync in the preflight inventory until each changed job is terminal (`success` or `failed`) and 120 s pass with no new job; list each service's deployments created since the action and wait until each is terminal (`SUCCESS`, `FAILED`, `CRASHED` or `REMOVED`); record all job and deployment IDs with their statuses in the receipt; **never raise on a failure** — record it and continue. It is bounded: at most 15 minutes for sync jobs and at most 20 minutes for deployments per call. On expiry it records each still-pending job or deployment as `unresolved` and returns; the rollback continues, because every later step is either idempotent (deleting a secret that may already be gone) or a no-deploy variable change guarded by its own readback. Any `unresolved` entry makes the final readback fail, so it can only end as an escalated open blocker. Before each §2.4 helper call, run `rollback_settle`, then set `BASE_DEPLOYMENTS = deployment_snapshot()`, so the helper's unchanged-deployment assertion checks only its own mutation. Roll back in reverse order, skipping steps whose forward action never ran (the receipt records each forward action as attempted or completed):
+
+1. Restore `healthcheckPath=/healthz` (same pinned shape), `serviceInstanceRedeploy` the resource, `rollback_settle('healthcheck')`.
+2. Secrets. For each name that exists in the folder, one at a time (`VERTEX_GEMINI_KEY` first, then `QDRANT_API_KEY`): run the drift check, delete it from `/connector-resource` (§2.4 deletion call), `rollback_settle('delete-'+name)`. Then, because `disableSecretDeletion=true` leaves the Railway copies, remove whichever of the two names exist on the resource with `remove_or_restore_connector_vars(RES, names)` (§2.4, `skipDeploys:true`, retained names and references verified). That call does not deploy; the redeploy happens in step 4.
+3. Read-only key: delete only `QDRANT__SERVICE__READ_ONLY_API_KEY` from `Qdrant` with `variableDelete` (input shape pinned by live introspection first). It triggers one Qdrant redeploy, which is wanted here, at the pinned digest; `rollback_settle('qdrant')`. Read back: Qdrant's names equal its preflight set, `QDRANT__SERVICE__API_KEY` fingerprint unchanged, deployment `SUCCESS` at the 5.0 digest; `RO` now gets 401 and the backend key 200. §2.4's helper is not used on Qdrant and its allow-list is unchanged.
+4. Remove `QDRANT_HOST` and `QDRANT_PORT` with `remove_or_restore_connector_vars(RES, {'QDRANT_HOST','QDRANT_PORT'})`, then `serviceInstanceRedeploy` the resource and `rollback_settle('resource')`.
+5. Final readback. Rollback is complete only if **all** of these hold: the four names are absent from the folder, the resource's Railway variables and its running environment (`railway ssh` names-only check); the resource's names equal the preflight set; backend, resource, auth and watcher each have latest deployment `SUCCESS` and pass their §2.5b health check (API `/health` 200; resource `/healthz` 200, `/readyz` 200, `/mcp` 503 `CONNECTOR_DISABLED`; auth `/readyz` 200; watcher freshness green); Qdrant `SUCCESS` at the 5.0 digest; and `connector-oauth/status` `{"enabled":false}`. Anything else is an incomplete rollback: an open blocker, escalated to Max at once with the receipt, and never recorded as done.
+
+**Partial progress.** If 5.1 stops in part 1 (step 2), run only 5.4 step 3 (if the Qdrant variable was written) and step 4 (if step 1 ran). If it stops in part 2 (step 3) before the Infisical write was attempted, add nothing more. If the write was attempted, run 5.4 step 2 for whichever of the two names exist in the folder or on the resource, then steps 3 and 4.
+
+**Accepted end-state deviation.** The Qdrant image stays pinned to the 5.0 digest after a rollback (it is the version that was running); the receipt records it.
+
+**Record:**
+- receipt `koskadeux-state/s1786/step5-receipt.json`, containing names, nonsecret values, fingerprints, deployment IDs, commits, image digest, sync job IDs, fixture IDs and request IDs;
+- an Event Ledger entry;
+- a `customer-mcp-connector.md` section "Gate 4 Step 5 done".
