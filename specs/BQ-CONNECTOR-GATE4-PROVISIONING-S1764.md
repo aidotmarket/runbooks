@@ -1909,7 +1909,7 @@ All flags stay false throughout. Roll back in reverse order, with readbacks:
 3. Remove `QDRANT_HOST` and `QDRANT_PORT` from the resource (`skipDeploys:true`), then redeploy.
 4. Read back: names absent, deployment `SUCCESS`, and the dark checks from 5.1 step 4.
 
-A failing D2 proof never blocks Steps 6 and 7 for the four non-D2 tools only if Max decides that. Otherwise D2 stays disabled at the tool switches.
+If the D2 proof fails, the D2 tools stay disabled at their tool switches. Whether Steps 6 and 7 go ahead with the non-D2 tools alone is Max's decision.
 
 **Record:**
 - receipt `koskadeux-state/s1786/step5-receipt.json`, containing names, nonsecret values, fingerprints, deployment IDs, image digest, fixture IDs and request IDs;
