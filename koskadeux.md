@@ -7,6 +7,7 @@ aliases:
 - titan-1.md
 error_signatures:
 - launchd user jobs exit 78 after a Koskadeux reboot
+- 'child setpgid: Operation not permitted'
 ---
 
 # Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)
@@ -122,5 +123,14 @@ higher. Local: `curl 127.0.0.1:{8765,8767}/health`; kickstart:
 ### launchd user jobs exit 78 after a Koskadeux reboot (2026-09-30)
 
 Symptom: launchd user jobs exit 78 after a Koskadeux reboot; `/var/tmp/koskadeux` is recreated owned by root, mode 0744. Cause: stale root LaunchDaemons `ai.market.s1426.s1422.r3` and `ai.market.s1426.s1422.r4` recreated the directory at boot. Fix: chown `/var/tmp/koskadeux` back to `max`, remove both `/Library/LaunchDaemons/ai.market.s1426.s1422.r3.plist` and `/Library/LaunchDaemons/ai.market.s1426.s1422.r4.plist`, verify both are absent, and reload the affected user jobs.
+
+### Restarting Koskadeux services from an agent shell (T-2026-000909, 2026-10-01)
+
+Agent shells (`shell_request`) run as children of `com.koskadeux.mcp`. Anything they schedule to run later (a detached `sleep … && kickstart` job, `nohup`, `&`) dies when `com.koskadeux.mcp` restarts, so a chained "restart mcp, then restart gateway" job stops after the first step. In T-909 the gateway step never ran and Max restarted the gateway from Terminal.
+
+- An immediate `launchctl kickstart -k gui/$(id -u)/com.koskadeux.mcp` from inside does work: launchd restarts the service even though the calling shell dies with it. Expect the tool call to return an error; confirm with `curl 127.0.0.1:8765/health` from the next call.
+- Restart `com.koskadeux.gateway` (drops every connector session, including the agent's own) only from Max's Terminal or another launchd-independent process, never from a job scheduled inside `com.koskadeux.mcp`.
+- `bash: child setpgid … Operation not permitted` from a job-control command in an agent shell: run it in Terminal.app, or `set +m` first.
+- After restarting `com.koskadeux.mcp`, remember it reloads `koskadeux-mcp/.env` with override; see `infisical-secrets.md`, "Koskadeux `.env` shadow copies".
 
 Use the reboot-outage incident record and cold-start canary rule above for restart failures; no broader repair procedure is defined.

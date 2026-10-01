@@ -300,6 +300,10 @@
 
 - [S1656 Money Path Test Environment](money-path-test-environment.md)
 
+## `child setpgid: Operation not permitted`
+
+- [Koskadeux — the Mac Studio (dev workstation + local AI council + MCP host)](koskadeux.md)
+
 ## `chunk_scope_gap`
 
 - [Council Gate Process](runbooks/council-gate-process.md)
@@ -847,6 +851,10 @@
 ## `invalid canary label`
 
 - [AIM Data gateway — operations](aim-data-gateway.md)
+
+## `Invalid or missing Internal API Key`
+
+- [Infisical Secrets Management](infisical-secrets.md)
 
 ## `invalid_assignment_query`
 
