@@ -105,7 +105,15 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   pre_conditions:
     - Peers told; backend search falls back to SQL while Qdrant restarts (one replica plus a volume, so the old container stops first; knowledge_base_v2 holds about 1.7M points and loads for about 2 minutes, and the public domain returns 502 meanwhile)
     - Record the running deployment's meta.imageDigest and GET / version
-  tool_or_endpoint: Railway GraphQL serviceInstance(source.image) and the latest deployment's meta.image and meta.imageDigest
+  tool_or_endpoint: Railway GraphQL serviceInstanceDeployV2(serviceId, environmentId) ONLY; read serviceInstance(source.image) and the new deployment's meta.image and meta.imageDigest
+  notes: |
+    Rehearsed S1786 on a scratch image service (receipt koskadeux-state/s1786/step5/image-rehearsal.json):
+    serviceInstanceUpdate(source.image) alone does not deploy.
+    serviceInstanceRedeploy reuses the previous deployment's image reference, so a just-changed source.image is ignored.
+    serviceInstanceDeployV2 deploys the instance's current source.image.
+    A variable change without skipDeploys auto-deploys with the previous deployment's image reference.
+    variableDelete did not deploy within 120 s; follow it with serviceInstanceDeployV2.
+    Production deployment f60cd9f5 still carries the untagged reference qdrant/qdrant. Until a serviceInstanceDeployV2 replaces it, serviceInstanceRedeploy and variable-triggered deploys pull the newest release.
   argument_sourcing:
     arg: the service instance source.image, which must be qdrant/qdrant@sha256:<digest> (since S1786 the pin is 1.19.1, sha256:12364fe851b9f17356fc88189fc06d1b521262e04659ec7345975b00c9246a10)
   idempotency: NOT_IDEMPOTENT
