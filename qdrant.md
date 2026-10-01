@@ -144,7 +144,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   symptom_ref: F-01
   component_ref: Qdrant service
   root_cause: key missing/mismatched between Qdrant service and backend
-  repair_entry_point: Railway variableUpsert (QDRANT__SERVICE__API_KEY on svc 6f7211f0; QDRANT_API_KEY on backend svc 4a68ea36) + Infisical bd272d48
+  repair_entry_point: Railway variableCollectionUpsert with replace:false and skipDeploys:true (QDRANT__SERVICE__API_KEY on svc 6f7211f0, restarted only through E-04; QDRANT_API_KEY on backend svc 4a68ea36 through Infisical bd272d48, whose sync redeploys the backend)
   change_pattern: set the SAME key on backend (env + Infisical) FIRST, redeploy backend, THEN stage the Qdrant variable with skipDeploys:true and restart Qdrant through E-04 (serviceInstanceDeployV2), so the backend already authenticates when enforcement turns on
   rollback_procedure: remove QDRANT__SERVICE__API_KEY from the Qdrant service, then restart through E-04, to revert to open (emergency only)
   integrity_check: E-01 (unauth 401, with-key 200) + backend /backup-status collection_source=qdrant_api
@@ -161,7 +161,7 @@ Qdrant stores **derived** data only. It is NOT a system of record. Every collect
   component_ref: Qdrant service
   root_cause: serviceInstanceRedeploy does not apply a just-changed source.image; it redeploys the previous image reference
   repair_entry_point: Railway GraphQL serviceInstanceUpdate(source.image) on svc 6f7211f0
-  change_pattern: Do not roll back to the older version. Qdrant does not support opening storage with an older release after a newer one has opened it. Check health first (GET / version, every collection green, points_count at least 99% of the record). Then set source.image to qdrant/qdrant@<running digest> with no deploy. This is containment only: the running deployment still carries the old image reference (untagged after S1786), and serviceInstanceRedeploy or a variable-triggered deploy would reuse it and could pull another release. The exposure stays open until the next restart goes through E-04 (serviceInstanceDeployV2) and that deployment's meta.image reads qdrant/qdrant@<digest>. Record an Event and correct this page.
+  change_pattern: Do not roll back to the older version. Qdrant does not support opening storage with an older release after a newer one has opened it. Check health first (GET / version, every collection green, points_count at least 99% of the record). Then set source.image to qdrant/qdrant@<running digest> with no deploy. This is containment only: the running deployment still carries the old image reference (untagged after S1786), serviceInstanceRedeploy reuses it (shown by rehearsal C), and a variable-triggered deploy may too (UNVERIFIED, assumed; see E-04). Either could pull another release. The exposure stays open until the next restart goes through E-04 (serviceInstanceDeployV2) and that deployment's meta.image reads qdrant/qdrant@<digest>. Record an Event and correct this page.
   rollback_procedure: restore collections from S3 snapshots or rebuild from Postgres (G-02) only if storage is damaged
   integrity_check: E-03 plus every collection green and the instance source.image equal to the running digest; closed only when a later E-04 deployment shows meta.image pinned to the digest
 ```
@@ -246,10 +246,12 @@ scenario_set:
     scenario: Rotate the Qdrant API key during a maintenance window, backend-first.
     expected_answers:
       - kind: tool_call
-        tool: railway-variableUpsert
+        tool: railway-variableCollectionUpsert
         argument_keys:
           - serviceId
-          - name
+          - variables
+          - replace
+          - skipDeploys
     weight: 0.0909
   - id: I-04
     type: isolate
@@ -291,10 +293,12 @@ scenario_set:
     scenario: Restore matched keys on backend and Qdrant after a 401 incident.
     expected_answers:
       - kind: tool_call
-        tool: railway-variableUpsert
+        tool: railway-variableCollectionUpsert
         argument_keys:
           - serviceId
-          - name
+          - variables
+          - replace
+          - skipDeploys
     weight: 0.0909
   - id: I-08
     type: repair
