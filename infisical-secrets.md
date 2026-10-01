@@ -282,7 +282,7 @@ Access policies, all scoped to `stack:1527021`:
 | `connector-otlp-write` (`dadcb089…`) | metrics:write, traces:write | Token `connector-otlp-write-s1786b`, for the connector's own telemetry (Gate 4 Step 4) |
 | `connector-alerting` (`ce43f25b…`) | metrics:read, rules:read/write, alerts:read/write | Token `connector-alerting-s1786b`, for installing and checking connector alert rules |
 
-Both new tokens have no expiry. Their values are only in `ai-market-backend`/`prod` folder **`/grafana-ops`**, which has **no secret sync**, so writing there redeploys nothing. The folder holds:
+Both new tokens have no expiry. Mars chose that in S1786; Max did not direct it. They are rotated through the Step 4 procedure. Their values are only in `ai-market-backend`/`prod` folder **`/grafana-ops`**. No sync targets that folder, so its values never reach any service. A `prod` write can still trigger the existing syncs (see READ FIRST), so run the flag and value drift check before writing here. The 2026-10-01 ~08:46Z write produced no backend deployment, and the post-write check showed zero drift. The folder holds:
 
 - `GRAFANA_CONNECTOR_OTLP_WRITE_TOKEN`
 - `GRAFANA_CONNECTOR_ALERTING_TOKEN`
@@ -297,11 +297,11 @@ Do not copy these into a synced folder except through a reviewed Step 4 procedur
 **How they were made.** Mars minted them from Max's logged-in grafana.com browser session, by calling the grafana.com API from that tab:
 
 - create the access policy: `POST /api/v1/accesspolicies?region=prod-us-east-3&orgId=1670288`;
-- create the token: `POST /api/v1/tokens?…` with `accessPolicyId`;
+- create the token: `POST /api/v1/tokens?…` with `accessPolicyId`. Token IDs: `connector-otlp-write-s1786b` is `3e09d908-2c33-4e03-bc91-a43ea2633d14`, `connector-alerting-s1786b` is `f90b02df-d9b2-4adf-a103-220b6847b04c`. Two earlier tokens whose values were not captured were deleted;
 - send an `X-Request-Id` header (a random UUID) on every write, or the API returns 403 `Missing Request ID`;
 - read the secret from the response field `token`; it is shown only once.
 
-**Verify (names only, never echo the value).** Run a Mimir query with basic auth `GRAFANA_PROM_INSTANCE_ID`:`GRAFANA_CONNECTOR_ALERTING_TOKEN` against `GRAFANA_PROM_URL/api/prom/api/v1/query`. On 2026-10-01 it returned 200 with `service_name="ai-market-backend"`, and `/api/prom/rules` returned 200 `{}`.
+**Verify (names only, never echo the value).** Run a Mimir query with basic auth `GRAFANA_PROM_INSTANCE_ID`:`GRAFANA_CONNECTOR_ALERTING_TOKEN` against `GRAFANA_PROM_URL/api/prom/api/v1/query?query=count by (service_name) (target_info)`. On 2026-10-01 it returned 200 with `service_name="ai-market-backend"`, and `/api/prom/rules` returned 200 `{}`.
 
 **Revoke.** `DELETE /api/v1/tokens/<id>?region=prod-us-east-3&orgId=1670288`, or use the Access Policies page.
 
