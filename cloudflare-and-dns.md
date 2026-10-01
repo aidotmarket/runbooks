@@ -117,7 +117,7 @@ Deploy (headless, verified S1790). Deploy only a fresh checkout that contains th
     cd /Users/max/Projects/ai-market/cf-get-worker
     M=$(gh pr view <n> --repo aidotmarket/cf-get-worker --json state,mergeCommit -q 'select(.state=="MERGED").mergeCommit.oid')
     [ -n "$M" ] || { echo "PR not merged; stop"; exit 1; }
-    git fetch -q origin && git checkout -q main && git reset -q --hard origin/main
+    { git fetch -q origin && git checkout -q main && git reset -q --hard origin/main; } || { echo "checkout preparation failed; stop"; exit 1; }
     git merge-base --is-ancestor "$M" HEAD || { echo "checkout lacks $M; stop"; exit 1; }
     npx -y wrangler@4 deploy
 
