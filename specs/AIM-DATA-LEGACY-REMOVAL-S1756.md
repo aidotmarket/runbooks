@@ -129,7 +129,7 @@ Pass at the candidate SHA: no import of a removed module; no reference to a remo
 **Behaviour tests** (added, not only deleted):
 - `request_fulfillment`: gateway order → unchanged; workspace order → unchanged; **paid** public-URL reference order → `delivered`, transaction delivered, `GET /orders/{id}/access` returns the URL, no pending row and no channel message; free reference order → unchanged; `ai_queryable` with a legacy install, `file_download` without gateway source, and a former demo seller → `unavailable`.
 - Webhook: `checkout.session.completed` for each kind above; an `unavailable` result returns 200 to Stripe and leaves the order paid and `pending_delivery`; `payment_intent.succeeded` no longer writes `stripe_webhook_idempotency` and changes no order or transaction status compared with base (before/after state diff), for a gateway order and a workspace order.
-- Agent-payment recovery (`transaction_service.py` ~925-941) and `payment_intent.succeeded`: for a gateway and a workspace order, same order and transaction states as base; for a paid public-URL reference order, order and transaction `delivered` and `GET /orders/{id}/access` returns the URL; no pending row, channel message or idempotency write.
+- Agent-payment recovery (`transaction_service.py` ~925-941) and `payment_intent.succeeded`: a recovered order reaches the same outcome as the checkout webhook for its kind (§4 replacement; Gate 3 ruling S1790, see §10): a gateway order the same states as base, a workspace order the workspace delivery outcome (`delivered`) rather than base's metadata-only `pending_delivery`/`fulfilling`; for a paid public-URL reference order, order and transaction `delivered` and `GET /orders/{id}/access` returns the URL; no pending row, channel message or idempotency write.
 - Reference listings with `{"kind":"public_url","url":null}`, an empty URL and a non-string URL (`123`; GLM R3-2): webhook 200, refusal recorded, order stays `pending_delivery`.
 - `GET /orders/{id}/data`, `GET /orders/{id}/artifact` (agent API) and `GET /transactions/{id}/download` return 404.
 
@@ -173,3 +173,12 @@ select coalesce(delivery_method::text,'?'), count(*) from orders group by 1;
 ```
 
 Client path inventory: `git grep` of `/api/v1/…` literals in `aidotmarket/aim-data` and `aidotmarket/vectoraiz` `origin/main` `app/`; AIM Data-only: `serials/{serial}/s3-connections/*`, `vz/register`, `vz/versions/*`, `vz/rotate-key`, `vz/install/*`, `trust/stream`, `data-verification/*`, `listings/{id}/at-a-glance*`; both: `serials/{serial}/{activate,meter,refresh,status,account,credits/*}`, `trust/register`, `connect/*`, `vz/publish`.
+
+## 10. Gate 3 rulings (S1790, 2026-10-01)
+
+Build: `aidotmarket/ai-market-backend` `build/aim-data-legacy-removal-s1790` at `66f6a387`. Gate 3 R1 passed: DeepSeek APPROVE_WITH_MANDATES (`response-20261001-145815-650879-4f0945c7`), codex2/gpt-6.1-sol in GLM seat per `e4c8ed6f` APPROVE_WITH_MANDATES (`response-20261001-145819-161367-0fe8b896`), CC in Gemini seat per `d50cbd80` APPROVE_WITH_NITS (`response-20261001-145822-876136-5f2dd574`). Sequencing: Max, 2026-10-01 12:01 CEST, "Drop the focus on Sergey. Just retire the old AIM-DATA": the build no longer waits for §6 step 2; the deploy still does.
+
+1. **Frontend companion is a deploy prerequisite.** §7 assumed the website called none of the removed routes; it still did (order page `POST /orders/{id}/download`, `/refresh`, `/delivery/refresh`; `GET /transactions/{id}/download` wrapper; manifest members/grant/download). A companion `ai-market-frontend` change removes those calls and is live before or with the backend deploy. The §6 deploy gate gains: frontend companion live.
+2. **Recovered orders follow §4.** §7's "same states as base" for recovered workspace orders is superseded by §4's stated intent; the §7 line above is corrected.
+3. **Seeded undeliverable listings.** The §4 allowlist is recorded at deploy time from production: full listing UUIDs of the seeded `ai.market`/`example.com` listings with no install, plus a query result showing no other published listing that would become undeliverable. Saved with the deploy evidence.
+4. **Recovery tag.** The annotated tag `pre-chunk-f-s1756` on the backend base SHA is pushed and verified on the remote before merge.
