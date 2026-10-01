@@ -9,7 +9,7 @@ error_signatures: []
 > **S612 Process Consolidation Owner**: this runbook is the single canonical reference for CI gates AND deploy verification after the S612 consolidation that collapsed ~8 process BQs into BQ-PROCESS-CI-DEPLOY-GATES-S612 (P1). Per Council mandate, this file now covers BOTH pre-merge CI gates (branch protection, lint, smoke tests) and post-merge activation verification (proof-of-life checks).
 >
 > **Section layout:**
-> - **§CI and local gates (pre-merge)** — use each repository's actual workflow inventory. In particular, ai-market-frontend has no PR CI; its only workflow is `.github/workflows/deploy-receipt.yml`, so frontend review evidence comes from the required local checks below.
+> - **§CI and local gates (pre-merge)** — use each repository's actual workflow inventory. In particular, ai-market-frontend has two workflows: `frontend-ci.yml` (runs on every pull request and push to main, since 2026-09-26) and `deploy-receipt.yml` (after a push to main). Frontend CI does not replace the local checks below, which reviewers need at the exact candidate SHA before a PR exists.
 > - **§Lint gates** — lint pass enforcement; ops-ai-market lint configuration.
 > - **§Deploy verification (post-merge)** — Railway deploy receipt verification; production smoke tests; activation proof-of-life (existing body below).
 >
@@ -44,7 +44,7 @@ Canonical six-service scope for this runbook:
 |---|---|---|---|
 | `koskadeux-mcp` (`com.koskadeux.mcp`) | Koskadeux `launchd`, local Python on `:8765` | `launchctl kickstart -k gui/$UID/com.koskadeux.mcp` | `http://127.0.0.1:8765/health` |
 | `ai-market-backend` | Railway production | `git push origin main` triggers async auto-deploy | `https://api.ai.market/health` |
-| `ai-market-frontend` | Cloudflare Pages | `git push origin main` triggers Pages deploy | `https://ai.market/` |
+| `ai-market-frontend` | Railway service `ai-market-frontend` | merge to `main` triggers a Railway deploy | `https://ai.market/` |
 | `ops.ai.market` | Cloudflare Pages | `git push origin main` triggers Pages deploy | `https://ops.ai.market/` |
 | `council-hall` (`com.koskadeux.council-hall`) | Koskadeux `launchd`, FastAPI on `:8770` | `launchctl kickstart -k gui/$UID/com.koskadeux.council-hall` | `http://127.0.0.1:8770/health` |
 | `ag_server` (`com.koskadeux.ag_server`) | Koskadeux `launchd`, FastAPI on `:8766` | `launchctl kickstart -k gui/$UID/com.koskadeux.ag_server` | `http://127.0.0.1:8766/health` |
@@ -116,9 +116,9 @@ Expected output:
 - If not, run one probe against the changed endpoint or response field
 **3. `ai-market-frontend`**
 
-Pre-merge evidence: opening a draft PR does not run frontend CI. The builder
-report and reviewer request must include local results from the exact candidate
-SHA for all three commands:
+Pre-merge evidence: Frontend CI runs on the PR, but review happens before the PR
+exists, so the builder report and reviewer request must include local results
+from the exact candidate SHA for all three commands:
 
 ```bash
 npm run typecheck
@@ -143,7 +143,18 @@ Verify:
 curl -fsS https://ai.market/ | grep -F "<marker introduced by the change>"
 ```
 Expected output: the changed DOM marker, copy, metadata tag, or asset URL is
-present on the live site.
+present on the live site. Pages behind sign-in render client-side, so for those
+grep the page's own JS chunk instead: fetch the page HTML, take its
+`/_next/static/chunks/...js` URLs and grep them for the new copy.
+
+Confirm the Railway deployment ran for the merge commit (Railway auth per
+`koskadeux.md`, "Railway auth / env"). The Deploy Receipt workflow only waits
+120 s and checks for HTTP 200, so it is not proof on its own:
+```bash
+source ~/bin/railway-env.sh
+cd /Users/max/Projects/ai-market/ai-market-frontend
+railway deployment list --service ai-market-frontend --json   # newest entry: status SUCCESS, meta.commitHash = merge SHA
+```
 **4. `ops.ai.market`**
 Identify:
 ```bash
