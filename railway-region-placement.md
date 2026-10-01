@@ -36,7 +36,7 @@ A region change writes only `multiRegionConfig`. Railway then starts a new deplo
 
   This trades duplicate emission for a pause of a few minutes. The pause is bounded:
 
-- **One deadline per pass.** Every Beat pass, move or recovery, runs under one 12-minute monotonic deadline. It covers stop, zero-RUNNING confirmation, deployment discovery, deployment, readiness and acceptance. Every wait, sleep, Railway request (including each page of the deployment listing) and health request inside the pass is capped by what is left of it. Each request, including reading and decoding its body, runs under the absolute deadline. A **read** still arriving when the budget runs out is abandoned, and control returns at once. A **mutation** counts as done only when Railway gives a definite answer (success or an HTTP error). A timeout, a disconnect, or no answer by the deadline is an *unknown outcome*: Railway may still apply the change. The tool then exits 1 without recovering, because a late mutation could overwrite the recovery. The operator checks `status` and restores manually once the state is known. Every recovery pass, automatic or `restore`, ends with a settlement inside its own 12-minute deadline: the tool waits 60 seconds, then re-runs acceptance pinned to the deployment the recovery accepted. A newer deployment, a placement change, or running out of budget makes the recovery a failure (exit 1), never a silent success. A request that would start after the deadline is refused. Acceptance that finishes after the deadline is a failure.
+- **One deadline per pass.** Every Beat pass, move or recovery, runs under one 12-minute monotonic deadline. It covers stop, zero-RUNNING confirmation, deployment discovery, deployment, readiness and acceptance. Every wait, sleep, Railway request (including each page of the deployment listing) and health request inside the pass is capped by what is left of it. Each request, including reading and decoding its body, runs under the absolute deadline. A **read** still arriving when the budget runs out is abandoned, and control returns at once. A **mutation** counts as done only when Railway returns a decoded 200 response. Any HTTP error (a 502 or 504 gateway answer proves nothing about the upstream change), a timeout, a disconnect, or no answer by the deadline is an *unknown outcome*: Railway may still apply the change. The tool then exits 1 without recovering, because a late mutation could overwrite the recovery. The operator checks `status` and restores manually once the state is known. Every recovery pass, automatic or `restore`, ends with a settlement inside its own 12-minute deadline: the tool waits 60 seconds, then re-runs acceptance pinned to the deployment the recovery accepted. A newer deployment, a placement change, or running out of budget makes the recovery a failure (exit 1), never a silent success. A request that would start after the deadline is refused. Acceptance that finishes after the deadline is a failure.
 - **Admission reserves recovery time.** The move is admitted only if at least 27 minutes remain before the next Beat crontab tick: one move pass, one full recovery pass, and 3 minutes of margin. This is checked at precheck and again immediately before Beat is stopped. A refusal at either check changes nothing and exits 3; recovery runs only if a mutation was actually attempted.
 - **Recovery is never refused for clearance.** If the move fails after a mutation, the recovery pass runs at once under its own 12-minute deadline. A standalone `restore` skips the clearance check too. While Beat is down, a tick can be missed but never duplicated.
 
@@ -63,8 +63,8 @@ Files, all in `koskadeux-state/s1786/`:
 
 | File | sha256 |
 |---|---|
-| `region_consolidate.py` | `29b839f444c83106d3617e64e8a64842fed07622a6d01c0a5bdef523234e7500` |
-| `test_region_consolidate.py` | `9349914c32d7a5a33a1fc404258a82c144406ac54e6f02f349d1ac9bda3b1b5b` |
+| `region_consolidate.py` | `48aff32f1acbc66f545ae014e450770f869a8daf170a72ae9972e2d0800363b7` |
+| `test_region_consolidate.py` | `3b14d37a1134c9322861b871c8f3e6768bf44bf3400dc979cc118bc946cdd6b7` |
 | `region_inventory.py` | `76cc3f906d2c9401a19847eb028fa02d459a68710a95861ff5523d559561dfca` |
 
 The offline tests cover these cases:
@@ -88,6 +88,7 @@ The offline tests cover these cases:
 - a second-check admission refusal exiting 3 with zero mutations;
 - a failure before any mutation not triggering recovery;
 - a standalone restore ignoring clearance;
+- a mutation answered with HTTP 400, 500, 502 or 504, inside or outside a Beat pass, exiting 1 with no recovery;
 - request timeouts capped by the deadline and refused after it;
 - acceptance after the deadline failing;
 - a trickling response returning control at the deadline;
@@ -136,9 +137,9 @@ The tool is a dry run unless `--execute` is given, handles one service per call,
      | infisical | `secrets.ai.market/api/status` returns 200, then the auth refresh succeeds within the deadline |
      | worker, signer, cron | the deployment-level checks above |
 
-   Every wait is bounded and a timeout is a failure that goes straight to restore. Cron acceptance completes its wait before reading any field. A dry run evaluates every precondition and exits 3 if one would refuse.
+   Every wait is bounded. A read or acceptance timeout is a failure that goes straight to restore; a mutation with an unknown outcome is not, and exits 1 with restore deliberately withheld. Cron acceptance completes its wait before reading any field. A dry run evaluates every precondition and exits 3 if one would refuse.
 
-   Exit codes: 0 accepted; 3 refused at precheck with nothing changed; 2 move failed and the service was restored with the same acceptance; 1 restore failed (escalate).
+   Exit codes: 0 accepted; 3 refused at precheck with nothing changed; 2 move failed and the service was restored with the same acceptance; 1 escalate by hand: either a mutation's outcome is unknown and restore was withheld, or the restore itself failed.
 4. Afterwards:
    - Run `status`.
    - Run `verify <service> moved` (or `prior` after a restore) for any service you want to re-check. For Beat, readiness accepts the boot line or any periodic `Scheduler: Sending due task` line. It compares against the independently expected placement, runs readiness, and exits 4 on failure.
@@ -154,7 +155,7 @@ The tool is a dry run unless `--execute` is given, handles one service per call,
 ## When it breaks
 
 - **The tool exits 3.** A precheck refused (placement drift, unhealthy service, or Beat outside its window); nothing was changed.
-- **The tool exits 1 (restore failed).** Run `status` and put the service back by hand in the Railway dashboard (Settings → Regions). Record what happened in the journal and on the Event Ledger.
+- **The tool exits 1.** Read the last journal line. `mutation_unfenced` means a Railway change may still land: do not restore yet. Run `status` until the latest deployment and placement stop changing (at least 15 minutes), then restore by hand in the Railway dashboard (Settings → Regions) or with `restore <service> --execute`. `restore_result ok=false` means the restore itself failed: run `status` and put the service back by hand. Either way, record what happened in the journal and on the Event Ledger.
 - **The deployment never leaves `DEPLOYING`.** The tool gives up after 15 minutes and restores. Check whether `us-west2` has capacity, then retry later.
 - **Infisical errors continue after a move.** Run `secrets.ai.market/api/status`. If it is not 200 after 5 minutes, `restore Infisical --execute`.
 - **Limiter or Redis timeouts in a service.** First check that the service runs in the same region as its datastore.
