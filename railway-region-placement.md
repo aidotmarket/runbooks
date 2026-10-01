@@ -36,7 +36,7 @@ A region change writes only `multiRegionConfig`. Railway then starts a new deplo
 
   This trades duplicate emission for a pause of a few minutes. The pause is bounded:
 
-- **One deadline per pass.** Every Beat pass, move or recovery, runs under one 12-minute monotonic deadline. It covers stop, zero-RUNNING confirmation, deployment discovery, deployment, readiness and acceptance. Every wait, sleep, Railway request (including each page of the deployment listing) and health request inside the pass is capped by what is left of it. Each request, including reading and decoding its body, runs under the absolute deadline: if the response is still arriving when the budget runs out, control returns at once and recovery can begin. A request that would start after the deadline is refused. Acceptance that finishes after the deadline is a failure.
+- **One deadline per pass.** Every Beat pass, move or recovery, runs under one 12-minute monotonic deadline. It covers stop, zero-RUNNING confirmation, deployment discovery, deployment, readiness and acceptance. Every wait, sleep, Railway request (including each page of the deployment listing) and health request inside the pass is capped by what is left of it. Each request, including reading and decoding its body, runs under the absolute deadline. A **read** still arriving when the budget runs out is abandoned, and control returns at once. A **mutation** is never abandoned: the tool waits up to 90 seconds for it to finish, so its effect lands before recovery starts. If it is still in flight after that, the tool exits 1 without recovering, so it never runs a recovery that a late mutation could overwrite. After every recovery, the tool waits 60 seconds and re-runs acceptance. A late change of placement or a new deployment then makes the recovery a failure (exit 1), never a silent success. A request that would start after the deadline is refused. Acceptance that finishes after the deadline is a failure.
 - **Admission reserves recovery time.** The move is admitted only if at least 27 minutes remain before the next Beat crontab tick: one move pass, one full recovery pass, and 3 minutes of margin. This is checked at precheck and again immediately before Beat is stopped. A refusal at either check changes nothing and exits 3; recovery runs only if a mutation was actually attempted.
 - **Recovery is never refused for clearance.** If the move fails after a mutation, the recovery pass runs at once under its own 12-minute deadline. A standalone `restore` skips the clearance check too. While Beat is down, a tick can be missed but never duplicated.
 
@@ -63,8 +63,8 @@ Files, all in `koskadeux-state/s1786/`:
 
 | File | sha256 |
 |---|---|
-| `region_consolidate.py` | `2a99ed34b1a691ec8aecd7ab325b626161989f197481bdeead7e51a0cdc6dbb7` |
-| `test_region_consolidate.py` | `40513c5472f39b7cd0b5ad118e3b07bdbaf242506593e990841520b14a7b3ea0` |
+| `region_consolidate.py` | `75aa343c706f9961ccc928add78be6c292a12c47fb2b9f988433eb390264f56a` |
+| `test_region_consolidate.py` | `d6565ff94ec6238934a98d0640562e05841f5ccfd0d4d2abb4e38ee3bed4c389` |
 | `region_inventory.py` | `76cc3f906d2c9401a19847eb028fa02d459a68710a95861ff5523d559561dfca` |
 
 The offline tests cover these cases:
@@ -93,9 +93,13 @@ The offline tests cover these cases:
 - a trickling response returning control at the deadline;
 - no timeout floor beyond the remaining budget;
 - health checks propagating the deadline;
-- a slow paginated listing stopping at the deadline.
+- a slow paginated listing stopping at the deadline;
+- a timed-out mutation that has landed before control returns;
+- a mutation still in flight blocking recovery;
+- no recovery after an unfenced mutation;
+- a late effect after recovery reported as failure.
 
-All 27 pass. The watcher readiness pattern was checked against live logs: `receipts/watcher-readiness-sample.json` shows 28 matching lines in 113.
+All 31 pass. The watcher readiness pattern was checked against live logs: `receipts/watcher-readiness-sample.json` shows 28 matching lines in 113.
 
 The tool is a dry run unless `--execute` is given, handles one service per call, and journals every step to `receipts/consolidation-journal.jsonl`.
 
