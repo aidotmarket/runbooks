@@ -1,7 +1,7 @@
 ---
 title: Cloudflare and DNS
 owner: unassigned
-last_verified: '2026-09-23'
+last_verified: '2026-10-01'
 aliases: []
 error_signatures: []
 ---
@@ -49,7 +49,7 @@ Records as of S688 (2026-05-22). To refresh: see §Verification quick reference.
 | `secrets.ai.market` | Proxied | `jjpiwqgb.up.railway.app` | Infisical (self-hosted on Railway) |
 | `mcp.ai.market` | Proxied | `007ddc34-de07-474c-adbc-a648663b9c78.cfargotunnel.com` | Cloudflare Tunnel → Koskadeux (see §Tunnel) |
 | `mcp.vectoraiz.com.ai.market` | Proxied | same tunnel as above | **Drift item — looks like a typo creating a 4-label FQDN; cleanup candidate** |
-| `get.ai.market` (AAAA `100::`) | Proxied | `get-ai-market` Worker | Installer hub for AIM Data + AIM Node (see §Workers) |
+| `get.ai.market` (AAAA `100::`) | Proxied | `get-ai-market` Worker | Installer hub for AIM Node; AIM Data routes return a retired notice since S1790 (see §Workers) |
 | `pm-bounces.ai.market` | DNS-only | `pm.mtasv.net` | Postmark bounce handler |
 | `connect.ai.market` | DNS-only | `04tecdf8.up.railway.app` | Public customer MCP connector. Railway service `ai-market-connector` (`a08ef347-d2d1-4fcb-ba50-9299a9484fd5`), custom domain id `519d4d32-649c-4adc-afe1-b9dca9100168`, target port 8080. Added 2026-09-23 on Max's instruction; the service is empty until the connector build deploys to it. Not to be confused with `mcp.ai.market` (internal Koskadeux gateway). |
 | `auth.ai.market` | DNS-only | `r4sae793.up.railway.app` | Authorization server for the customer MCP connector (issuer `https://auth.ai.market`). Railway service `ai-market-connector-auth` (`5ee110fc-df73-4107-b8fd-469099cb64d2`), custom domain id `8b41594b-2ef9-4b43-9689-5df8f9b47892`, target port 8080. Added 2026-09-23 after Gate 1 approved the split authorization server; empty until the build deploys. |
@@ -94,7 +94,7 @@ The zone contains NS records pointing at name.com nameservers (`ns1cvw.name.com`
 
 | Worker name | Routes | Source-of-truth | Last deploy | Notes |
 |-------------|--------|-----------------|-------------|-------|
-| `get-ai-market` | `get.ai.market/`, `get.ai.market/aim-data*`, `get.ai.market/aim-node*` | `aidotmarket/cf-get-worker` (standalone repo; wrangler) | 2026-04-09 | **Canonical** installer hub for AIM Data + AIM Node. Serves landing pages + proxies `install.sh`, `install.ps1`, `docker-compose.yml` from product repos. No GITHUB_TOKEN binding — uses unauthenticated raw.githubusercontent.com (rate-limit risk under load). |
+| `get-ai-market` | `get.ai.market/`, `get.ai.market/aim-data*`, `get.ai.market/aim-node*` | `aidotmarket/cf-get-worker` (standalone repo; wrangler) | 2026-10-01 (S1790, version `2694445b`) | **Canonical** installer hub for AIM Node (landing page + proxies `install.sh`, `install.ps1`, `docker-compose.yml` from `aidotmarket/aim-node`). AIM Data routes are retired (see below). No GITHUB_TOKEN binding — uses unauthenticated raw.githubusercontent.com (rate-limit risk under load). |
 | `vectoraiz-installer` | `get.vectoraiz.com/*` | **Dashboard-only / API-only — NO source repo** ⚠ | 2026-02-25 | Proxies vectoraiz installer scripts. Has channel routing (stable/RC/marketplace). Has `GITHUB_TOKEN` binding. **Drift: source-control this Worker — see §Drift item 2.** |
 | `aim-node-installer` | `[Unknown — Worker Routes API requires elevated token]` | **Dashboard-only / API-only — NO source repo** ⚠ | 2026-04-08 | Source preview shows it proxies the `aidotmarket/aim-node` GitHub repo with routes for `/rc`, `/windows`, `/aim-node/rc`, `/aim-node/windows`. Has `GITHUB_TOKEN` binding. Likely superseded by `get-ai-market`'s `/aim-node*` route handling; SysAdmin to confirm and decommission. |
 | `allai-dead-man-switch` | (cron-only — no HTTP routes) | `aidotmarket/ai-market-backend` → `workers/` (wrangler) | 2026-03-12 | Monitors allAI Brain heartbeat at `https://api.ai.market/api/v1/internal/heartbeat/brain`, alerts via Telegram on consecutive failures. Cron `*/5 * * * *`. KV namespace `DMS_KV` (`d82ea459cc3e4025a41393b8b8190ce9`). Secret mirrors `HEARTBEAT_URL`, `INTERNAL_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` — see Worker-secret rotation discipline below. |
@@ -105,18 +105,18 @@ Source: `/Users/max/Projects/ai-market/cf-get-worker` (repo `aidotmarket/cf-get-
 
 Routes (from `wrangler.toml`):
 
-- `get.ai.market/aim-data*` — proxies from `aidotmarket/aim-data` repo (`installers/aim-data/install.sh`, `install.ps1`; `docker-compose.aim-data.yml`)
+- `get.ai.market/aim-data*` — **retired S1790 (2026-10-01, worker version `2694445b`, cf-get-worker `4c74e065`).** `/aim-data` and `/aim-data/install.sh` return a sh notice pointing to the AIM Data Gateway install guide and exit 1; `/aim-data/windows` and `/aim-data/install.ps1` return the same as `Write-Host` lines; these four notice responses carry `x-aim-data-installer: retired`. Every other `/aim-data/*` path 302s to `https://github.com/aidotmarket/aim-data-gateway#install-with-compose` (no such header). Before S1790 it proxied the now-archived `aidotmarket/aim-data` repo.
 - `get.ai.market/aim-node*` — proxies from `aidotmarket/aim-node` repo
 - `get.ai.market/` — landing page
 
-Deploy:
+Deploy (headless, verified S1790): the repo has no `node_modules`, so `npx --no-install wrangler` fails; use `npx -y wrangler@4 deploy`. Put the token in the environment of the same process only: `CLOUDFLARE_API_TOKEN` from Infisical `ai-market-backend`/`prod` (read with the sysadmin token per [infisical-secrets.md](infisical-secrets.md), `--projectId` explicit, never printed) and `CLOUDFLARE_ACCOUNT_ID=d5346d3e0f8f344c5f4915aaca689adf`. The output ends with `Current Version ID`; record it.
 
     cd /Users/max/Projects/ai-market/cf-get-worker
-    npx wrangler deploy
+    npx -y wrangler@4 deploy
 
 Verify:
 
-    curl -sL https://get.ai.market/aim-data/install.sh | head -5
+    curl -fsSL https://get.ai.market/aim-data | sh; echo $?   # retired notice, exit 1
     curl -sL https://get.ai.market/aim-node/install.sh | head -5
     curl -sL https://get.ai.market/ | head -20
 
@@ -360,7 +360,7 @@ End-to-end public surfaces:
     # Expect HTTP/2 200 + RFC 9728 metadata document.
 
     # Installer hubs
-    curl -sL https://get.ai.market/aim-data/install.sh | head -3   # AIM Data
+    curl -sSI https://get.ai.market/aim-data/install.sh | grep -i x-aim-data-installer   # AIM Data: retired
     curl -sL https://get.ai.market/aim-node/install.sh | head -3   # AIM Node
     curl -sL https://get.vectoraiz.com | head -3                   # vectoraiz
     curl -sI https://get.vectoraiz.com/market | grep x-vectoraiz   # channel header check
