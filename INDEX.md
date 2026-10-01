@@ -119,9 +119,9 @@
 
 ## AIM Data Release Process
 - Path: `aim-data-release-process.md`
-- Purpose: Builds and publishes new AIM Data versions. Creates GitHub releases, triggers GHCR Docker multi-arch builds, and runs smoke tests.
+- Purpose: **RETIRED (S1790, 2026-10-01):** `aidotmarket/aim-data` is archived (read-only) on Max's GO, after the legacy delivery paths were removed from the backend (chunk F, backend `42c7cda6`). Its README points to the replacement, the AIM Data Gateway (`aidotmarket/aim-data-gateway`, see aim-data-gateway.md). ai.market no longer accepts deliveries from this product. Everything below is history. To unarchive (only on Max's decision): `gh repo unarchive aidotmarket/aim-data` with `GITHUB_ORG_ADMIN_TOKEN` as `GH_TOKEN` (see infisical-secrets.md GitHub Tokens).
 - Owner: `unassigned`
-- Last verified: `2026-09-21`
+- Last verified: `2026-10-01`
 - Aliases: none
 - Error signatures: none
 - Status: current
@@ -137,9 +137,9 @@
 
 ## AIM Data — Local-First Data Publishing for ai.market
 - Path: `aim-data.md`
-- Purpose: AIM Data is what a data seller installs on their own infrastructure to list datasets on the ai.market marketplace. It runs as a Docker container on the seller's machine, profiles the data, generates the listing metadata via allAI, and never copies the raw data anywhere. When a buyer purchases a listing, ai.market issues a signed delivery token and the bytes flow peer-to-peer from the seller's AIM Data install to the buyer. ai.market handles discovery, payments via Stripe, and the delivery token, but never sees or touches raw data.
+- Purpose: **RETIRED (S1790, 2026-10-01):** `aidotmarket/aim-data` is archived (read-only) on Max's GO, after the legacy delivery paths were removed from the backend (chunk F, backend `42c7cda6`). Its README points to the replacement, the AIM Data Gateway (`aidotmarket/aim-data-gateway`, see aim-data-gateway.md). ai.market no longer accepts deliveries from this product. Everything below is history. To unarchive (only on Max's decision): `gh repo unarchive aidotmarket/aim-data` with `GITHUB_ORG_ADMIN_TOKEN` as `GH_TOKEN` (see infisical-secrets.md GitHub Tokens).
 - Owner: `vulcan`
-- Last verified: `2026-08-23`
+- Last verified: `2026-10-01`
 - Aliases: none
 - Error signatures: none
 - Status: current
