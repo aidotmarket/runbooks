@@ -31,10 +31,15 @@ A region change writes only `multiRegionConfig`. Railway then starts a new deplo
 
 - **Celery Beat is a singleton.** More than one Beat duplicates schedule emission ([celery-infrastructure-deployment.md](celery-infrastructure-deployment.md)). That page does **not** establish that the overlap during routine deploys is safe, so this procedure does not rely on overlap. Beat moves **stop before start**:
   1. Stop the running deployment.
-  2. Confirm zero RUNNING instances across all of the service's deployments.
+  2. Confirm zero RUNNING instances across **every** deployment of the service. The tool pages through the full deployment history and fails closed if enumeration is incomplete; Beat has more than 50 deployments.
   3. Only then apply the new placement.
 
-  This trades duplicate emission for a pause of a few minutes. The tool refuses to move Beat outside a UTC window clear of its crontab entries: minute 43 to 12, not in hours 02–05 or 15, with the hourly entries at :20 and :35. That keeps any scheduled crontab tick out of the pause. Interval tasks such as the one-minute heartbeat resume when Beat starts.
+  This trades duplicate emission for a pause of a few minutes. The pause is bounded:
+
+- the new Beat must reach `SUCCESS` within 8 minutes and pass readiness within 2 minutes, or the tool restores it at once;
+- the tool requires at least 25 minutes before the next Beat crontab tick, which covers stop, deploy, readiness and a full restore with margin. It checks this at precheck and again immediately before the stop.
+
+The crontab ticks (UTC) are hourly at :20 and :35, plus daily at 02:45, 03:00, 04:00, 04:17, 04:30, 05:00 and 15:00. In practice Beat can move only when started between :36 and :55 past an hour that has no daily tick in the next 25 minutes. Interval tasks such as the one-minute heartbeat resume when Beat starts.
 - **Workers, watcher and signer.** These may briefly overlap with their predecessor, as on any deploy. Concurrent Celery workers are a supported mode. Acceptance requires the predecessor to have zero RUNNING instances before the move is reported done.
 - **Infisical** has no healthcheck, so the API can return errors while the new container starts. Native syncs push to Railway and are not affected at runtime. Move it last, with no Infisical `prod` write in flight. Its readiness check, a status 200 followed by an auth refresh, is bounded; a timeout restores it.
 - **Cron backups** (`ai-market-backup` 02:00 UTC, `infisical-backup` 03:00 UTC) move only while no execution is RUNNING. Never move them within 15 minutes of their schedule. If the deploy triggers one execution, acceptance waits up to 15 minutes for it to finish; backups are written under timestamped names. The cron schedule is part of the compared manifest.
@@ -50,8 +55,8 @@ Files, all in `koskadeux-state/s1786/`:
 
 | File | sha256 |
 |---|---|
-| `region_consolidate.py` | `8d4ce8adb3ab007650d4bb3d8be846034a4fb678d7726c7b4eef5eca1ddbf516` |
-| `test_region_consolidate.py` | `ec55547aee013681254c5507779c808dde7c4bd5817d455f81b70f9bb81450df` |
+| `region_consolidate.py` | `049cd763741d2b4d07626dd6f5321a79c191b18b259aa1bc8d70a6bf4ff044cb` |
+| `test_region_consolidate.py` | `3040487d32c1c588c5506b5dbb9d4087c4192e93dbf3f1d8141283b7b6872441` |
 | `region_inventory.py` | `76cc3f906d2c9401a19847eb028fa02d459a68710a95861ff5523d559561dfca` |
 
 The offline tests cover these cases:
@@ -63,7 +68,13 @@ The offline tests cover these cases:
 - a running cron execution;
 - replica preservation;
 - a bounded Infisical refresh;
-- the Beat window.
+- the Beat clearance window;
+- pagination past the first page of deployments;
+- an older RUNNING deployment blocking acceptance;
+- a cron run that crashes during the wait;
+- `verify` rejecting an unexpected region.
+
+All 14 pass. The watcher readiness pattern was checked against live logs: `receipts/watcher-readiness-sample.json` shows 28 matching lines in 113.
 
 The tool is a dry run unless `--execute` is given, handles one service per call, and journals every step to `receipts/consolidation-journal.jsonl`.
 
@@ -97,10 +108,12 @@ The tool is a dry run unless `--execute` is given, handles one service per call,
      | infisical | `secrets.ai.market/api/status` returns 200, then the auth refresh succeeds within the deadline |
      | worker, signer, cron | the deployment-level checks above |
 
+   Every wait is bounded and a timeout is a failure that goes straight to restore. Cron acceptance completes its wait before reading any field. A dry run evaluates every precondition and exits 3 if one would refuse.
+
    Exit codes: 0 accepted; 3 refused at precheck with nothing changed; 2 move failed and the service was restored with the same acceptance; 1 restore failed (escalate).
 4. Afterwards:
    - Run `status`.
-   - Run `verify <service>` for any service you want to re-check.
+   - Run `verify <service> moved` (or `prior` after a restore) for any service you want to re-check. It compares against the independently expected placement, runs readiness, and exits 4 on failure.
    - Check that tonight's backups at 02:00 and 03:00 UTC ran: S3 objects plus a health record with `status=ok`.
    - Check that the watcher freshness stays green ([issue-channel.md](issue-channel.md)).
    - Check that the celery worker heartbeat stays fresh.
