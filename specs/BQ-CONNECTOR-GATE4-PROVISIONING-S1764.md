@@ -1588,7 +1588,7 @@ Receipt `koskadeux-state/s1786/step3-receipt.json`: before/after deployment IDs,
 
 Step 3 passed on 2026-10-01 (execution 3, after the §3.4a region move): eight of eight windows passed. See `customer-mcp-connector.md` "Gate 4 Step 3 done" and `koskadeux-state/s1786/step3-receipt.json`.
 
-## Gate 4 STEP 4 operator procedure — audit alert (S1786, v4)
+## Gate 4 STEP 4 operator procedure — audit alert (S1786, v5)
 
 This makes Step 4 executable on the Grafana Cloud **Free** plan (org `aimarket`, stack `1527021`, `prod-us-east-3`; about 760 of 10,000 active series on 2026-10-01; tokens in `infisical-secrets.md` "Grafana Cloud tokens"). Max decided on 2026-10-01 (Event `8cf5166e`) to finish and submit the connector without waiting on Anthropic ticket #135998017. Flags and the global switch stay off throughout.
 
@@ -1614,6 +1614,11 @@ This makes Step 4 executable on the Grafana Cloud **Free** plan (org `aimarket`,
   - the isolation assertion contradicted the always-firing production watchdog (DeepSeek 2, codex2 4) — the watchdog is now exempted explicitly;
   - the proof timings were not bounded by observed transitions (codex2 5) — now they are;
   - the instance-id merge, the `[TEST]` labelling of the missing-watchdog issue, and the order of the watcher variables are now specified (DeepSeek 3–5).
+- **v5** answers round 4 (on `1ced1591`):
+  - an OTLP HTTP 200 can carry a partial rejection, so the exporter's SUCCESS is not proof of acceptance (codex2 1). The baseline now needs a decoded response with zero rejected data points;
+  - cleanup could create a spurious watchdog ticket (codex2 2). The expectation is removed first, then the group is deleted;
+  - the ticket count is now a single number (DeepSeek F1), and the stated bounds equal the sum of their parts (DeepSeek F2, F4, F5);
+  - §4.0 now has a resolution rule for missing-watchdog episodes (DeepSeek F3).
 
 ### 4.0 Design
 
@@ -1623,7 +1628,13 @@ Alerts are evaluated in Grafana Cloud, not by any host we run. They reach the is
    - **merges** `service.instance.id=<host>-<pid>-<random>` into `OTEL_RESOURCE_ATTRIBUTES` before `init_telemetry`. Every other key the operator set is preserved, and `service.instance.id` is owned by build T: any preset value for that key is removed, so processes can never collide. Grafana maps `service.instance.id` to `instance` and `service.namespace` to the `job` prefix, so the four production processes (2 replicas × 2 workers) export distinct series, and an operator-set `service.namespace` survives.
    - records zero baselines for `connector_audit_write_failures_total`, one per `event_type` the audit sink can record (`tool.call`, `http.auth_failure`; those are its only attributes).
    - registers an observable gauge `connector_process_up` = 1.
-   - wraps the OTLP metric exporter so that each `export()` result (SUCCESS, FAILURE or exception) is recorded. `force_flush()` alone is **not** trusted, because `PeriodicExportingMetricReader` returns True even when the export failed. A background task in `initialize()` calls `force_flush()` every 10 s until the wrapper has recorded a SUCCESS export that contains the baseline series. It then sets `app.state.telemetry_baseline_ok`.
+   - wraps the OTLP HTTP metric exporter, by subclass or a `_export` hook, so that every export's raw HTTP response is captured. An export counts as **accepted** only if all of these hold:
+     - the status is 2xx;
+     - the body decodes as an `ExportMetricsServiceResponse`;
+     - `partial_success.rejected_data_points` is 0 (an absent `partial_success` counts as 0);
+     - the request batch contained every baseline series.
+
+     The exporter's SUCCESS enum, the return value of `force_flush()`, and a bare HTTP 200 are each **not** trusted on their own. `PeriodicExportingMetricReader.force_flush()` returns True even when the export failed, and the HTTP exporter returns SUCCESS on any 2xx without reading the body. A background task in `initialize()` calls `force_flush()` every 10 s until the wrapper records an accepted baseline export, then sets `app.state.telemetry_baseline_ok`.
    - until that flag is set:
      - `/readyz` returns 503 with reason `telemetry_baseline_pending`;
      - every `/mcp` request returns 503 `TEMPORARILY_UNAVAILABLE` before authentication and before any audit write, so no audit-producing traffic can occur before the zero is delivered.
@@ -1633,7 +1644,7 @@ Alerts are evaluated in Grafana Cloud, not by any host we run. They reach the is
    Tests cover:
    - an existing `OTEL_RESOURCE_ATTRIBUTES=service.namespace=x` survives alongside the generated instance id, and a preset `service.instance.id` is replaced;
    - instance ids differ between processes;
-   - with the real `PeriodicExportingMetricReader` and an exporter that first returns FAILURE, then raises, then succeeds, `/readyz` and `/mcp` stay 503 until the successful export and open only after it;
+   - with the real `PeriodicExportingMetricReader` and the real OTLP HTTP exporter pointed at a local test HTTP server, `/readyz` and `/mcp` stay 503 through each of these responses: HTTP 500; a connection error; HTTP 200 with `partial_success.rejected_data_points=2`; HTTP 200 with an undecodable body. They open only after an HTTP 200 with zero rejected points;
    - the first successful export carries 0 for each baseline series, and a failure recorded immediately after opening yields exported samples 0 then 1;
    - backend `app.main` telemetry is unchanged.
 
@@ -1653,7 +1664,9 @@ Alerts are evaluated in Grafana Cloud, not by any host we run. They reach the is
 
    It never includes payloads, arguments or IPs.
 
-   **Watchdogs, per group.** Every rule group carries its own always-firing watchdog, labeled `issue_channel_watchdog="true"` and `watchdog_group="<group>"`. Watchdogs are matched by those labels, independently of the `issue_channel` filter. The adapter has a configured list of expected groups; for production this is `connector-audit`. An entry may carry the suffix `:test` (for example `s1786-test:test`), and a missing-watchdog issue for such a group gets the `[TEST]` title prefix. For each expected group missing from a complete observation, it emits issue `grafana_watchdog_missing` (ticket_only) with the group name. That covers the ruler, Alertmanager and token path per group, and one group's watchdog can never mask another's. A failed Alertmanager read marks the observation incomplete and emits `grafana_check_failed`. Watcher death is already covered by the existing watcher freshness monitoring (`issue-channel.md`).
+   **Missing-watchdog episodes** resolve when that group's watchdog alert is present and unsilenced in two consecutive complete observations.
+
+   **Watchdogs, per group.** Every rule group carries its own always-firing watchdog, labeled `issue_channel_watchdog="true"` and `watchdog_group="<group>"`. Watchdogs are matched by those labels, independently of the `issue_channel` filter. The adapter has a configured list of expected groups; for production this is `connector-audit`. Each observation snapshot records the expected-group list it used, so an operator can confirm a configuration change has been adopted. An entry may carry the suffix `:test` (for example `s1786-test:test`), and a missing-watchdog issue for such a group gets the `[TEST]` title prefix. For each expected group missing from a complete observation, it emits issue `grafana_watchdog_missing` (ticket_only) with the group name. That covers the ruler, Alertmanager and token path per group, and one group's watchdog can never mask another's. A failed Alertmanager read marks the observation incomplete and emits `grafana_check_failed`. Watcher death is already covered by the existing watcher freshness monitoring (`issue-channel.md`).
 
    Integration tests cover:
    - firing → one ticket;
@@ -1765,14 +1778,14 @@ Wait until `/alertmanager/api/v2/alerts` lists `ConnectorAlertingWatchdogTest`. 
 - The watcher creates exactly one `[TEST]` ticket.
 - No production **incident** alert (`ConnectorAuditWriteFailures`, `ConnectorTelemetryAbsent` or `ConnectorProcessesBelowExpected` without `test="true"`) is present in Alertmanager at any point. The production `ConnectorAlertingWatchdog` stays present throughout, and its presence is asserted.
 - Repeated polls create no duplicate.
-- With no further failures, the alert clears once the 5-minute window and the 15-minute `keep_firing_for` have both passed. The episode then resolves after two complete observations, about 10 minutes later, so the bound is 35 minutes from the failure.
+- With no further failures, the alert clears once the 5-minute window and the 15-minute `keep_firing_for` have both passed. The episode then resolves after two complete observations, about 10 minutes later, so the bound is 33 minutes from the failure: up to 3 to fire, plus 5, plus 15, plus 10.
 - **Phase coverage:** after each resolution, repeat the single failure at 0 s, 100 s and 200 s after a recorded watcher poll. Each must open exactly one new episode with one new `[TEST]` ticket.
 
 **No-data proof.** Stop the test host.
 
-- `ConnectorTelemetryAbsent` (test) must be firing in Alertmanager within 13 minutes: the 10-minute range, 1-minute evaluation, and up to 2 minutes of export and ingestion.
+- `ConnectorTelemetryAbsent` (test) must be firing in Alertmanager within 12 minutes of the last sample: the 10-minute range, up to 1 minute of evaluation, and 1 minute of margin.
 - Exactly one `[TEST]` ticket must exist within 20 minutes: firing, plus a 300 s poll, plus processing. No other test ticket appears.
-- Restart the host. The alert clears after `keep_firing_for`, and the episode resolves after two complete observations.
+- Restart the host. `absent_over_time` turns false as soon as the first new sample is ingested, about 1–2 minutes after `/readyz`. The alert then clears 15 minutes later, after `keep_firing_for`, and the episode resolves after two more complete observations: about 27 minutes after restart.
 
 **Watchdog proof.** Remove only `ConnectorAlertingWatchdogTest` from the test group, while the production watchdog keeps firing. Keep it removed until both of these are true:
 
@@ -1781,19 +1794,22 @@ Wait until `/alertmanager/api/v2/alerts` lists `ConnectorAlertingWatchdogTest`. 
 
 Then restore the rule. Wait until Alertmanager lists it again and the issue resolves after two complete observations. No issue may name `connector-audit`.
 
-**Expected test tickets in total:** five, all prefixed `[TEST]`:
+**Expected test tickets in total: exactly six, all prefixed `[TEST]`:**
 
-- one from the first failure plus three from phase coverage;
+- four from audit failures: the first failure plus three phase-coverage repeats;
 - one from the no-data proof;
+- one `grafana_watchdog_missing` from the watchdog proof.
 
-plus one `[TEST]` watchdog issue, also written as a ticket. That makes six artifacts.
+No other ticket or episode may appear, test or production.
 
-**Cleanup.**
+**Cleanup, in this order.**
 
-1. Delete the test group (the readback returns 404).
-2. Restore `GRAFANA_EXPECTED_WATCHDOG_GROUPS=connector-audit`.
-3. Stop and remove the test host and its database.
-4. Record everything.
+1. Restore `GRAFANA_EXPECTED_WATCHDOG_GROUPS=connector-audit` and redeploy the watcher.
+2. Wait for a complete observation whose snapshot lists only `connector-audit` among the expected groups. The watcher records its expected groups in each observation.
+3. Delete the test group; the readback returns 404.
+4. Wait one more complete observation and confirm no new episode or ticket.
+5. Stop and remove the test host and its database.
+6. Record everything.
 
 ### 4.7 Rollback, in order, with checks
 
