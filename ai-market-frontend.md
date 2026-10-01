@@ -30,9 +30,10 @@ Next.js (App Router), React, TypeScript, Tailwind CSS, Zustand (state), Axios, R
 
 Railway auto-deploys from `main`. Build via Nixpacks (`nixpacks.toml` in repo root). DNS: `ai.market` → Railway service.
 
-The frontend has no PR CI. Its only GitHub Actions workflow is
-`.github/workflows/deploy-receipt.yml`; opening a draft PR does not run the
-frontend test, typecheck, or lint suite. Before review, the builder report and
+Workflows: `frontend-ci.yml` runs on every pull request and push to `main`
+(since 2026-09-26) and `deploy-receipt.yml` runs after a push to `main`; see
+`activation-verification.md` for proving a deploy. Review happens before a PR
+exists, so before review the builder report and
 the reviewer request must include local `npm run typecheck`, `npm test`
 (Vitest), and `npm run lint` results at the exact candidate SHA. Backend Gold
 Path CI is separate evidence and does not validate a frontend change.
