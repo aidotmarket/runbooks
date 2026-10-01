@@ -155,7 +155,7 @@
 
 ## AIM Node Release Process
 - Path: `aim-node-release-process.md`
-- Purpose: **DEPRECATED — NOT A PRODUCT (Max, S1790, 2026-10-01):** AIM Node is deprecated and is not a product; its features were to go into AIM Data, which is itself now replaced by the AIM Data Gateway (aim-data-gateway.md). `aidotmarket/aim-node` is archived, and `get.ai.market/aim-node*` returns a retired notice (see cloudflare-and-dns.md). Do not describe AIM Node as a live product, build on it, or release it. Everything below is history.
+- Purpose: **DEPRECATED — NOT A PRODUCT (Max, S1790, 2026-10-01):** AIM Node is deprecated and is not a product; its features were to go into AIM Data, which is itself now replaced by the AIM Data Gateway (aim-data-gateway.md). `aidotmarket/aim-node` is archived, and `get.ai.market/aim-node*` returns a retired notice or redirects to the gateway guide (see cloudflare-and-dns.md). Do not describe AIM Node as a live product, build on it, or release it. Everything below is history.
 - Owner: `unassigned`
 - Last verified: `2026-10-01`
 - Aliases: none
@@ -164,7 +164,7 @@
 
 ## AIM Node — The Runtime
 - Path: `aim-node.md`
-- Purpose: **DEPRECATED — NOT A PRODUCT (Max, S1790, 2026-10-01):** AIM Node is deprecated and is not a product; its features were to go into AIM Data, which is itself now replaced by the AIM Data Gateway (aim-data-gateway.md). `aidotmarket/aim-node` is archived, and `get.ai.market/aim-node*` returns a retired notice (see cloudflare-and-dns.md). Do not describe AIM Node as a live product, build on it, or release it. Everything below is history.
+- Purpose: **DEPRECATED — NOT A PRODUCT (Max, S1790, 2026-10-01):** AIM Node is deprecated and is not a product; its features were to go into AIM Data, which is itself now replaced by the AIM Data Gateway (aim-data-gateway.md). `aidotmarket/aim-node` is archived, and `get.ai.market/aim-node*` returns a retired notice or redirects to the gateway guide (see cloudflare-and-dns.md). Do not describe AIM Node as a live product, build on it, or release it. Everything below is history.
 - Owner: `unassigned`
 - Last verified: `2026-10-01`
 - Aliases: none

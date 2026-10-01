@@ -94,7 +94,7 @@ The zone contains NS records pointing at name.com nameservers (`ns1cvw.name.com`
 
 | Worker name | Routes | Source-of-truth | Last deploy | Notes |
 |-------------|--------|-----------------|-------------|-------|
-| `get-ai-market` | `get.ai.market/`, `get.ai.market/aim-data*`, `get.ai.market/aim-node*` | `aidotmarket/cf-get-worker` (standalone repo; wrangler) | 2026-10-01 (S1790, version `56f683e4`, cf-get-worker `7235c492`) | Retired-installer pointer. AIM Data and AIM Node are both retired (AIM Node is deprecated and not a product); no route installs anything (see below). No GITHUB_TOKEN binding — uses unauthenticated raw.githubusercontent.com (rate-limit risk under load). |
+| `get-ai-market` | `get.ai.market/`, `get.ai.market/aim-data*`, `get.ai.market/aim-node*` | `aidotmarket/cf-get-worker` (standalone repo; wrangler) | 2026-10-01 (S1790, version `56f683e4`, cf-get-worker `7235c492`) | Retired-installer pointer. AIM Data and AIM Node are both retired (AIM Node is deprecated and not a product); no route installs anything and nothing is fetched from GitHub (see below). |
 | `vectoraiz-installer` | `get.vectoraiz.com/*` | **Dashboard-only / API-only — NO source repo** ⚠ | 2026-02-25 | Proxies vectoraiz installer scripts. Has channel routing (stable/RC/marketplace). Has `GITHUB_TOKEN` binding. **Drift: source-control this Worker — see §Drift item 2.** |
 | `aim-node-installer` | `[Unknown — Worker Routes API requires elevated token]` | **Dashboard-only / API-only — NO source repo** ⚠ | 2026-04-08 | Source preview shows it proxies the `aidotmarket/aim-node` GitHub repo with routes for `/rc`, `/windows`, `/aim-node/rc`, `/aim-node/windows`. Has `GITHUB_TOKEN` binding. Likely superseded by `get-ai-market`'s `/aim-node*` route handling; SysAdmin to confirm and decommission. |
 | `allai-dead-man-switch` | (cron-only — no HTTP routes) | `aidotmarket/ai-market-backend` → `workers/` (wrangler) | 2026-03-12 | Monitors allAI Brain heartbeat at `https://api.ai.market/api/v1/internal/heartbeat/brain`, alerts via Telegram on consecutive failures. Cron `*/5 * * * *`. KV namespace `DMS_KV` (`d82ea459cc3e4025a41393b8b8190ce9`). Secret mirrors `HEARTBEAT_URL`, `INTERNAL_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` — see Worker-secret rotation discipline below. |
@@ -112,9 +112,13 @@ Routes (from `wrangler.toml`):
 
 The worker no longer proxies GitHub or reads KV; the `INSTALLERS` KV binding was removed from `wrangler.toml` in S1790.
 
-Deploy (headless, verified S1790). Deploy only from `origin/main` after `gh pr view <n> --json state` shows `MERGED`: in S1790 a squash merge failed with `Base branch was modified` (a race right after a push; retrying worked) and the deploy that followed re-published the old code. the repo has no `node_modules`, so `npx --no-install wrangler` fails; use `npx -y wrangler@4 deploy`. Put the token in the environment of the same process only: `CLOUDFLARE_API_TOKEN` from Infisical `ai-market-backend`/`prod` (read with the sysadmin token per [infisical-secrets.md](infisical-secrets.md), `--projectId` explicit, never printed) and `CLOUDFLARE_ACCOUNT_ID=d5346d3e0f8f344c5f4915aaca689adf`. The output ends with `Current Version ID`; record it.
+Deploy (headless, verified S1790). Deploy only a fresh checkout that contains the merge commit: in S1790 a squash merge failed with `Base branch was modified` (a race right after a push; retrying worked) and the deploy that followed re-published the old code. The repo has no `node_modules`, so `npx --no-install wrangler` fails; use `npx -y wrangler@4 deploy`. Put the token in the environment of the same process only: `CLOUDFLARE_API_TOKEN` from Infisical `ai-market-backend`/`prod` (read with the sysadmin token per [infisical-secrets.md](infisical-secrets.md), `--projectId` explicit, never printed) and `CLOUDFLARE_ACCOUNT_ID=d5346d3e0f8f344c5f4915aaca689adf`. The output ends with `Current Version ID`; record it.
 
     cd /Users/max/Projects/ai-market/cf-get-worker
+    M=$(gh pr view <n> --repo aidotmarket/cf-get-worker --json state,mergeCommit -q 'select(.state=="MERGED").mergeCommit.oid')
+    [ -n "$M" ] || { echo "PR not merged; stop"; exit 1; }
+    git fetch -q origin && git checkout -q main && git reset -q --hard origin/main
+    git merge-base --is-ancestor "$M" HEAD || { echo "checkout lacks $M; stop"; exit 1; }
     npx -y wrangler@4 deploy
 
 Verify:
