@@ -276,6 +276,27 @@ Mars ran Step 2 on production in a restart window Max approved, following `specs
 
 What the no-deploy proof showed (S1771): a Railway `variableCollectionUpsert` with `skipDeploys:true` does not redeploy, but every Infisical native Railway sync job (create, forced run, or a secret write in a synced folder) redeploys its destination service. Plan any Infisical write to a synced folder as a restart of that service. Self-hosted Infisical v0.161.11 does not return `includeAllSubFolders` on Railway sync readback.
 
+### Gate 4 Step 3 done: trusted edge peer and region (S1786, 2026-10-01)
+
+Mars ran Step 3 per `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` §3 (runbooks #378, #380, #383, each approved by the full panel). The final receipt is `koskadeux-state/s1786/step3-receipt.json` (SHA-256 `4255d5329bd5f8195ef62146c07da19a2d74ef67b0f5981688886a6a153d4f51`). Flags and the global switch stayed off throughout.
+
+- **Setting:** `CONNECTOR_TRUSTED_PROXY_CIDRS=100.64.0.0/24` on `ai-market-connector` only, live in deployment `90eda905-421c-4e58-ab19-416c1f154755`. Railway's edge reaches the container from socket peers in `100.64.0.2`–`.23`. Before the setting, every caller shared about 20 edge-peer rate-limit buckets.
+- **Proof:** eight single-source windows, P1–P4 from the cloud workspace and from the Koskadeux host. All passed with 12 of 12 probes recorded in public caller buckets, none on an edge peer, and no `1.2.3.4`/`5.6.7.8` bucket. A client-supplied `X-Forwarded-For`, forged, invalid or prepended, never chose the bucket. Not measured: per-replica attribution, hop count, and whether the edge strips or appends.
+- **Region:** both connector services ran in `us-east4-eqdc4a` with one instance each, while Redis, Postgres and the backend run in `us-west2`. The pre-auth limiter's 100 ms Redis budget then expired on a third to a half of requests, which fell back to per-process limits. Both services now run in `us-west2` with two instances each:
+  - resource deployment `45bcc9b6-cb6f-4878-8439-4e318aca6016`;
+  - auth deployment `dfe2e9f7-f371-4353-a620-b162a90dd362`;
+  - tool `koskadeux-state/s1786/region_move.d87911e9423d.py`, journal `receipts/region-journal.jsonl`.
+
+  After the move, two checks recorded 12 of 12 probes. `CONNECTOR_EXPECTED_PROCESSES=4` (2 replicas × 2 workers) is now true. The JWKS kids and thumbprints are unchanged, OAuth routes return 404, and the auth flags are false.
+- **Two rollbacks on the way, both clean:**
+  - Execution 1 labelled sources by ipify addresses, but egress to Railway differs from what ipify reports.
+  - Execution 2 lost probes to the limiter fallback, which led to the region finding.
+
+  Receipts: `koskadeux-state/s1786/receipts/{exec1,exec2,rbcheck}/`.
+- **Recorded, not changed:** these services also run in `us-east4` while their data stores are in `us-west2`: `ai-market-celery-worker`, `ai-market-celery-beat`, `ai-market-seller-profile-worker`, `gateway-signer`, `ai-market-gateway-door-worker`, `issue-channel-watcher` and `ai-market-backup`. Each database or Redis call they make crosses the continent. Moving them is a separate decision.
+
+Rollback for Step 3: `koskadeux-state/s1786/apply_step3.py rollback --execute` (spec §3.5). Region rollback: `region_move.d87911e9423d.py restore --execute` restores the captured prior placement.
+
 ### Signing keyset recovery: NO SUPPORTED PATH TODAY (S1757, 2026-09-27)
 
 The only copy of `CONNECTOR_OAUTH_SIGNING_KEYS` is Infisical `ai-market-backend`/`prod` `/connector-auth` and its synced Railway variable on `ai-market-connector-auth`. The 2026-09-27 03:04Z Infisical backup does not contain it (checked S1757). If both are lost, the keys cannot be restored, and there is no reviewed procedure to regenerate them. The provisioning tool's `generate` needs a canary proof that matches the live root sync (`connector_signing_keyset.py` `valid_canary_proof`), and `canary` refuses to mint a new one once the `railway-connector-auth-prod` sync exists (`require_syncs`). The S1753 proof saved as a local scratch receipt (`/Users/max/koskadeux-state/secrets/s1753/canary-proof.json`) still validated against the live root sync on 2026-09-27 at about 19:30 CEST (GLM read-only check), but it becomes invalid on any root-sync change and is not a reviewed or durable recovery route. Do not delete or recreate syncs, hand-write a proof, or create the secret by any other route. A lost keyset therefore means the authorization server stays down until a separately reviewed recovery or rotation procedure exists. Building that procedure is a pre-enable requirement of BQ-CONNECTOR-OAUTH. When it exists, record it here, including how to compare RFC 7638 thumbprints computed from the JWKS `kty`, `crv`, `x` and `y` members (JWKS itself publishes only `kid` and the public members). Any regenerated keyset invalidates every token signed with the old keys, so every connected client must reconnect.
