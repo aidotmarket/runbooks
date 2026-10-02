@@ -733,7 +733,7 @@
 - Path: `infisical-secrets.md`
 - Purpose: **Deployed**: S357 (2026-03-30) **URL**: https://secrets.ai.market **Railway Project**: `fe02d729-5921-4199-8e6a-2e026acc1326` **Replaces**: Doppler (demoted to archive-only, see `doppler-secrets.md`)
 - Owner: `unassigned`
-- Last verified: `2026-09-27`
+- Last verified: `2026-10-02`
 - Aliases: none
 - Error signatures: error code: 1010, FST_ERR_CTP_EMPTY_JSON_BODY, Invalid or missing Internal API Key
 - Status: current
