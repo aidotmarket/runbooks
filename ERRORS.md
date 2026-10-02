@@ -764,6 +764,10 @@
 
 - [E2E Browser Runner](e2e-browser-runner.md)
 
+## `hosted_checkout_session_pending`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `HTTP 401`
 
 - [Qdrant — Vector Database (hosting, auth, backups)](qdrant.md)
@@ -1352,6 +1356,10 @@
 
 - [Data verification — seller journey and operator checks](data-verification-seller-journey.md)
 
+## `Policy resource was already managed by another stack`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
+
 ## `policy_kernel_enforcement_setting_invalid`
 
 - [Policy Kernel Enforcement Gate](runbooks/policy-kernel-enforcement.md)
@@ -1879,6 +1887,10 @@
 ## `unsupported_target_repo`
 
 - [Build Queue Reconciliation](runbooks/build-queue-reconciliation.md)
+
+## `up: opt-in Workspace overlay requires the approved test-account broker user`
+
+- [S1656 Money Path Test Environment](money-path-test-environment.md)
 
 ## `UPDATE 0 on listings slug rename`
 

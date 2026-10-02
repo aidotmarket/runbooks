@@ -1,7 +1,7 @@
 ---
 title: S1656 Money Path Test Environment
 owner: mars
-last_verified: '2026-09-28'
+last_verified: '2026-10-02'
 aliases:
   - BQ-MONEY-PATH-TEST-ENV-S1656
   - BQ-MONEY-PATH-DELIVERY-LEG-S1681
@@ -11,6 +11,9 @@ aliases:
   - ai-market-money-path-s1656
 error_signatures:
   - "'get' is a dict method, but a PaymentIntent is not a dict"
+  - "up: opt-in Workspace overlay requires the approved test-account broker user"
+  - "Policy resource was already managed by another stack"
+  - "hosted_checkout_session_pending"
   - "Provider refund binding mismatch"
   - "synthetic_purchase_requires_e2e_guard"
   - "Failed to proxy http://localhost:18000"
@@ -300,6 +303,17 @@ The committed `config/com.aimarket.s1681-settlement.plist` calls `bin/nightly --
 The build-only procedure is `workspace/README.md` "S1738 seller-01 licence journey" in the environment repo. These are the operator facts learned running it live at environment `e99803d` (PRs #51, #52, #54) with backend `5752f26d6f2ac9a9c4eef945f11f14c40eb16ab3`. Evidence: `/Users/max/koskadeux-state/s1656/acceptance-evidence/s1738-license-20260924-r2/`.
 
 2026-09-28 S1761 observations used environment main `e1899daf` (PRs #65/#66); Events `6c3de32c`, `10c3d819`, `56aa48ad`.
+
+2026-10-02 S1761 card-fee run r3 (S1790) used environment `49ffaef2` (PR #75), backend `bd831996` (backend #573), Event `f061290f`. Evidence: `/Users/max/koskadeux-state/s1656/acceptance-evidence/s1790-cardfee-r3/`. Facts learned:
+
+- **Overlay principal for `bin/up`.** The Workspace overlay refuses to start without `S1712_WORKSPACE_AWS_PRINCIPAL_ARN` (`up: opt-in Workspace overlay requires the approved test-account broker user`). Take the value from the running backend's `SELLER_WORKSPACE_AWS_PRINCIPAL_ARN` and export it under the S1712 name. The overlay also needs `S1738_WORKSPACE_OVERLAY=true`, the `nightly-pins.env` keys, and `S1681_ENVIRONMENT_SHA=$(git rev-parse HEAD)`.
+- **Broker STS identity for `prepare.py`.** Infisical `test-env` holds no AWS credentials, so running `aws sts get-caller-identity` through it fails with `NoCredentials`. Read the broker identity from the running backend container instead: `docker exec <backend> python -c 'import boto3,json;d=boto3.client("sts").get_caller_identity();print(json.dumps({k:d[k] for k in ("Account","Arn","UserId")}))'`. Set `approved_permission_expiry` at or before the connection authorization's `expires_at` (three hours).
+- **One fixture stack at a time.** `fixture-template.yaml` creates the inline policy `TestBrokerAssumeWorkspaceRole` on the shared broker user. A second stack fails with `Policy resource was already managed by another stack` and rolls back. Delete the previous stack first, then delete the rolled-back one.
+- **Versioned source bucket teardown.** The fixture bucket is versioned, so `delete-stack` on its own ends in `DELETE_FAILED`. First delete every object version and delete marker: `aws s3api list-object-versions --bucket B --query '{Objects:[Versions[].{Key:Key,VersionId:VersionId},DeleteMarkers[].{Key:Key,VersionId:VersionId}][]}'` into a file, then `aws s3api delete-objects --bucket B --delete file://…`. Then delete the stack and wait for `stack-delete-complete`. Upload the two fixtures from `workspace/fixtures/{sample,denied}.csv` to `synthetic/workspace/`.
+- **Buyer Workspace download before confirming order 1.** `GET /orders/{id}/access` reports `can_download=false` for Workspace delivery. As buyer-02, with `X-Forwarded-For: 198.51.100.73`, call: `POST /seller-workspace/orders/{id}/prepare`, then `POST /seller-workspace/orders/{id}/download` with a fresh `request_id`, then `POST …/download/{session_id}/files/{index}`. GET the returned URL with the returned headers, then `POST /orders/{id}/confirm`.
+- **Events suppressed before backend #573 cannot be replayed.** A synthetic Session event suppressed as `e2e_scope_suppressed` is stored `completed`, so Stripe redelivery is deduplicated as `already processed`. Orders bought on a pin without #573 (run r2: orders `c4ae261a`, `5e55bdd4`) stay `created` and must be abandoned. Buy again with new listings; do not repair them with SQL.
+- **PI-first ordering on the test pair is real.** Order B's `payment_intent.succeeded` arrived before `checkout.session.completed` and was deferred: HTTP 503, status `failed`, error `hosted_checkout_session_pending`. Stripe TEST retried it about 60 minutes later, after the Session had bound the PaymentIntent, and the retry completed normally. Wait for that retry before collecting order 2's `capture` evidence.
+- **Order of post-hold steps.** Order 2 is refunded only after order 1's Transfer, as `workspace/README.md` steps 9–12 require, because seller debt would offset order 1's 2272 Transfer. Run r3's order 1 hold ends `2026-10-04T13:46:44Z`.
 
 - **Recreate one service with `bin/recreate backend|frontend|webhook-proxy`** (environment PR #55, `7025df3`). It takes the same exclusive lock and `--guard up` admission as `bin/up`, loads the Infisical test-env the same way, uses the Workspace overlay only when `S1738_WORKSPACE_OVERLAY=true` (with the approved broker principal), refuses if the service's image is not already present locally, never builds or pulls (`--no-build --pull never`), and waits for health. The webhook proxy now re-resolves `backend` through Docker DNS, so a backend recreate no longer needs a proxy restart. `seed` compose calls are overlay-aware too. Never recreate a service with raw `docker compose`; in S1738, before PR #55, that was done unguarded four times (Event d4e9b283).
 - **Workspace fixture window is three hours.** The overlay sets `SELLER_WORKSPACE_AUTHORIZATION_TTL_SECONDS=10800` (PR #51) so the fixture `PermissionExpiry`, which `prepare.py` requires to be at or before the application authorization expiry, can cover the journey. Every stage that touches seller S3 (verify-source, publish, any Workspace download or door probe) must finish before that expiry; after it the role is inert and a new window needs a new `create` and stack. Deploy the fixture stack in `eu-north-1` (the backend's `AWS_REGION`) with `aws --profile aimarket-sandbox cloudformation create-stack ... --parameters file://<0600 list> --capabilities CAPABILITY_IAM`.
