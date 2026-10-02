@@ -38,6 +38,29 @@ resolved to the same account; always verify with `account/read` before
 claiming independence. Codex2 was live-verified as `max@kisa.cat` on
 2026-09-30, distinct from default `max@ai.market`.
 
+The default home drifted to `max@kisa.cat` again by 2026-10-01 (peer #8774;
+both accounts were then the same). Max re-confirmed on 2026-10-02 (S1790):
+**primary/default = `max@ai.market`, secondary/codex2 = `max@kisa.cat`**.
+Re-signed the default home that day via device code.
+
+To re-sign one account headlessly:
+
+1. Check which account each home holds: `codex login status` with that
+   `CODEX_HOME`, or decode the email claim from `tokens.id_token` in its
+   `auth.json` without printing tokens.
+2. Run `CODEX_HOME=<home> codex login --device-auth` (omit `CODEX_HOME` for
+   the default) in the background with output to a log. Give Max the URL
+   `https://auth.openai.com/codex/device` and the code from the log; the code
+   lasts 15 minutes. He signs in with the target account from any browser,
+   signing out of ChatGPT first if a different account is active.
+3. Wait for `Successfully logged in`, then verify the email again for
+   **both** homes.
+
+`codex login --device-auth` deletes that home's existing `auth.json` the
+moment it starts, before anyone approves. Start it only for the home you mean
+to change, and finish it promptly: that account cannot work until approval.
+Killing the login does not restore the old file.
+
 If the builder output says `You've hit your usage limit ... try again at
 <date>`, record that account and exact reset date, then dispatch the remaining
 work with the other account if it has capacity. Check its own latest job output
