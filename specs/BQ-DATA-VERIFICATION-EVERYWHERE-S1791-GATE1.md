@@ -1,4 +1,4 @@
-# BQ-DATA-VERIFICATION-EVERYWHERE-S1791: Gate 1, run data verification for gateway sellers and cloud (AWS S3 / Cloudflare R2) sellers (R3)
+# BQ-DATA-VERIFICATION-EVERYWHERE-S1791: Gate 1, run data verification for gateway sellers and cloud (AWS S3 / Cloudflare R2) sellers (R4)
 
 **Author:** Vulcan, S1791, 2026-10-02. **Authority:** Max, 2026-10-02 21:11 CEST: "I want to have this available for customers who host on aws and cloudflare. I also want to be able to run this with the new gateway." Event Ledger `c01b34a7` (dedupe `s1791-data-verification-everywhere`). Standing Max principle (project record): ai.market must never read or profile seller data.
 **Build record:** Living State `build:bq-data-verification-everywhere-s1791`.
@@ -41,6 +41,14 @@
 | codex2 3: digest is self-reported | §5.3 corrected: the digest check enforces declared versions only and proves nothing about what executed; the tampering residual stays disclosed. |
 | codex2 4: cross-runner equality contradicts identities | Acceptance 4 now compares normalized statistical facts across runners and checks provenance, signatures, commitments and hashes against per-runner golden vectors. |
 
+## R4 fold log (R3 on `44f48ac7`: GLM APPROVE, DeepSeek APPROVE_WITH_NITS, codex2 REVISE)
+
+| Finding | Change in R4 |
+| --- | --- |
+| codex2 1: `kms:ViaService = s3` is not the AWS value | §5.4 now uses `kms:ViaService = s3.<region>.amazonaws.com` (the bucket's region), still limited to the seller-supplied key ARN. |
+| codex2 2 (LOW): mutation acceptance vs pinned `VersionId` | Acceptance 6 now accepts either outcome: the pinned bytes are retrieved, or the scan ends without report or capture. |
+| DeepSeek nit: runner key in Secrets Manager | §5.1: the secrets are encrypted under a KMS key created by the stack, `GetSecretValue` is scoped to the runner's execution role, and the key is held only in function memory. |
+
 ## 1. Why
 
 Seller-initiated data verification (S1590) is live in production with both switches on, and no seller has ever completed a run (`data-verification-seller-journey.md` §A: 0 quotes, 0 epochs). Its only runner was legacy AIM Data, which is archived (`aim-data.md`). Neither of the places sellers actually are today can run it: the gateway does three things only (CORE v9.22 line 59; gateway D1), and S1590 §2 item 1 limits coverage to AIM Data-reachable sources, which excludes Seller Workspace cloud sellers. Verification therefore has no runner at all today.
@@ -82,7 +90,7 @@ Seller-initiated data verification (S1590) is live in production with both switc
 ## 5. Cloud runner control plane (AWS and R2, independent of packaging)
 
 ### 5.1 Runner identity and keys
-At first start the runner generates, inside the seller's account, an Ed25519 runner signing key and a commitment/HMAC key, and stores both as secrets the seller owns (AWS Secrets Manager, readable only by the runner's execution role; Cloudflare secret for R2), exactly as the gateway keeps its keys on its volume. Neither leaves the seller's account. The existing Ed25519 receipt verifier is reused unchanged. The receipt signature (S1590 `install_key_id`) uses the runner key.
+At first start the runner generates, inside the seller's account, an Ed25519 runner signing key and a commitment/HMAC key, and stores both as secrets the seller owns (AWS Secrets Manager, encrypted under a KMS key the stack creates, with `secretsmanager:GetSecretValue` granted only to the runner's execution role and the key held only in function memory; Cloudflare secret for R2), exactly as the gateway keeps its keys on its volume. Neither leaves the seller's account. The existing Ed25519 receipt verifier is reused unchanged. The receipt signature (S1590 `install_key_id`) uses the runner key.
 
 ### 5.2 Registration
 - When the seller clicks Set up, ai.market mints a registration token: 256-bit random, single use, valid 30 minutes, bound to (seller account, connection id, runner kind, expected image digest). Only its hash is stored.
@@ -95,7 +103,7 @@ At first start the runner generates, inside the seller's account, an Ed25519 run
 
 ### 5.4 Network
 - Marketplace traffic: HTTPS to `api.ai.market:443` only, with ai.market's certificate chain pinned in the runner.
-- Seller-cloud service calls the runner needs: AWS S3 (`GetObject`, `GetObjectVersion`, `HeadObject` on the connection's read scope only), Secrets Manager (its own secrets), DynamoDB (its own ledger table), CloudWatch Logs; for SSE-KMS objects, `kms:Decrypt` on the seller-supplied key ARN only, conditioned on `kms:ViaService = s3`; R2 equivalents via bindings. Nothing else. SSE-S3 objects need nothing extra; an SSE-KMS object without a supplied key ARN makes the probe refuse with "This data is encrypted with a key the verifier can't use" before any charge.
+- Seller-cloud service calls the runner needs: AWS S3 (`GetObject`, `GetObjectVersion`, `HeadObject` on the connection's read scope only), Secrets Manager (its own secrets), DynamoDB (its own ledger table), CloudWatch Logs; for SSE-KMS objects, `kms:Decrypt` on the seller-supplied key ARN only, conditioned on `kms:ViaService = s3.<region>.amazonaws.com` for the bucket's region; R2 equivalents via bindings. Nothing else. SSE-S3 objects need nothing extra; an SSE-KMS object without a supplied key ARN makes the probe refuse with "This data is encrypted with a key the verifier can't use" before any charge.
 - AWS enforcement default: the execution role allows exactly those actions on exactly those resources, so even a modified runner cannot read beyond scope. Optional strict network profile (documented, seller's choice): the function in a seller VPC with S3, Secrets Manager, DynamoDB, KMS and Logs VPC endpoints and egress only through the seller's own egress control to `api.ai.market`. Gate 2 decides whether the strict profile is the default after costing it.
 
 ### 5.5 Revocation
@@ -147,7 +155,7 @@ As in directory-root §2.6: the scanned set equals the delivered set exactly whe
 3. R2: same as 2, or the honest "coming soon" if S-R2 fails.
 4. Oracle: for the approved S1590 golden fixtures, the Go scanner reproduces the approved golden fact payloads. For identical fixture bytes behind each runner, the normalized deterministic statistical facts (`column_names`, `column_types`, `null_rate`, `approx_distinct_count`, `length_histograms`, `numeric_range_buckets`, `row_count`, `row_count_method`, coverage counts) are byte-equal across runners; provenance fields, signatures, commitments and source-bound hashes are checked separately against per-runner golden vectors, and a changed source binding yields the expected distinct values.
 5. Consent: a spec with a missing, unsigned, expired, replayed, over-limit or wrong-version authorization is refused by every runner, and every spec appears in the runner's log in the seller's environment.
-6. Mutation: changing one pinned object after publish, or replacing it between HEAD and GET or between range requests, voids the scan before any report or capture; a prefix gaining objects does not change the scanned set.
+6. Mutation: if a pinned object changes after publish, or is replaced between HEAD and GET or between range requests or traversal invocations, the runner either still reads exactly the pinned bytes (version-selected retrieval) or ends the scan with no report and no capture (ETag-conditioned refusal); both paths are tested. A prefix gaining objects does not change the scanned set.
 7. Ledger: cold-start, warm-start and two concurrent polls all refuse a reused nonce or authorization and the eleventh same-day spec.
 8. SSE-KMS: an SSE-KMS fixture scans with only the scoped decrypt grant, or the probe refuses before any charge when no key ARN was supplied.
 9. E7: a gateway file with a renamed or dropped column cannot be probed; nothing is charged.
