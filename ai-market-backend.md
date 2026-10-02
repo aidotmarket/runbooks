@@ -1,7 +1,7 @@
 ---
 title: ai-market-backend — Central Platform API
 owner: unassigned
-last_verified: '2026-09-29'
+last_verified: '2026-10-02'
 aliases:
 - Railway backend deployment
 - FastAPI production API
@@ -243,6 +243,8 @@ When a held inquiry remains on **Submitting...** even though `message_audit` alr
 **Implementation rule:** match the `ck_peer_messages_` constraint-name prefix *generically* (one branch) so any future CHECK on this table returns 422, not 500. Only genuinely-unknown `IntegrityError`s re-raise.
 
 **Operator note:** the peer bus enforces these at the DB layer. If a `peer_msg_send` claim fails, the cause is almost always a missing `ref_entity` — always send claims WITH a `ref_entity` (see `runbooks/peer-instance-discipline.md`).
+
+A second claim with the same `ref_entity` on the same UTC day from the same instance is *not sent*: the bus returns the earlier row with `"idempotent": true`. A HOLD posted that way never reaches the peers. This happened on 2026-10-02 (S1790): a second card-fee HOLD reused the morning's ref, so peers got no notice before a backend merge. For every new HOLD, use a ref specific to that change (for example the PR URL). Check the result for `idempotent: true`, and if it's there, resend with a fresh ref before merging.
 
 **History:** before the S960 fix the CHECK path surfaced as a raw 500 (the handler only translated the unique-index violation). The 422 mapping shipped to `ai-market-backend` main in commit `c6b34401` (S960).
 
