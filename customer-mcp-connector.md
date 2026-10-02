@@ -79,7 +79,7 @@ $PY "$TOOL" generate --execute --canary-proof canary-proof.json
 $PY "$TOOL" verify --baseline baseline.json
 ```
 
-Review each dry run before its `--execute` step. The tool refuses when `/Users/max/local-secops/HALT` exists, if the signing secret already exists, or on drift. `--selftest` makes no network calls. Its audit JSONL is `~/koskadeux-state/secrets/connector_signing_keyset.audit.jsonl`. This sequence records how provisioning was done; the live secret now exists, so `generate` will refuse. **Rotation is not supported by this tool.** Rotation needs a separate reviewed procedure.
+Review each dry run before its `--execute` step. The tool refuses when `/Users/max/local-secops/HALT` exists, if the signing secret already exists, or on drift. `--selftest` makes no network calls. Its audit JSONL is `~/koskadeux-state/secrets/connector_signing_keyset.audit.jsonl`. This sequence records how provisioning was done; the live secret now exists, so `generate` will refuse. Rotation, retirement of the old key and recovery use the `rotate` subcommand; see "Signing keyset rotation and recovery" below.
 
 The canary forces one `railway-backend-prod` sync pass, which redeployed `ai-market-backend` (`e5ab7c66`, healthy, values identical). Creating the connector sync and writing the key each redeployed `ai-market-connector-auth` (`a414391a` and `02354162`, both `SUCCESS`). The generate write did not redeploy the backend. Any Infisical `prod` write can trigger both syncs, so do not write to `/connector-auth` except through this tool for initial provisioning or a reviewed procedure.
 
@@ -329,9 +329,50 @@ Mars ran Step 3 per `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` §3 (runboo
 
 Rollback for Step 3: `koskadeux-state/s1786/apply_step3.py rollback --execute` (spec §3.5). Region rollback: `region_move.d87911e9423d.py restore --execute` restores the captured prior placement.
 
-### Signing keyset recovery: NO SUPPORTED PATH TODAY (S1757, 2026-09-27)
+### Signing keyset rotation and recovery (S1786, 2026-10-02)
 
-The only copy of `CONNECTOR_OAUTH_SIGNING_KEYS` is Infisical `ai-market-backend`/`prod` `/connector-auth` and its synced Railway variable on `ai-market-connector-auth`. The 2026-09-27 03:04Z Infisical backup does not contain it (checked S1757). If both are lost, the keys cannot be restored, and there is no reviewed procedure to regenerate them. The provisioning tool's `generate` needs a canary proof that matches the live root sync (`connector_signing_keyset.py` `valid_canary_proof`), and `canary` refuses to mint a new one once the `railway-connector-auth-prod` sync exists (`require_syncs`). The S1753 proof saved as a local scratch receipt (`/Users/max/koskadeux-state/secrets/s1753/canary-proof.json`) still validated against the live root sync on 2026-09-27 at about 19:30 CEST (GLM read-only check), but it becomes invalid on any root-sync change and is not a reviewed or durable recovery route. Do not delete or recreate syncs, hand-write a proof, or create the secret by any other route. A lost keyset therefore means the authorization server stays down until a separately reviewed recovery or rotation procedure exists. Building that procedure is a pre-enable requirement of BQ-CONNECTOR-OAUTH. When it exists, record it here, including how to compare RFC 7638 thumbprints computed from the JWKS `kty`, `crv`, `x` and `y` members (JWKS itself publishes only `kid` and the public members). Any regenerated keyset invalidates every token signed with the old keys, so every connected client must reconnect.
+This replaces the S1757 finding that no recovery path existed. The procedure is the `rotate` subcommand of `scripts/connector_keyset/connector_signing_keyset.py` in koskadeux-mcp, merged in PR #320 as `caf00a6913fa3f565a41b748907bdae2930ff315` after a unanimous review (GLM and codex2 APPROVE on the R2 fold, DeepSeek APPROVE_WITH_NITS on R1). The tool's own reference is koskadeux-mcp `docs/connector_keyset_recovery.md`. None of these commands has been run against production yet; record the first run here. The only copies of `CONNECTOR_OAUTH_SIGNING_KEYS` remain Infisical `/connector-auth` and its synced Railway variable on `ai-market-connector-auth`; the 2026-09-27 03:04Z Infisical backup did not contain it (checked S1757).
+
+**Scope and refusals.** The target is fixed: Infisical project `bd272d48-c5a1-4b52-9d24-12066ae4403c`, `prod`, `/connector-auth`, synced to `ai-market-connector-auth`. The tool requires exactly the four syncs below, with these options, and refuses otherwise. It never creates, deletes or forces a sync.
+
+| Sync | Source | Railway service | initialSyncBehavior | disableSecretDeletion | isAutoSyncEnabled | Recursion |
+| --- | --- | --- | --- | --- | --- | --- |
+| `railway-backend-prod` | `/` | `ai-market-backend` | `import-prioritize-source` | true | true | false or omitted |
+| `railway-connector-auth-prod` | `/connector-auth` | `ai-market-connector-auth` | `overwrite-destination` | true | true | false or omitted |
+| `railway-issue-channel-watcher-events-prod` | `/issue-channel-watcher-railway` | `issue-channel-watcher` | `overwrite-destination` | true | true | false or omitted |
+| `railway-connector-resource-prod` | `/connector-resource` | `ai-market-connector` | `overwrite-destination` | true | true | false or omitted; the folder must have no subfolders |
+
+`/connector-auth` must hold exactly `CONNECTOR_OAUTH_SIGNING_KEYS` and `SECRET_KEY` (recovery allows the signing name to be absent). The inventory is names only. The tool reads only `CONNECTOR_OAUTH_SIGNING_KEYS`, by exact name, before and after its write, and never reads the `SECRET_KEY` value. It also refuses when `/Users/max/local-secops/HALT` exists, on root value drift, or when the auth deployment is not `SUCCESS` with an identity. Dry runs read only, mint no keys and write only the public audit receipt. Never print secret exports or Railway variable values. Restoring Infisical's database under `backup-and-recovery.md` R3 remains a separate operation: JWKS cannot restore a private key.
+
+**How to operate.** Run in a clean checkout of koskadeux-mcp at `caf00a69` or a reviewed successor. Keep the JSON receipts in a private scratch directory outside the repository; they contain names and public metadata only. Review each dry run before its `--execute`.
+
+```bash
+TOOL=scripts/connector_keyset/connector_signing_keyset.py
+PY=/Users/max/koskadeux-mcp/venv/bin/python
+rtk proxy $PY $TOOL --selftest
+rtk proxy $PY $TOOL rotate
+rtk proxy $PY $TOOL rotate --execute > rotation.json
+```
+
+Rotation generates one fresh EC P-256 key (`cs-YYYYMMDD-` plus 8 random bytes in hex) and writes `[new, old signing key]`, in that order. The unused standby is dropped, because the backend publishes only two keys. The new key signs after the one observed redeployment. Tokens signed by the old key keep verifying, so clients do not reconnect. This assumes the old second key never signed; if it did, wait for those tokens to expire first. Never rotate again during a grace period. A keyset with more than two keys is refused. The proof requires JWKS to list the new and old kids, in order, with matching RFC 7638 thumbprints (computed from `kty`, `crv`, `x`, `y`).
+
+Retire the old key at least **4,260 seconds (71 minutes) after `verified_at`** in `rotation.json`. That covers the one-hour access-token lifetime, 60 seconds of verification leeway and the five-minute JWKS cache:
+
+```bash
+rtk proxy $PY $TOOL rotate --retire-old --rotation-proof rotation.json
+rtk proxy $PY $TOOL rotate --retire-old --rotation-proof rotation.json --execute > retirement.json
+```
+
+Retirement checks the receipt's time, mode and proofs plus the live ordered kids and thumbprints, keeps only the new key, and proves that JWKS has exactly that key. A receipt is operator evidence, not a signed attestation; never edit it.
+
+**Recovery (signing secret absent or corrupt).** Mandatory gate, no exceptions: first revoke every connector grant, authorization code and refresh token through a separately reviewed procedure, record that evidence, and keep OAuth traffic disabled until recovery is verified. The recovery receipt is not proof of revocation.
+
+```bash
+rtk proxy $PY $TOOL rotate --recover
+rtk proxy $PY $TOOL rotate --recover --execute > recovery.json
+```
+
+Recovery refuses a valid keyset and needs no canary. It writes only the named signing secret (POST if absent, PATCH if corrupt) with a fresh two-key keyset and keeps no old key. Every client must reconnect, which is the intended outcome. Old access tokens stop verifying once JWKS caches expire (up to five minutes); this is not instant revocation. **Backend limitation:** refresh tokens, grants and authorization codes live in the OAuth database and keep working after a key change, minting tokens under the new key. That is why revocation is a separate, required step; the tool has no database access and its receipt marks grant revocation `REQUIRED_SEPARATE_STEP`. Keep this limitation visible in the pre-enable review.
 
 ## Anthropic directory listing (planned)
 
