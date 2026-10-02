@@ -1,7 +1,7 @@
 ---
 title: Infisical Secrets Management
 owner: unassigned
-last_verified: '2026-09-27'
+last_verified: 2026-10-02
 aliases: []
 error_signatures: ['error code: 1010', FST_ERR_CTP_EMPTY_JSON_BODY, 'Invalid or missing Internal API Key']
 ---
@@ -301,11 +301,14 @@ Access policies, all scoped to `stack:1527021`:
 | `stack-1527021-otlp-write` | metrics/logs/traces/profiles write, metrics:import, alerts:write, rules:write | Backend OTLP export (`OTEL_EXPORTER_OTLP_HEADERS`) and root `GRAFANA_API_TOKEN`. It has **no read scope**, so `GRAFANA_API_TOKEN` queries return `authentication error: invalid scope requested`. |
 | `connector-otlp-write` (`dadcb089…`) | metrics:write, traces:write | Token `connector-otlp-write-s1786b`, for the connector's own telemetry (Gate 4 Step 4) |
 | `connector-alerting` (`ce43f25b…`) | metrics:read, rules:read/write, alerts:read/write | Token `connector-alerting-s1786b`, for installing and checking connector alert rules |
+| `connector-alert-reader` (`c03a18b7…`) | alerts:read | Token `connector-alert-reader-s1786` (`f8152e11-12a7-4e32-bf17-3b198310d557`, no expiry), for the issue-channel watcher's Grafana alert source (spec §4.2). Created 2026-10-02 at Max's direction. |
 
-Both new tokens have no expiry. Mars chose that in S1786; Max did not direct it. They are rotated through the Step 4 procedure. Their values are only in `ai-market-backend`/`prod` folder **`/grafana-ops`**. No sync targets that folder, so its values never reach any service. A `prod` write can still trigger the existing syncs (see READ FIRST), so run the flag and value drift check before writing here. The 2026-10-01 ~08:46Z write produced no backend deployment, and the post-write check showed zero drift. The folder holds:
+All three connector tokens have no expiry. For `connector-otlp-write-s1786b` and `connector-alerting-s1786b`, Mars chose that in S1786 and Max did not direct it. The `connector-alert-reader-s1786` token was created on 2026-10-02 at Max's direction. They are rotated through the Step 4 procedure. Their values are only in `ai-market-backend`/`prod` folder **`/grafana-ops`**. No sync targets that folder, so its values never reach any service. A `prod` write can still trigger the existing syncs (see READ FIRST), so run the flag and value drift check before writing here. The 2026-10-01 ~08:46Z write produced no backend deployment, and the post-write check showed zero drift. The folder holds:
 
 - `GRAFANA_CONNECTOR_OTLP_WRITE_TOKEN`
 - `GRAFANA_CONNECTOR_ALERTING_TOKEN`
+- `GRAFANA_CONNECTOR_ALERT_READ_TOKEN` (alerts:read only; the watcher's copy is made only through the reviewed §4.2 procedure)
+- `GRAFANA_ALERTMANAGER_USER` (`1487075`, the Alertmanager basic-auth user)
 - `GRAFANA_STACK_ID` (`1527021`, the OTLP basic-auth user)
 - `GRAFANA_PROM_INSTANCE_ID` (`2978270`, the Mimir basic-auth user)
 - `GRAFANA_PROM_URL`
@@ -321,7 +324,22 @@ Do not copy these into a synced folder except through a reviewed Step 4 procedur
 - send an `X-Request-Id` header (a random UUID) on every write, or the API returns 403 `Missing Request ID`;
 - read the secret from the response field `token`; it is shown only once.
 
-**Verify (names only, never echo the value).** Run a Mimir query with basic auth `GRAFANA_PROM_INSTANCE_ID`:`GRAFANA_CONNECTOR_ALERTING_TOKEN` against `GRAFANA_PROM_URL/api/prom/api/v1/query?query=count by (service_name) (target_info)`. On 2026-10-01 it returned 200 with `service_name="ai-market-backend"`, and `/api/prom/rules` returned 200 `{}`.
+**Hand-off without seeing the value (S1786, 2026-10-02).** The token create response is the only time the value exists outside Infisical. Mars used the following route for `connector-alert-reader`, and it is the preferred route for any future token:
+1. On Koskadeux, start a one-shot loopback listener. It runs in the spec's protected interpreter (§2.0 definitions with the reviewed pins), so the flag and value drift check is the reviewed `reconcile_active_sync_values`. The 2026-10-02 instance is `koskadeux-state/s1786/step4/store_alert_reader.<sha256>.py`.
+   - It binds `127.0.0.1` only, behind a random path nonce, and accepts exactly one POST whose `Origin` is `https://grafana.com`.
+   - It runs the drift check, refuses to overwrite an existing name, writes with `POST /api/v4/secrets/<name>` to `/grafana-ops`, and reads back the fingerprint.
+   - It verifies the scope by HTTP status only: Alertmanager `GET /alertmanager/api/v2/alerts` must return 200, while Mimir `/api/prom/rules` and Alertmanager `POST /alertmanager/api/v2/silences` (empty body) must return 401 or 403.
+   - After 90 s it reruns the drift check and compares deployment IDs.
+   - Inputs: `S1786_NONCE` (a fresh random path nonce, for example 24 hex characters, kept in a 0600 file), `S1786_PORT` (default `18765`). It gives up after 1200 s with no POST. The loopback leg is plain HTTP on `127.0.0.1` only; the `Origin` check stops other web pages, not other local processes, so run it only on Koskadeux.
+   - The browser JavaScript is typed into the tab's console and not saved. Its shape: create the policy, create the token, then build a hidden form whose fields are `token`, `policy_id`, `token_id` and `token_name`, and submit it to `http://127.0.0.1:<port>/store/<nonce>`.
+2. In Max's grafana.com tab, run JavaScript that creates the policy and the token (with an `X-Request-Id` header each time), then submits a hidden **top-level form POST** carrying the token to the listener.
+   - A `fetch` to `127.0.0.1` from grafana.com triggers Chrome's local-network permission prompt and hangs until someone answers it; a top-level navigation does not.
+   - The script returns only IDs and a has-token boolean, never the value.
+   - The tab must be on a `https://grafana.com` page when the script runs. Check `location.origin` first: a tab left on the listener page sends the API calls to the listener.
+   - Afterwards, navigate the tab back to grafana.com.
+3. Post a short HOLD before the write and release it after. Record the policy ID, token ID, fingerprint and status codes in an Event.
+
+**Verify (names only, never echo the value).** For the alert reader: Alertmanager `GET /alertmanager/api/v2/alerts` with basic auth `GRAFANA_ALERTMANAGER_USER`:`GRAFANA_CONNECTOR_ALERT_READ_TOKEN` returns 200, and the rules and silence probes above return 401.  Run a Mimir query with basic auth `GRAFANA_PROM_INSTANCE_ID`:`GRAFANA_CONNECTOR_ALERTING_TOKEN` against `GRAFANA_PROM_URL/api/prom/api/v1/query?query=count by (service_name) (target_info)`. On 2026-10-01 it returned 200 with `service_name="ai-market-backend"`, and `/api/prom/rules` returned 200 `{}`.
 
 **Revoke.** `DELETE /api/v1/tokens/<id>?region=prod-us-east-3&orgId=1670288`, or use the Access Policies page.
 
