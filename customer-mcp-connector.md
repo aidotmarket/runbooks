@@ -338,8 +338,8 @@ Mars ran these steps per `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` (pinne
   - §5.3 set the resource healthcheck to `/readyz`, live in deployment `79881127`: receipt `step5/step5-3-receipt.json` (`ef41136e…`), Event `486a2d39`.
 - **Step 6 (early-access allowlist).**
   - Executor `step6/run_step6.2f636f4661e6d4d0942db4806f5fb5ca350e965e1d6a5c488f47ff7901a880d2.py` (runbooks #419).
-  - The first live run (14:06Z) stopped at Phase A, the auth code deploy; see the Railway lessons below.
-  - Recovery run `a5282211` then closed that run's journal entry (`f308450d`, `recovery_complete=true`): receipt `step6/receipt-recover-4.json` (`89c0aa61…`).
+  - The first live run (`f308450d`, 14:06Z) passed Phase A and wrote the allowlist on resource and auth. It then stopped because the auth redeploy came back with a new image digest; see the Railway lessons below.
+  - Two recovery attempts (`edcfc3eb`, `7a2d580c`) failed closed. Recovery run `a5282211` then completed the rollback of `f308450d` (`recovery_complete=true` on `a5282211`): receipt `step6/receipt-recover-4.json` (`89c0aa61…`).
   - Live run `238e6dc8` first archive-deployed auth at `5f3efc85` (deployment `8c78eefb`). It then set `CONNECTOR_EARLY_ACCESS_USER_IDS` to two users, including the directory reviewer `c4a49a3e-…`, on resource (`8af87318`), auth (`a2c8aed5`) and backend (`19986df3`).
   - Grants were 0 before and after. Receipt `step6/receipt-live-run2.json` (`28ad73ad…`), Event `a43d422c`.
 - **Step 4a (§4.2–§4.4).**
@@ -348,7 +348,7 @@ Mars ran these steps per `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` (pinne
   - §4.3 found the earliest raw sample at 0 for `http.auth_failure` and `tool.call` on all four processes, both after the header deploy and after a fresh redeploy (`5123041f`).
   - §4.4 installed the rule group `connector/connector-audit`: readback equal, `keep_firing_for: 15m` on all three rules. Alertmanager listed only `ConnectorAlertingWatchdog`.
   - Receipt `step4/receipt-4a-live.json` (`0c69633e…`), Event `8140db6e`.
-- **§4.5 (build G).** koskadeux-mcp #324, which enables the Grafana source, merged as `3fcc6097`; watcher deployment `03e3d50e`. The first observation (17:50:36Z) showed `grafana` `ok`, complete, `connector-audit` observed and zero Grafana tickets. Event `60c49ed7`.
+- **§4.5 (build G).** koskadeux-mcp #324, which enables the Grafana source, merged as `3fcc6097`; watcher deployment `03e3d50e`. The first observation (17:50:36Z) showed `grafana` `ok`, complete, `connector-audit` observed and zero Grafana tickets. Event `60c49ed7`. Evidence: `step4/step4-5-receipt.json`, which also lists every Event ID above.
 
 All paths are under `koskadeux-state/s1786/`.
 
