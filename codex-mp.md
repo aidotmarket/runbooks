@@ -1,7 +1,7 @@
 ---
 title: Codex / MP — Council Primary Builder
 owner: vulcan
-last_verified: '2026-09-30'
+last_verified: '2026-10-02'
 aliases: []
 error_signatures:
 - 'Incorrect API key provided: sk-svcac'
@@ -12,6 +12,7 @@ error_signatures:
 - minimal bridge has no configured checkout for repo
 - every default-account MP build fails with HTTP 400
 - bridge_runner fails at import when run from a foreign cwd
+- workspace routing discovery unauthorized (401)
 ---
 
 # Codex / MP — Council Primary Builder
@@ -37,6 +38,37 @@ on 2026-09-30 via device code after `~/.codex/auth.json` was rewritten to
 resolved to the same account; always verify with `account/read` before
 claiming independence. Codex2 was live-verified as `max@kisa.cat` on
 2026-09-30, distinct from default `max@ai.market`.
+
+The default home drifted to `max@kisa.cat` again by 2026-10-01 (peer #8774;
+both accounts were then the same). Max re-confirmed on 2026-10-02 (S1790):
+**primary/default = `max@ai.market`, secondary/codex2 = `max@kisa.cat`**.
+Re-signed the default home that day via device code.
+
+To re-sign one account headlessly:
+
+1. Check which account each home holds by decoding the `email` claim of
+   `tokens.id_token` in that home's `auth.json`, without printing any token.
+   `codex login status` only shows *that* a home is signed in
+   (`Logged in using ChatGPT`), not *which* account, so it cannot prove
+   independence.
+2. Run `CODEX_HOME=<home> codex login --device-auth` (omit `CODEX_HOME` for
+   the default) in the background with output to a log. Give Max the URL
+   `https://auth.openai.com/codex/device` and the code from the log; the code
+   lasts 15 minutes. He signs in with the target account from any browser,
+   signing out of ChatGPT first if a different account is active.
+3. Wait for `Successfully logged in`, then verify the email again for
+   **both** homes.
+
+`codex login --device-auth` signs the home out the moment it starts, before
+anyone approves. It tries to revoke the current refresh token server-side and
+then deletes `auth.json`. Start it only for the home you mean to change, and
+finish it promptly: that account cannot work until approval. Killing the login
+does not undo this, and putting back a copy of the old `auth.json` does not
+work either. The copy's session has been revoked, so `codex login status`
+still says logged in while every run fails with
+`workspace routing discovery unauthorized (401)`. This happened to codex2 on
+2026-10-02 (peer #8800): an aborted codex2 login plus a restored copy. The
+only fix is a fresh device-code login for that home with its own account.
 
 If the builder output says `You've hit your usage limit ... try again at
 <date>`, record that account and exact reset date, then dispatch the remaining

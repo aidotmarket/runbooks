@@ -1936,6 +1936,10 @@
 
 - [Seller Workspace live release operations](runbooks/seller-workspace-live-release.md)
 
+## `workspace routing discovery unauthorized (401)`
+
+- [Codex / MP — Council Primary Builder](codex-mp.md)
+
 ## `workspace_connection_assume_role_denied`
 
 - [ai.market Seller Workspace Cloud Listing and Delivery](seller-workspace-cloud-listing-delivery.md)
