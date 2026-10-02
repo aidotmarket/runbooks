@@ -1243,7 +1243,7 @@ del srca,srcr,dst_a,dst_r
 
 Before **any** Step 2 production mutation, complete §2.0's no-deploy proof for each dependent Infisical forward/rollback class and the Railway collection replacement. Mars's 2026-09-29T23:45Z read-only introspection proves `VariableDeleteInput` has no `skipDeploys`; `variableDelete` is prohibited for Step 2 even though `scripts/railway_watcher_credential/railway_watcher_credential.py` uses it elsewhere. With `disableSecretDeletion=true`, deleting an Infisical secret or sync leaves its Railway copy; remove those names explicitly only through the guarded collection replacement below. Keep global switch/flags off throughout; if flags were later enabled, use the rollback map's global kill first.
 
-For a removal, fetch the **entire current service variable name set** through `rv(service)` in the protected interpreter. Fetch each name's raw value through the live-introspected Railway metadata readback `raw_reference(service,name)`; this must return the literal value or the unchanged raw `${{...}}` reference, never a resolved reference value. Assert the raw metadata names equal `rv(service).keys()`, and refuse if any raw value is missing, unreadable or of unknown shape. Re-read immediately before mutation; refuse concurrent name/value drift. Form `variables` as exactly that protected-memory mapping minus the named removals (or with exact prior values restored for a mixed rollback). Apply one `variableCollectionUpsert` with `replace:true, skipDeploys:true`, then assert readback names equal the expected set, retained raw references and their rendered values equal their originals, retained literal values match in protected memory, and **all four** production deployment IDs equal the baseline. Do not log values. This operation is permitted only for `ai-market-connector` (`RES`) and `ai-market-connector-auth` (`AUTH`), never `ai-market-backend` (`BACK`) or `issue-channel-watcher` (`WATCH`). A backend-only new variable requiring deletion moves with its dependent forward action to Step 5's restart window; do not extend this helper's allow-list.
+For a removal, fetch the **entire current service variable name set** through `rv(service)` in the protected interpreter. (S1786: the rendered set also holds Railway-provided `RAILWAY_*` names that the raw set lacks; the helper works on the raw names, requires every rendered-only name to start with `RAILWAY_`, and compares after-sets with those names added back.) Fetch each name's raw value through the live-introspected Railway metadata readback `raw_reference(service,name)`; this must return the literal value or the unchanged raw `${{...}}` reference, never a resolved reference value. Assert the raw metadata names plus the validated Railway-provided (`RAILWAY_*`, rendered-only) names equal `rv(service).keys()`, and refuse if any raw value is missing, unreadable or of unknown shape. Re-read immediately before mutation; refuse concurrent name/value drift. Form `variables` as exactly that protected-memory mapping minus the named removals (or with exact prior values restored for a mixed rollback). Apply one `variableCollectionUpsert` with `replace:true, skipDeploys:true`, then assert readback names equal the expected set, retained raw references and their rendered values equal their originals, retained literal values match in protected memory, and **all four** production deployment IDs equal the baseline. Do not log values. This operation is permitted only for `ai-market-connector` (`RES`) and `ai-market-connector-auth` (`AUTH`), never `ai-market-backend` (`BACK`) or `issue-channel-watcher` (`WATCH`). A backend-only new variable requiring deletion moves with its dependent forward action to Step 5's restart window; do not extend this helper's allow-list.
 
 ```python
 def remove_or_restore_connector_vars(service,remove=(),restore=None):
@@ -1253,7 +1253,12 @@ def remove_or_restore_connector_vars(service,remove=(),restore=None):
     assert verify_upsert_shape() and closed_stage('before-collection-replace') is None
     assert deployment_snapshot()==BASE_DEPLOYMENTS
     effective=rv(service)                 # values stay in protected memory
-    names=set(effective)
+    # S1786 fix: rv() is the rendered set and also carries Railway-provided names (RAILWAY_*) that the
+    # unrendered (raw) set never contains and that cannot be written. Work on the raw (user-set) names only.
+    raw_all=variables_read(RP,RE,service,True)
+    provided=set(effective)-set(raw_all)
+    assert set(raw_all)<=set(effective) and all(n.startswith('RAILWAY_') for n in provided)
+    names=set(raw_all)
     assert remove <= names
     raw={name:raw_reference(service,name) for name in names}
     assert set(raw)==names and all(isinstance(v,str) for v in raw.values())
@@ -1269,7 +1274,8 @@ def remove_or_restore_connector_vars(service,remove=(),restore=None):
     gql('mutation($input:VariableCollectionUpsertInput!){variableCollectionUpsert(input:$input)}',
         {'input':{'projectId':RP,'environmentId':RE,'serviceId':service,
                   'variables':expected,'replace':True,'skipDeploys':True}})
-    assert set(rv(service))==set(expected)
+    assert set(rv(service))==set(expected)|provided
+    assert set(variables_read(RP,RE,service,True))==set(expected)
     assert {k:raw_reference(service,k) for k in expected}==expected
     after=rv(service)
     assert all(after[k]==effective[k] and after[k]!=raw[k] for k in references)
