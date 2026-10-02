@@ -365,6 +365,8 @@ rtk proxy $PY $TOOL rotate --retire-old --rotation-proof rotation.json --execute
 
 Retirement checks the receipt's time, mode and proofs plus the live ordered kids and thumbprints, keeps only the new key, and proves that JWKS has exactly that key. A receipt is operator evidence, not a signed attestation; never edit it.
 
+**If an `--execute` run refuses or times out after its write.** The pre-write checks refuse detected concurrent changes but are not an atomic conditional write, and they cannot stop another operator or an external redeploy; coordinate first (post a HOLD to peers). A refusal after the write means the source may already have changed. A timeout means success was not proven; it does **not** mean the write rolled back. Never run `--execute` again straight away: a second rotation can replace a keyset that is already live and drop the old key while its tokens are still in their grace period. First inspect the audit record's write intent (`~/koskadeux-state/secrets/connector_signing_keyset.audit.jsonl`), the source fingerprints, the `railway-connector-auth-prod` sync job, the auth deployment's identity and status, and the public `/readyz` and JWKS kids and thumbprints. Retry only once those show the write did not land. Never delete or force a sync, fabricate a canary proof, print secret values or restore an older secret by hand.
+
 **Recovery (signing secret absent or corrupt).** Mandatory gate, no exceptions: first revoke every connector grant, authorization code and refresh token through a separately reviewed procedure, record that evidence, and keep OAuth traffic disabled until recovery is verified. The recovery receipt is not proof of revocation.
 
 ```bash
