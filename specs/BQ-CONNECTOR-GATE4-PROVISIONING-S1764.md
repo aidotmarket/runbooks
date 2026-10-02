@@ -1882,7 +1882,7 @@ This turns line 113 (Step 5) into an executable procedure. Flags and the global 
 
 ### 5.2 Test-host D2 proof (non-customer)
 
-On Koskadeux, run the **same image digest** as 5.1 step 5. Record the digest. Nothing here reads or writes production vectors, rows or users; the only production read is the listings collection's vector size and distance, read-only.
+On Koskadeux, run the **same code** as 5.1 step 5. Record that deployment's image digest and commit from the 5.1 receipt. The deployed image lives in Railway's build registry and cannot be pulled locally, so the test host runs that **exact commit** natively from a clean, detached checkout (`git status` empty) in the backend venv, as the 2026-10-01 rehearsal did. The runner refuses if the 5.1 receipt's commit differs from the checkout. The identity proved is therefore commit-level, not image-level. Nothing here reads or writes production vectors, rows or users. Production access is read-only and limited to: the listings collection's vector size and distance (read with the connector's read-only Qdrant key); `VERTEX_GEMINI_KEY` from the Infisical `prod` root, passed only by environment to the local child processes and never printed; and the 5.1 receipt. The local Qdrant runs the accepted production digest. Runner: `koskadeux-state/s1786/step5-kit/run_step5_2.<sha256>.py` with `probe_d2.py`. It seeds the local Qdrant with the service's own `index_listing`. L3 is set to `published` only for its indexing call and then back to `draft`, which leaves the stale point. It tries a short fixed list of candidate queries for Q, and records every candidate and the first one that meets (i) and (ii) below.
 
 **Environment**
 - A disposable local Postgres, migrated to the image's alembic head, with:
