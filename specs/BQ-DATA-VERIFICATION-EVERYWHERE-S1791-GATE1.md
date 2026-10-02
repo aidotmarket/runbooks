@@ -1,4 +1,4 @@
-# BQ-DATA-VERIFICATION-EVERYWHERE-S1791: Gate 1, run data verification for gateway sellers and cloud (AWS S3 / Cloudflare R2) sellers (R4)
+# BQ-DATA-VERIFICATION-EVERYWHERE-S1791: Gate 1, run data verification for gateway sellers and cloud (AWS S3 / Cloudflare R2) sellers (R5)
 
 **Author:** Vulcan, S1791, 2026-10-02. **Authority:** Max, 2026-10-02 21:11 CEST: "I want to have this available for customers who host on aws and cloudflare. I also want to be able to run this with the new gateway." Event Ledger `c01b34a7` (dedupe `s1791-data-verification-everywhere`). Standing Max principle (project record): ai.market must never read or profile seller data.
 **Build record:** Living State `build:bq-data-verification-everywhere-s1791`.
@@ -41,13 +41,19 @@
 | codex2 3: digest is self-reported | §5.3 corrected: the digest check enforces declared versions only and proves nothing about what executed; the tampering residual stays disclosed. |
 | codex2 4: cross-runner equality contradicts identities | Acceptance 4 now compares normalized statistical facts across runners and checks provenance, signatures, commitments and hashes against per-runner golden vectors. |
 
+## R5 fold log (R4 on `c174fe34`: codex2 REVISE, both R3 findings resolved)
+
+| Finding | Change in R5 |
+| --- | --- |
+| codex2 1: a stack-created KMS key for the secrets needs a decrypt grant §5.4 did not allow | Simplified: the runner's secrets use the AWS managed key `aws/secretsmanager`, which Secrets Manager uses on the runner's behalf with no extra KMS grant. §5.4 now lists the exact secret permissions for first start (`PutSecretValue`) and later starts (`GetSecretValue`) on the runner's own secret only. |
+
 ## R4 fold log (R3 on `44f48ac7`: GLM APPROVE, DeepSeek APPROVE_WITH_NITS, codex2 REVISE)
 
 | Finding | Change in R4 |
 | --- | --- |
 | codex2 1: `kms:ViaService = s3` is not the AWS value | §5.4 now uses `kms:ViaService = s3.<region>.amazonaws.com` (the bucket's region), still limited to the seller-supplied key ARN. |
 | codex2 2 (LOW): mutation acceptance vs pinned `VersionId` | Acceptance 6 now accepts either outcome: the pinned bytes are retrieved, or the scan ends without report or capture. |
-| DeepSeek nit: runner key in Secrets Manager | §5.1: the secrets are encrypted under a KMS key created by the stack, `GetSecretValue` is scoped to the runner's execution role, and the key is held only in function memory. |
+| DeepSeek nit: runner key in Secrets Manager | §5.1: the secret is KMS-encrypted (refined in R5 to the AWS managed key), readable and writable only by the runner's execution role, and the key is held only in function memory. |
 
 ## 1. Why
 
@@ -90,7 +96,7 @@ Seller-initiated data verification (S1590) is live in production with both switc
 ## 5. Cloud runner control plane (AWS and R2, independent of packaging)
 
 ### 5.1 Runner identity and keys
-At first start the runner generates, inside the seller's account, an Ed25519 runner signing key and a commitment/HMAC key, and stores both as secrets the seller owns (AWS Secrets Manager, encrypted under a KMS key the stack creates, with `secretsmanager:GetSecretValue` granted only to the runner's execution role and the key held only in function memory; Cloudflare secret for R2), exactly as the gateway keeps its keys on its volume. Neither leaves the seller's account. The existing Ed25519 receipt verifier is reused unchanged. The receipt signature (S1590 `install_key_id`) uses the runner key.
+At first start the runner generates, inside the seller's account, an Ed25519 runner signing key and a commitment/HMAC key, and stores both as secrets the seller owns (AWS Secrets Manager: the stack creates one empty secret encrypted with the AWS managed key `aws/secretsmanager`, the runner writes its keys into it at first start and reads them on later starts, only the runner's execution role can do either, and the keys are held only in function memory; Cloudflare secret for R2), exactly as the gateway keeps its keys on its volume. Neither leaves the seller's account. The existing Ed25519 receipt verifier is reused unchanged. The receipt signature (S1590 `install_key_id`) uses the runner key.
 
 ### 5.2 Registration
 - When the seller clicks Set up, ai.market mints a registration token: 256-bit random, single use, valid 30 minutes, bound to (seller account, connection id, runner kind, expected image digest). Only its hash is stored.
@@ -103,7 +109,7 @@ At first start the runner generates, inside the seller's account, an Ed25519 run
 
 ### 5.4 Network
 - Marketplace traffic: HTTPS to `api.ai.market:443` only, with ai.market's certificate chain pinned in the runner.
-- Seller-cloud service calls the runner needs: AWS S3 (`GetObject`, `GetObjectVersion`, `HeadObject` on the connection's read scope only), Secrets Manager (its own secrets), DynamoDB (its own ledger table), CloudWatch Logs; for SSE-KMS objects, `kms:Decrypt` on the seller-supplied key ARN only, conditioned on `kms:ViaService = s3.<region>.amazonaws.com` for the bucket's region; R2 equivalents via bindings. Nothing else. SSE-S3 objects need nothing extra; an SSE-KMS object without a supplied key ARN makes the probe refuse with "This data is encrypted with a key the verifier can't use" before any charge.
+- Seller-cloud service calls the runner needs: AWS S3 (`GetObject`, `GetObjectVersion`, `HeadObject` on the connection's read scope only), Secrets Manager (`PutSecretValue` and `GetSecretValue` on its own secret only; no KMS grant is needed because the secret uses the AWS managed key), DynamoDB (its own ledger table), CloudWatch Logs; for SSE-KMS objects, `kms:Decrypt` on the seller-supplied key ARN only, conditioned on `kms:ViaService = s3.<region>.amazonaws.com` for the bucket's region; R2 equivalents via bindings. Nothing else. SSE-S3 objects need nothing extra; an SSE-KMS object without a supplied key ARN makes the probe refuse with "This data is encrypted with a key the verifier can't use" before any charge.
 - AWS enforcement default: the execution role allows exactly those actions on exactly those resources, so even a modified runner cannot read beyond scope. Optional strict network profile (documented, seller's choice): the function in a seller VPC with S3, Secrets Manager, DynamoDB, KMS and Logs VPC endpoints and egress only through the seller's own egress control to `api.ai.market`. Gate 2 decides whether the strict profile is the default after costing it.
 
 ### 5.5 Revocation
