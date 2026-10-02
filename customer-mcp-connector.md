@@ -1,7 +1,7 @@
 ---
 title: Customer MCP connector — build and operations
 owner: unassigned
-last_verified: '2026-10-01'
+last_verified: '2026-10-02'
 aliases: [customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market]
 error_signatures: ["You are being ratelimited. Please try again later", insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'", connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED]
 ---
@@ -328,6 +328,36 @@ Mars ran Step 3 per `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` §3 (runboo
 - **Recorded, not changed:** these services also run in `us-east4` while their data stores are in `us-west2`: `ai-market-celery-worker`, `ai-market-celery-beat`, `ai-market-seller-profile-worker`, `gateway-signer`, `ai-market-gateway-door-worker` and `issue-channel-watcher`. `ai-market-backup` is also configured there but had no running instance at the time. Each database or Redis call they make crosses the continent. Moving them is a separate decision.
 
 Rollback for Step 3: `koskadeux-state/s1786/apply_step3.py rollback --execute` (spec §3.5). Region rollback: `region_move.d87911e9423d.py restore --execute` restores the captured prior placement.
+
+### Gate 4 Steps 5, 6 and 4a done; build G live (S1786, 2026-10-02)
+
+Mars ran these steps per `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` (pinned copy `koskadeux-state/s1786/step5/spec-main-f8a7aa4.md`). Each executor was frozen by SHA-256 and approved by the full panel before its live run. Flags and the global switch stayed off throughout; `/mcp` still returns 503 `CONNECTOR_DISABLED`.
+
+- **Step 5 (§5.1–§5.3).**
+  - The D2 proof passed: receipt `step5/step5-2-receipt.json` (SHA-256 `9bcdcc0c…`), Event `8838974a`.
+  - §5.3 set the resource healthcheck to `/readyz`, live in deployment `79881127`: receipt `step5/step5-3-receipt.json` (`ef41136e…`), Event `486a2d39`.
+- **Step 6 (early-access allowlist).**
+  - Executor `step6/run_step6.2f636f4661e6d4d0942db4806f5fb5ca350e965e1d6a5c488f47ff7901a880d2.py` (runbooks #419).
+  - The first live run (14:06Z) stopped at Phase A, the auth code deploy; see the Railway lessons below.
+  - Recovery run `a5282211` then closed that run's journal entry (`f308450d`, `recovery_complete=true`): receipt `step6/receipt-recover-4.json` (`89c0aa61…`).
+  - Live run `238e6dc8` first archive-deployed auth at `5f3efc85` (deployment `8c78eefb`). It then set `CONNECTOR_EARLY_ACCESS_USER_IDS` to two users, including the directory reviewer `c4a49a3e-…`, on resource (`8af87318`), auth (`a2c8aed5`) and backend (`19986df3`).
+  - Grants were 0 before and after. Receipt `step6/receipt-live-run2.json` (`28ad73ad…`), Event `a43d422c`.
+- **Step 4a (§4.2–§4.4).**
+  - Executor `step4/run_step4a.1b5be6aee5341723f353d88923b319570b59bb117f940a761584d5b158994487.py`.
+  - §4.2 set the resource OTLP variables and the four watcher Grafana variables; the header deployment was `b82de10a`.
+  - §4.3 found the earliest raw sample at 0 for `http.auth_failure` and `tool.call` on all four processes, both after the header deploy and after a fresh redeploy (`5123041f`).
+  - §4.4 installed the rule group `connector/connector-audit`: readback equal, `keep_firing_for: 15m` on all three rules. Alertmanager listed only `ConnectorAlertingWatchdog`.
+  - Receipt `step4/receipt-4a-live.json` (`0c69633e…`), Event `8140db6e`.
+- **§4.5 (build G).** koskadeux-mcp #324, which enables the Grafana source, merged as `3fcc6097`; watcher deployment `03e3d50e`. The first observation (17:50:36Z) showed `grafana` `ok`, complete, `connector-audit` observed and zero Grafana tickets. Event `60c49ed7`.
+
+All paths are under `koskadeux-state/s1786/`.
+
+**Railway lessons from these runs.**
+
+- `serviceInstanceRedeploy` on an archive-deployed service can rebuild its uploaded snapshot. The result is a new image digest while `cliMessage` stays the same, so an equal digest is not proof of identity. To identify the code, compare the commit with SHA-256 hashes of key source files read in the running deployment; record the digest only.
+- `variableCollectionUpsert` can commit and still answer after a 30-second client timeout. Give mutations at least 180 seconds. After a timeout, read the variable back before retrying.
+
+Next: §4.6 controlled proofs on the test host, then Step 7 (staged enable).
 
 ### Signing keyset rotation and recovery (S1786, 2026-10-02)
 
