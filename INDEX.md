@@ -382,9 +382,9 @@
 - Path: `codex-mp.md`
 - Purpose: **MP** is the Council name for OpenAI **Codex** (model **`gpt-6.1-sol`**, reasoning effort **`medium`**, global Codex CLI **0.159.1** — Max decision 77d48293, 2026-09-30; lineage: `gpt-5.6-sol` → `gpt-6-sol` → `gpt-6.1-sol`; ChatGPT OAuth, prepaid credits). `~/.codex/config.toml` and `koskadeux-mcp/.env` `MP_MODEL` both select `gpt-6.1-sol`. The bridge log header `model:` line is ground truth for any job; per-job model/effort overrides are inert in the minimal bridge until T-2026-000786. It is the **mandatory builder for all BQ/development code builds**. MP is not a gate voter, though explicit MP review dispatch remains available outside gate voting. The S1651 CC/GLM/DeepSeek panel and Kimi comparison seat are historical. For current reviews, follow the CURRENT PANEL block in `runbooks/council.md`: the panel is GLM, DeepSeek and codex2 (Max d0a534e6, 2026-10-01); CC is non-voting, Gemini is not dispatched, unanimity applies, and option A/option C govern the package and review tier. All code and spec builds — BQ development work AND trouble-ticket fixes that require code — route to MP; CC is never a build path. MP never reviews its own builds (builder ≠ reviewer is a hard rule). Canonical roster and quirks: `infra:council-comms`; gate mechanics: `agent-dispatch.md`.
 - Owner: `vulcan`
-- Last verified: `2026-09-30`
+- Last verified: `2026-10-02`
 - Aliases: none
-- Error signatures: Incorrect API key provided: sk-svcac, gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap, minimal bridge has no configured checkout for repo, every default-account MP build fails with HTTP 400, bridge_runner fails at import when run from a foreign cwd
+- Error signatures: Incorrect API key provided: sk-svcac, gateway timeout on foreground dispatch >30s, RepairExhaustedError: schema repair exhausted, silent past 300s with status still running, dispatches 4xx/hang after swap, minimal bridge has no configured checkout for repo, every default-account MP build fails with HTTP 400, bridge_runner fails at import when run from a foreign cwd, workspace routing discovery unauthorized (401)
 - Status: current
 
 ## Completion Trust and Ref Disposition
