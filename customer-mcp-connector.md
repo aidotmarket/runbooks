@@ -3,7 +3,7 @@ title: Customer MCP connector — build and operations
 owner: unassigned
 last_verified: '2026-10-02'
 aliases: [customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market]
-error_signatures: ["You are being ratelimited. Please try again later", insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'", connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED]
+error_signatures: ["You are being ratelimited. Please try again later", "KeyError: 'DATABASE_URL'", insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, "module 'secrets' has no attribute 'token_bytes'", connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED]
 ---
 
 # Customer MCP connector — build and operations
@@ -446,3 +446,7 @@ Current rollback is `deploymentRemove` on the affected bad deployment. Once an e
 - A service starts the backend app or runs Alembic: check whether repository source or the root Dockerfile command replaced the service start command. Restore the recorded `startCommand` and use the archive upload procedure.
 - `/healthz` stops returning HTTP 200, or `/readyz` remains HTTP 503 after Gate 4: inspect the Railway deployment and its applied start command, health check path, variables, and connector table reachability. Successful health checks are not proof of a working customer release.
 - `POST /mcp` on the resource returns HTTP 503 `CONNECTOR_DISABLED` while flags are off: that is the recorded Chunk 3 behavior. HTTP 404 was the earlier Chunk 2 stub behavior.
+
+## Auth service database credential (S1786, 2026-10-03)
+
+`KeyError: 'DATABASE_URL'` in `app/mcp/connector_auth/settings.py` (logged as `connector AS maintenance failed`, or a 500 from `POST /oauth/register`) means `ai-market-connector-auth` has no database credential. Gate 4 Steps 1–2 gave only the resource a DSN (`connector_runtime`). The fix is the restricted role `connector_auth_runtime` and an auth-only `DATABASE_URL`, provisioned by `specs/BQ-CONNECTOR-GATE4-PROVISIONING-S1764.md` §7.0c. Its password is in the Titan-1 keychain (`ai-market-connector-auth-db`), not in Infisical. Never give the auth service the owner or application DSN.

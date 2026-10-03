@@ -528,7 +528,7 @@
 - Owner: `unassigned`
 - Last verified: `2026-10-02`
 - Aliases: customer MCP connector, ai-market-connector, ai-market-connector-auth, connect.ai.market, auth.ai.market
-- Error signatures: You are being ratelimited. Please try again later, insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, module 'secrets' has no attribute 'token_bytes', connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED
+- Error signatures: You are being ratelimited. Please try again later, KeyError: 'DATABASE_URL', insufficient_assurance, Config as Code is deprecated, Infisical sync recursion setting unknown or enabled, module 'secrets' has no attribute 'token_bytes', connector_audit_write_failed, SECRET_KEY must be set, DOWNLOAD_TOKEN_SECRET_KEY must be changed from the default in production, EARLY_ACCESS_ONLY, CONNECTOR_DISABLED
 - Status: current
 
 ## Daily CRM Briefing — First Real-Content Verification
