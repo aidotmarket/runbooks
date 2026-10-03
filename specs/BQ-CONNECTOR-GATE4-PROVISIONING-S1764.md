@@ -2005,9 +2005,9 @@ This section makes step 7 of the plan above executable. Steps 1–6 and Step 4, 
 
 **Facts as read on 2026-10-03.**
 
-- **Backend:** `ai-market-backend` runs main `aec5ebd63`, deployment `95ef4986`. This contains T-2026-000879's fix (#572, `49e14290`) and the Claude CIMD pin (#541).
+- **Backend (superseded by the v5 line below):** `ai-market-backend` ran main `aec5ebd63`, deployment `95ef4986`. This contains T-2026-000879's fix (#572, `49e14290`) and the Claude CIMD pin (#541).
 - **Auth and resource:** `ai-market-connector-auth` (deployment `a2c8aed5`) and `ai-market-connector` (deployment `5123041f`) run reviewed commit `5f3efc85`.
-- **v5 (later on 2026-10-03):** the contact-scrubber fix, backend PR #581, merged as `d1aeb77f` (merge commit, second parent `b08fb52b`, full panel unanimous at R6). The backend runs it. `d1aeb77f` also contains `46922910`, which moves the AS metadata `service_documentation` and the early-access message to `https://ai.market/docs/claude` (F7-2). Under `app/mcp`, `5f3efc85..d1aeb77f` changes only `contact_scrubber.py`, `connector_auth/metadata.py` and `connector_shared/early_access.py`.
+- **v5 (later on 2026-10-03):** the contact-scrubber fix, backend PR #581, merged as `d1aeb77f` (merge commit, second parent `b08fb52b`, full panel unanimous at R6). The backend runs it (Railway deployment `c3503bb3`, SUCCESS 2026-10-03 17:13Z); this is "the running backend commit" for the 7.2c preflight. `d1aeb77f` also has as an ancestor `46922910` (first merged by PR #577, already in `aec5ebd63`), which moves the AS metadata `service_documentation` and the early-access message to `https://ai.market/docs/claude` (F7-2). Under `app/mcp`, `5f3efc85..d1aeb77f` changes only `contact_scrubber.py`, `connector_auth/metadata.py` and `connector_shared/early_access.py`.
 - **Connector flags:** each service's flags are false. The backend reads only `CONNECTOR_OAUTH_ENABLED`; auth reads `CONNECTOR_OAUTH_ENABLED`, `CONNECTOR_CIMD_ENABLED` and `CONNECTOR_DCR_ENABLED`; the resource reads only `CONNECTOR_ENABLED`.
 - **Allowlist:** Max `0a3eb2e1-…` and the reviewer `c4a49a3e-…`, enforced on all three services.
 - **Grants:** zero.
@@ -2069,7 +2069,7 @@ The executor archive-deploys the merged fix commit `d1aeb77f` to `ai-market-conn
 
 - a new deployment `SUCCESS` with exactly 2 instances `RUNNING`, and a CLI message naming the commit;
 - sampled source bytes on every instance matching that commit. For the resource: `contact_scrubber.py`, `early_access.py`, `asgi.py`. For auth: `early_access.py`, `token.py`, `metadata.py`, `profiles.yaml`, `redirect_allowlist.py`;
-- the exact allowlist identity set and enforcement on every instance.
+- the exact allowlist identity set on every instance, and the enforcing source (`early_access.py`) in the sampled bytes. Every surface is flag-closed at 7.0b, so this proves configuration and code, not live enforcement; 7.2c's excluded-user probe is the live proof.
 
 It must also show:
 
@@ -2110,6 +2110,8 @@ Auth runs `d1aeb77f` from 7.0b on. All later stages prove auth on that commit.
 
 **Probe-client lifecycle (v5).** The 7.1 client proves registration only. It is disabled at the end of 7.2b.
 - Each later probe-stage invocation (7.2c, each 7.3 item, 7.4 drills that need a probe grant) registers its own DCR client, `S1786 Step 7 probe <stage> <run id>`, with the same native/loopback/`none` shape. The registration is journaled before it is issued, and its 201 body and database row are checked exactly.
+- The 7.1 row is the only DCR mutation of stage 7.1. The per-invocation registrations above are the intended, journaled DCR mutations of later stages, and nothing assumes the 7.1 `client_id` after 7.2b. Receipts and cleanup cover the whole probe-client set: every DCR client named `S1786 Step 7 probe` or `S1786 Step 7 probe 7.*`.
+- An invocation registers at most one client and never retries a registration: auth's DCR limit is 10 per hour per edge peer (F7-1). A registration that times out or returns anything other than 201 is **unresolved**. The stage stops, and closure and `RECOVER=1` look the client up by its unique name in the database. Recovery stays incomplete until that client is disabled or proved absent after the grace period.
 - A probe stage refuses to start unless every existing probe client is disabled.
 - Every closure — success, rollback, RECOVER, and escalate-only RECOVER — disables every probe client: journaled `disabled_at`, readback, and `/oauth/authorize` returning 400 for the client. No probe client is ever re-enabled, so no issued consent link can later start a transaction.
 - **Stated residual:** at `5f3efc85`/`d1aeb77f`, `/oauth/authorize` loads the client and inserts its transaction in separate transactions, and consent `transaction()`/`decide` do not re-check `disabled_at`. A request that loaded the client just before the disable can therefore still insert an approvable transaction after the closure sweeps. Its grant can never yield a token, because `/oauth/token` refuses a disabled client, and the next probe stage reconciles it. A server-side barrier is a recorded follow-up before public launch.
@@ -2167,9 +2169,20 @@ T-2026-000879 is resolved with this evidence. If Max's consent fails with `insuf
 - **Excluded user.** In a private window, Max signs in as a **non-allowlisted test account** and opens a consent link. It is refused with `EARLY_ACCESS_ONLY`, and no code is issued. The operator relays the account email and the verbatim page text. The email must resolve to exactly one non-allowlisted user, and the text must contain the early-access message. The transaction must stay unapproved with no ticket.
 - **D7-1 (accepted, Event `dec59733`).** Exchange, refresh and preexisting-grant refusal after an allowlist *removal* are not driven live. The evidence is backend tests `tests/connector/test_early_access.py` and `tests/connector_auth/test_oauth_early_access.py`. The executor runs both in its 7.2c preflight at the running backend commit, against a disposable local PostgreSQL; every test must pass, with none skipped. The result is bound to the receipt. Live proof is required before public launch.
 
-**Cleanup.** Closure first expires every still-open, unapproved consent transaction from the stage (journaled, readback), after the probe-client disable and a grace period. Then grants are reconciled. No active grant may remain outside the explicitly permitted ones (7.2c: Max's 7.2b Claude grant, which a failed 7.2c keeps). Every recorded probe grant must end with `revoked_at` set. Grants that ever received a token are revoked with `/oauth/revoke`. Tokenless grants, from the expiry and PKCE probes, are revoked by Max on the website's Connected apps page while signed in as the reviewer. The executor reconciles from the database. Every grant with the probe `client_id` must end with `revoked_at` set. On a failed stage, so must every grant for the Claude CIMD `client_id` created after the failed stage's `run_start`. This holds even if the run was interrupted after an approval committed but before its outcome was journaled. `RECOVER=1` performs the same reconciliation. If any such grant is still active, recovery is not complete and later stages refuse. Grants with a refresh token are revoked through `/oauth/revoke`. A tokenless grant is revoked on Connected apps (Max as the reviewer). If that cannot be done, the resource env floor holds, and recovery stays incomplete until it is revoked.
+**Cleanup.** The order is fixed, because `/oauth/revoke` and `/oauth/token` return 401 for a disabled client (`revocation.py:22–27`, `clients.py:36–45`).
+1. **API revocation, client still enabled.** Every grant whose refresh or access token the executor holds is revoked with `/oauth/revoke` using this invocation's client, and `revoked_at` is read back. A failed revocation is recorded and the grant goes to step 5.
+2. **Disable.** Every probe client is disabled (see "Probe-client lifecycle"). No API revocation is attempted after this.
+3. **Expire.** After a grace period, every still-open, unapproved consent transaction from the stage is expired (journaled, readback).
+4. **Reconcile from the database.** No active grant may remain outside the permitted set:
+   - every grant of every probe client must end with `revoked_at` set;
+   - on a failed 7.2b, every Claude CIMD grant created after that invocation's `run_start` must end with `revoked_at` set;
+   - on a failed 7.2c, Max's journaled, preexisting 7.2b Claude grant stays active and is the only permitted grant. Any Claude CIMD grant created after the 7.2c `run_start` must end with `revoked_at` set.
+   This holds even if the run was interrupted after an approval committed but before its outcome was journaled.
+5. **Connected apps.** Every grant still active after step 4 is revoked by Max on the website's Connected apps page, signed in as the account that owns it: the reviewer for probe grants, Max for a Claude grant. This covers tokenless grants (expiry and PKCE probes), token-bearing grants whose token was lost to an interruption or whose step-1 revocation failed, and any grant from the stated residual. That route selects the grant by id and owner and calls `revoke_grant` without consulting the client's `disabled_at` (`connector_grants.py:53–62`), so it works after permanent disablement. The executor names each grant to revoke by client name and creation time, never by token, and reads `revoked_at` back.
 
-**Rollback for 7.2b/c:** cleanup, then revoke the Claude grant through Connected apps if the stage failed, then the 7.2a rollback.
+A revoked grant's access tokens are refused by the resource, which requires an active grant (`connector/auth.py:42–55`). During 7.2 the global row is disabled and `/mcp` returns 503 before authentication, so that refusal is static evidence there; from 7.3 item 3 on, the executor also proves `/mcp` returns 401 for a held access token after its grant is revoked. `RECOVER=1` performs the same steps 2–5. If any grant outside the permitted set is still active, recovery is not complete: the resource env floor holds, and later stages refuse.
+
+**Rollback for 7.2b/c:** cleanup, whose step 4 already scopes the Claude grant by stage (a failed 7.2b revokes its own Claude grant; a failed 7.2c keeps Max's preexisting 7.2b grant), then the 7.2a rollback.
 
 ### 7.3 Switch rows, one per invocation
 
@@ -2190,7 +2203,7 @@ The order is fixed. Each line is a separate invocation with its own receipt.
      4. the token then returns 401 `AUTH_REQUIRED`;
      5. the grant is revoked with `/oauth/revoke` and `revoked_at` is read back.
 
-     If the token is lost to a restart, `RECOVER=1` revokes that grant first, then the probe restarts from step 1 with a fresh approval. A 401 with the grant not active fails the check. This makes item 3 take about an hour;
+     If the token is lost to a restart, `RECOVER=1` disables the invocation's client and Max revokes that grant on Connected apps as the reviewer (cleanup step 5), then the probe restarts from step 1 with a fresh approval. A 401 with the grant not active fails the check. This makes item 3 take about an hour;
 4. `('tool','get_my_account')`.
 5. `('tool','get_activity')`.
 6. `('tool','list_data_requests')`.
@@ -2222,7 +2235,7 @@ Max reports what his Claude session shows. The operator records that report alon
 ### Findings and deviations
 
 - **F7-1 (accepted for early access, Event `dec59733`).** Auth's DCR per-IP limit (10 per hour) keys on the Railway edge peer, because auth has no trusted-proxy setting, so callers share about 20 buckets. It is not driven live; the evidence is `tests/connector_auth/test_registration.py`. Fix it with a reviewed change, and prove it live, before public launch or wider DCR use. Claude uses CIMD.
-- **F7-2.** AS metadata `service_documentation` pointed to `https://ai.market/docs/connector-oauth`, which returned 404 on 2026-10-03. `https://ai.market/docs/claude` returns 200. Fixed by `46922910` (in `d1aeb77f`), and live once 7.0b moves auth; 7.1's exact-metadata check proves it.
+- **F7-2.** AS metadata `service_documentation` pointed to `https://ai.market/docs/connector-oauth`, which returned 404 on 2026-10-03. `https://ai.market/docs/claude` returns 200. Fixed by `46922910` (an ancestor of `d1aeb77f`; not yet on auth, which runs `5f3efc85`), and live once 7.0b moves auth; 7.1's exact-metadata check proves it.
 - **D7-1 (accepted, Event `dec59733`).** See 7.2c.
 - **D7-2 (accepted, Event `3aa05a9f`).** See 7.3.
 
