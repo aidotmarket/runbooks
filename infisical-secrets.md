@@ -201,10 +201,14 @@ Do NOT rotate `STRIPE_WEBHOOK_SECRET` for an API-key compromise — separate cre
 
 ## Emergency Recovery
 
-- **Emergency Kit PDF**: Saved during initial setup — required if admin account is locked out
-- **Railway project**: Can be redeployed from template if Infisical service fails
-- **Postgres backup**: Railway volume snapshots — enable scheduled backups in Railway dashboard
-- **SMTP recovery**: If Resend key is rotated, update `SMTP_PASSWORD` in Railway env vars for the Infisical project, then redeploy
+- **Admin lockout:** The Emergency Kit PDF saved during initial setup is an account-access aid. Its availability and usefulness in an incident must be confirmed separately; it does not decrypt or restore the database.
+- **PostgreSQL backup:** The Railway scheduled backup writes an age-encrypted Infisical PostgreSQL dump to S3 under `postgres/infisical/<date>/`. The S1754 controller recorded a Sep 27 object at 03:04:46Z (4,756,325 bytes). This is backup presence and freshness evidence, not a completed restore. Railway volume snapshots are not a verified substitute; do not present enabling snapshots or redeploying a template as an established recovery procedure.
+- **Independent offline dependencies:** The age private key is needed to decrypt the dump, and the Infisical application master encryption key is needed to use its protected data. Both have offline 1Password custody per the existing recovery policy, but sanctioned availability was not verified. Confirm the required recovery/bootstrap keys and S3 read access through the approved procedure without exposing values. A complete decrypt, isolated PostgreSQL restore, and Infisical startup validation have not been verified.
+- **Recovery scope:** The encrypted dump covers the Infisical PostgreSQL component, not a full disaster recovery. Classify and verify Redis state separately, as well as Railway configuration, service wiring, roles, and bootstrap key material before claiming a working service. The Sep 27 dump predates the `/connector-auth` signing keys generated at 08:46:55Z; connector keyset recovery remains with its existing owner and [customer-mcp-connector.md](customer-mcp-connector.md), not this procedure.
+- **Monitoring:** The S1754 controller reports the corrected watchdog installed at 17:12:37Z from a dedicated `36cde` main checkout and all five target freshness checks passing, including all six Qdrant collections. This proves only those freshness checks; Infisical decrypt/restore and Telegram alert delivery remain unverified.
+- **SMTP recovery:** If the Resend key is rotated, follow the authorized Infisical service configuration procedure for `SMTP_PASSWORD` and verify outbound mail separately. SMTP repair does not restore the Infisical database.
+
+For the ordered, current recovery procedure and its open proof gates, use [backup-and-recovery.md](backup-and-recovery.md) and [disaster-recovery.md](disaster-recovery.md).
 
 ## Architecture Notes
 
