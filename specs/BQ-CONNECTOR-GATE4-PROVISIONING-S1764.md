@@ -1999,7 +1999,7 @@ All flags stay false throughout. Rollback never uses `window_action` or `wait_de
 - an Event Ledger entry;
 - a `customer-mcp-connector.md` section "Gate 4 Step 5 done".
 
-## Gate 4 STEP 7 operator procedure — staged enable (S1786, v2)
+## Gate 4 STEP 7 operator procedure — staged enable (S1786, v3)
 
 This section makes step 7 of the plan above executable. Steps 1–6 and Step 4, including §4.6 (Event `15e47774`), are done; see `customer-mcp-connector.md`. The procedure changes no code.
 
@@ -2036,11 +2036,11 @@ Every stage below is one invocation of a single executor, `koskadeux-state/s1786
 
 The resource keeps its last good switch snapshot when a database read fails (`switches.py:38–44`), so a second SQL write is never the only fallback.
 
-**Instance-identified observation.** For each `RUNNING` resource instance, `railway ssh -d <instance-id>` runs at least 10 requests against `http://127.0.0.1:8080/mcp` within the deadline and records the instance ID with each result. This sits alongside at least 30 public polls from at least two source IPs. Each instance runs 2 workers, and the per-instance local polls cover them statistically.
+**Instance-identified observation.** For each `RUNNING` resource instance, `railway ssh -d <instance-id>` runs at least 10 requests within the deadline and records the instance ID with each result. Each request is exactly `POST http://127.0.0.1:8080/mcp` with headers `Host: connect.ai.market`, `Content-Type: application/json`, `Accept: application/json, text/event-stream` and body `{"jsonrpc":"2.0","id":1,"method":"tools/list"}`, plus `Authorization: Bearer <token>` when a token is part of the check. The canonical Host is required: any other authority gets 421 before the switch gate (`asgi.py:123–125`). This sits alongside at least 30 public polls from at least two source IPs. Each instance runs 2 workers, and the per-instance local polls cover them statistically.
 
 **Coordination.** A peer HOLD covers all ai.market Railway services, Infisical prod and Grafana rules for each live stage. Use a fresh `ref_entity` per hold, because `peer_msg_send` returns the earlier message when a `claim` reuses one (S1786 HOLD #6), and check the returned `id` and `created_at`.
 
-### 7.0 Preconditions (read-only; the executor refuses unless all hold)
+### 7.0 Preconditions (read-only except item 5's prestage, which is its own journaled invocation `stage=7.0a`; the executor refuses unless all hold)
 
 1. **Row boundary.**
    - **Red-team.** The handler-level red-team (`step7/redteam-request.md`) has passed with all three reviewers on the exact resource commit that will run. On 2026-10-03, GLM and DeepSeek passed `5f3efc85`. codex2 failed it with one MEDIUM finding: bare contact domains with a TLD outside the 17-TLD list (for example `seller-support.shop/help`) survive listing projections. The fix is an ai-market-backend PR on branch `build/connector-contact-bare-domain-s1786`, connector scrubber only. It must merge after full-panel review, and codex2 then re-reviews the delta.
@@ -2053,7 +2053,7 @@ The resource keeps its last good switch snapshot when a database read fails (`sw
    - The hash must equal the deployed `profiles.yaml` pin. On 2026-10-03 at 10:40Z it was `69a86bd0…`, equal.
    - `redirect_uris` must be exactly `["https://claude.ai/api/mcp/auth_callback"]`, and that URI must be in `EXACT_REDIRECTS`.
    - On mismatch the executor refuses before any write.
-5. **Switch rows.** Every row is read. Any missing row is prestaged with `disabled=true` through the switch-administration INSERT block, one `INSERT 0 1` at a time, each journaled. After this, every row below exists with `disabled=true`:
+5. **Switch rows.** Every row is read. Any missing row is prestaged with `disabled=true` through the switch-administration INSERT block, one `INSERT 0 1` at a time, each journaled, by `stage=7.0a`. That is the only write it makes; its rollback is none, because a disabled row is the closed state. Missing on 2026-10-03: `('profile','default')`, `('profile','claude')`, `('profile','openai')`, `('tool','get_my_account')`. After this, every row below exists with `disabled=true`:
    - `('global','global')`;
    - `('profile','default')`, `('profile','claude')`, `('profile','openai')`;
    - `('tool',t)` for `get_my_account`, `search_listings`, `get_listing`, `get_activity`, `list_data_requests` and `ask_allai`.
@@ -2113,7 +2113,7 @@ Whole-project reconciliation runs before and after each window.
 
 - `/readyz` returns 200;
 - `('global','global')` is still `disabled=true`;
-- every request to `/mcp` returns 503 `CONNECTOR_DISABLED`: no token, garbage token, or valid token. The global check precedes authentication (`asgi.py:307–313`), so 401 probes belong in 7.3.
+- every request to `/mcp` returns 503 `CONNECTOR_DISABLED`, both with no token and with a garbage token. No valid token exists yet; one first exists in 7.2c, where its request also returns 503. The global check precedes authentication (`asgi.py:307–313`), so 401 probes belong in 7.3.
 
 **Pre-auth IP limit.** From one controlled source IP, send 61 unauthenticated POSTs to `/mcp` within one minute. At least one must return 429 `RATE_LIMITED` with `RateLimit-Limit: 60` and `Retry-After`.
 - The IP limiter runs before the global check (`asgi.py:293–305`).
@@ -2139,7 +2139,7 @@ There are no audit events for code issue or token exchange; those are database r
 
 T-2026-000879 is resolved with this evidence. If Max's consent fails with `insufficient_assurance`, the stage stops and T-879 is reopened as a blocker.
 
-**7.2c — negatives, operator plus Max clicking.** The operator uses the 7.1 probe client with PKCE S256 and a loopback listener on Titan-1. Max opens each consent link in a browser on Titan-1. The browser is signed in as the **reviewer account**; Max reads its password from Infisical `prod` `/directory-review` and the operator never handles credentials. Each grant ID is recorded as it is created.
+**7.2c — negatives, operator plus Max clicking.** The operator uses the 7.1 probe client with PKCE S256 and a loopback listener on Titan-1. Max opens each consent link in a browser on Titan-1. The browser is signed in as the **reviewer account**; Max reads its password from Infisical `prod` `/directory-review` and the operator never handles credentials. Grants are reconciled from database state, not from IDs recorded after the fact. Every probe grant has `client_id` equal to the probe client journaled in 7.1. The Claude grant is the grant for Max with the Claude CIMD `client_id`, created after this stage's `run_start`.
 
 - **Deny.** Max clicks Deny. The redirect carries `error=access_denied`, and no grant is created.
 - **Code replay.** One approval issues one code. The first exchange succeeds. The second exchange of the same code returns `invalid_grant`, and the grant **remains active**. A replayed code does not revoke (`token.py:80–88`).
@@ -2149,7 +2149,7 @@ T-2026-000879 is resolved with this evidence. If Max's consent fails with `insuf
 - **Excluded user.** In a private window, Max signs in as a **non-allowlisted test account** and opens a consent link. It is refused with `EARLY_ACCESS_ONLY`, and no code is issued.
 - **D7-1 (accepted, Event `dec59733`).** Exchange, refresh and preexisting-grant refusal after an allowlist *removal* are not driven live. The evidence is backend tests `tests/connector/test_early_access.py` and `tests/connector_auth/test_oauth_early_access.py`; the second needs PostgreSQL, and its result is recorded with the receipt. Live proof is required before public launch.
 
-**Cleanup.** Every recorded probe grant must end with `revoked_at` set. Grants that ever received a token are revoked with `/oauth/revoke`. Tokenless grants, from the expiry and PKCE probes, are revoked by Max on the website's Connected apps page while signed in as the reviewer. The executor verifies `revoked_at` for every recorded grant ID, including after an interruption: grant IDs come from the journal.
+**Cleanup.** Every recorded probe grant must end with `revoked_at` set. Grants that ever received a token are revoked with `/oauth/revoke`. Tokenless grants, from the expiry and PKCE probes, are revoked by Max on the website's Connected apps page while signed in as the reviewer. The executor reconciles from the database. Every grant with the probe `client_id` must end with `revoked_at` set. On a failed stage, so must every grant created after `run_start` for the Claude CIMD `client_id`. This holds even if the run was interrupted after an approval committed but before its outcome was journaled. `RECOVER=1` performs the same reconciliation. If any such grant is still active, recovery is not complete and later stages refuse. Grants with a refresh token are revoked through `/oauth/revoke`. A tokenless grant is revoked on Connected apps (Max as the reviewer). If that cannot be done, the resource env floor holds, and recovery stays incomplete until it is revoked.
 
 **Rollback for 7.2b/c:** cleanup, then revoke the Claude grant through Connected apps if the stage failed, then the 7.2a rollback.
 
@@ -2163,7 +2163,7 @@ The order is fixed. Each line is a separate invocation with its own receipt.
 2. `('profile','claude')`.
 3. `('global','global')`. With all tool rows still disabled, require:
    - `tools/list` empty for a new `default` probe-client grant and for Max's Claude session;
-   - **401 `AUTH_REQUIRED`** with a `WWW-Authenticate` resource-metadata challenge, for no token, a garbage token and an expired probe token;
+   - **401 `AUTH_REQUIRED`** with a `WWW-Authenticate` resource-metadata challenge, for no token, a garbage token and an expired probe token. The expired token is a probe-client access token issued in 7.2c, held only in executor memory. Access tokens live 3600 s, so the executor waits, at most until 3660 s after issue, before this check. A token that is lost to a restart is replaced by a fresh one held for 3660 s;
    - **token claims** of a fresh probe-client access token, decoded locally against public JWKS and never logged: issuer `https://auth.ai.market`, audience `https://connect.ai.market/mcp`, and scopes equal to the consented scopes.
 4. `('tool','get_my_account')`.
 5. `('tool','get_activity')`.
@@ -2173,12 +2173,12 @@ The order is fixed. Each line is a separate invocation with its own receipt.
 
 Items 7 and 8 are allowed by the Step 5 D2 receipt (`8838974a`) and need 7.0b (the contact fix) live. `('profile','openai')` and `('tool','ask_allai')` stay disabled.
 
-**After each tool row.** Checks run from a new `default` probe grant (reviewer account) **and** in Max's Claude session:
+**After each tool row.** Checks run from a new `default` probe grant (reviewer account) **and** in Max's Claude session. Each check applies only to tools enabled at that stage. A call to a still-disabled tool must return `TOOL_DISABLED`, because the switch is checked before the handler (`registry.py:128–135`):
 
 - `tools/list` shows exactly the enabled tools, each with a `title` and `readOnlyHint`, using the profile-specific schema.
 - Valid input returns real data: the reviewer's two data requests `5268d24d-…` and `7ca0ac96-…`, or the public catalog.
 - Invalid input returns a specific `INVALID_ARGUMENT` pointer.
-- An unknown listing ID and an unpublished listing ID return the same `NOT_FOUND`.
+- After item 8 only: an unknown listing ID and an unpublished listing ID return the same `NOT_FOUND` from `get_listing`.
 - A disabled tool returns `TOOL_DISABLED`; an unknown tool returns `TOOL_NOT_AVAILABLE`; an under-scoped grant returns `INSUFFICIENT_SCOPE`.
 - Each call produces exactly one `tool.call` audit row, carrying request, trace, grant, tool and outcome, with HMAC digests only.
 
