@@ -2017,6 +2017,7 @@ This section makes step 7 of the plan above executable. Steps 1–6 and Step 4, 
 - Event `dec59733`:
   - Max uses his own Google sign-in with 2FA **once** to prove T-879 live, as a one-time exception to directive `d2303950`. Every other proof uses the reviewer or test accounts.
   - Automated tests are the accepted evidence during the two-account early-access phase for D7-1 and F7-1 (below). Both must be proven live before public launch or wider DCR use.
+- Event `3aa05a9f`: the same acceptance for D7-2 (user 120/min and search 600/hour limits).
 
 ### Executor, journal and universal fail-closed rule
 
@@ -2183,7 +2184,7 @@ Items 7 and 8 are allowed by the Step 5 D2 receipt (`8838974a`) and need 7.0b (t
 
 Max reports what his Claude session shows. The operator records that report alongside the audit rows.
 
-**Rate limits (D7-2).** The user read limit is 120/min. It cannot be driven live past the 60/min/IP pre-auth limiter from fewer than three source IPs. The search limit is 600/hour/client-user and is not driven live. Both are covered by `tests/connector/test_ratelimit.py`. This deviation needs Max's approval Event (pending) before 7.3 item 4; the executor refuses without it. Until then the read and search limits are not claimed as live-proven.
+**Rate limits (D7-2).** The user read limit is 120/min. It cannot be driven live past the 60/min/IP pre-auth limiter from fewer than three source IPs. The search limit is 600/hour/client-user and is not driven live. Both are covered by `tests/connector/test_ratelimit.py`. Max accepted these tests as the early-access evidence (Event `3aa05a9f`); live proof is required before public launch.
 
 ### 7.4 Kill drills (separate invocations, each with a receipt)
 
@@ -2197,7 +2198,7 @@ Max reports what his Claude session shows. The operator records that report alon
 - **F7-1 (accepted for early access, Event `dec59733`).** Auth's DCR per-IP limit (10 per hour) keys on the Railway edge peer, because auth has no trusted-proxy setting, so callers share about 20 buckets. It is not driven live; the evidence is `tests/connector_auth/test_registration.py`. Fix it with a reviewed change, and prove it live, before public launch or wider DCR use. Claude uses CIMD.
 - **F7-2.** AS metadata `service_documentation` points to `https://ai.market/docs/connector-oauth`, which returned 404 on 2026-10-03; `https://ai.market/docs/claude` returns 200. Fix it before directory submission.
 - **D7-1 (accepted, Event `dec59733`).** See 7.2c.
-- **D7-2 (pending Max).** See 7.3.
+- **D7-2 (accepted, Event `3aa05a9f`).** See 7.3.
 
 ### Record
 
