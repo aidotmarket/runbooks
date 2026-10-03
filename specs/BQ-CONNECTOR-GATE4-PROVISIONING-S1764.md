@@ -1819,6 +1819,29 @@ No other ticket or episode may appear, test or production.
 5. Stop and remove the test host and its database.
 6. Record everything.
 
+### 4.6 Execution record (S1786, 2026-10-02/03)
+
+§4.6 passed on the third live attempt. Every executor was frozen by SHA-256 under `koskadeux-state/s1786/step4/`, and the full panel (GLM, DeepSeek, codex2) approved the exact bytes before each live run. Each stop failed closed and its gated cleanup completed (`cleanup_complete=true`, `recovery_required=false`).
+
+| Attempt | Executor | Window (UTC) | Outcome | Evidence |
+| --- | --- | --- | --- | --- |
+| 1 | `4d3623fe…` (R7) | 2026-10-02 20:22–20:41 | Stopped before the failure proof: the test no-data rule fired at install time (episode T-2026-000915, later resolved). The ruler evaluates with about one minute of delay, so a freshly installed `absent_over_time[10m]` rule saw a window with no test samples yet. | `r8/live-4b.log` (`ef70896e…`), `r8/receipt-live-aborted-2022Z.json` (`984f8f20…`) |
+| 2 | `a85a64b0…` (R16) | 2026-10-03 00:45–04:27 | Passed settle, install, 4 audit-failure episodes and the no-data episode. It then stopped in the watchdog proof: the removed test watchdog was still in Alertmanager after the fixed 900 s wait. | `r16live/live-4b.log` (`897b4c2e…`), `r16live/receipt-live-stopped-0416Z.json` (`01f1c73b…`), Event `708c0910` |
+| 3 | `d65d9f01…` (R19) | 2026-10-03 06:04–10:12 | **Passed.** Six `[TEST]` episodes and six tickets, all resolved: T-2026-000922/923/924/925 (audit), 927 (no-data), 928 (watchdog). The guard made 487 polls with 0 violations. Only `issue-channel-watcher` moved; it was restored to `connector-audit`. | `r19live/live-4b.log` (`62f05196…`), `r19live/receipt-live-passed.json` (`5c69755f…`), Event `15e47774` |
+
+**Measured on attempt 3.**
+
+- **Audit-failure episodes:** fire after 75–159 s, resolve after 1625–1806 s (`keep_firing_for: 15m` plus the 5 min window).
+- **No-data:** fire after 716 s, ticket after 801 s, resolve 1382 s after restart readiness.
+- **Watchdog:** removed 09:16:29Z, gone from Alertmanager 09:41:22Z, ticket 09:44Z (T-2026-000928), restored 09:52Z, ticket resolved 09:59Z.
+
+**What changed between attempts (all full-panel reviewed).**
+
+- **Settle gate (R8–R15).** Before installing the test group, the executor proves from pinned raw samples that the test series has a complete history up to `now − 900 s`, with gaps ≤ 540 s and the newest sample < 240 s old. It also proves that both test expressions are quiet. The install POST must be dispatched within 120 s of that proof, and both the last request byte and the HTTP response must land < 290 s after it (240 + 290 + 2 s skew < 540).
+- **Watchdog gone-wait (R17–R19).** Grafana Cloud's ruler resends about every 6 min and stamps `endsAt` about 25 min after each resend (production watchdog `updatedAt 04:24:43Z` → `endsAt 04:49:42Z`). A deleted rule's alert therefore stays in Alertmanager up to about 25 min. The executor now follows the latest observed `endsAt` plus 600 s, with a 3600 s acceptance cap counted from just before the removal. A late response is never accepted, and diagnostics are kept on every exit.
+
+**Coordination quirk.** `peer_msg_send` returns an earlier message idempotently when a `kind=claim` reuses the same `ref_entity`. HOLD #6's first post therefore silently re-returned HOLD #5 (#9070). Use a fresh `ref_entity` per hold and check the returned `id` and `created_at`.
+
 ### 4.7 Rollback, in order, with checks
 
 1. Delete rule groups `connector/connector-audit` and any test group; readback 404.
