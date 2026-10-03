@@ -357,7 +357,16 @@ All paths are under `koskadeux-state/s1786/`.
 - `serviceInstanceRedeploy` on an archive-deployed service can rebuild its uploaded snapshot. The result is a new image digest while `cliMessage` stays the same, so an equal digest is not proof of identity. To identify the code, compare the commit with SHA-256 hashes of key source files read in the running deployment; record the digest only.
 - `variableCollectionUpsert` can commit and still answer after a 30-second client timeout. Give mutations at least 180 seconds. After a timeout, read the variable back before retrying.
 
-Next: §4.6 controlled proofs on the test host, then Step 7 (staged enable).
+### Gate 4 Step 4.6 done: controlled alert proofs (S1786, 2026-10-03)
+
+§4.6 passed on its third live attempt, 06:04–10:12Z, with executor `step4/run_step4b.d65d9f01….py` (R19, full panel). The test host fired four audit-failure episodes, one no-data episode and one watchdog-missing episode. Each opened exactly one `[TEST]` ticket (T-2026-000922, 923, 924, 925, 927 and 928) and each ticket resolved. The production watchdog stayed present throughout (guard: 487 polls, 0 violations). Cleanup restored the watcher to `connector-audit` only, deleted the test group and removed the host. Receipt `step4/r19live/receipt-live-passed.json` (`5c69755f…`), Event `15e47774`.
+
+The two earlier attempts stopped fail-closed and cleaned up. The table, timings and fixes are in the spec, §4.6 "Execution record". Two Grafana Cloud behaviours matter for any future alert proof:
+
+- A newly installed `absent_over_time` rule can fire at once, because the ruler evaluates about one minute behind.
+- A deleted rule's alert stays in Alertmanager until its `endsAt`, about 25 minutes after the last resend.
+
+Next: Step 7 (staged enable). Its operator procedure is in review as runbooks PR #422 (spec section "Gate 4 STEP 7 operator procedure").
 
 ### Signing keyset rotation and recovery (S1786, 2026-10-02)
 
