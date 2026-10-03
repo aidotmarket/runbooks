@@ -1999,7 +1999,7 @@ All flags stay false throughout. Rollback never uses `window_action` or `wait_de
 - an Event Ledger entry;
 - a `customer-mcp-connector.md` section "Gate 4 Step 5 done".
 
-## Gate 4 STEP 7 operator procedure — staged enable (S1786, v7)
+## Gate 4 STEP 7 operator procedure — staged enable (S1786, v8)
 
 This section makes step 7 of the plan above executable. Steps 1–6 and Step 4, including §4.6 (Event `15e47774`), are done; see `customer-mcp-connector.md`. The procedure changes no code.
 
@@ -2174,7 +2174,7 @@ Auth runs `d1aeb77f` from 7.0b on. All later stages prove auth on that commit.
 - `('global','global')` is still `disabled=true`;
 - every request to `/mcp` returns 503 `CONNECTOR_DISABLED`, both with no token and with a garbage token. No valid token exists yet; one first exists in 7.2c, where its request also returns 503. The global check precedes authentication (`asgi.py:307–313`), so 401 probes belong in 7.3.
 
-**Pre-auth IP limit.** From one controlled source IP, send 61 unauthenticated POSTs to `/mcp` within one minute. At least one must return 429 `RATE_LIMITED` with `RateLimit-Limit: 60` and `Retry-After`.
+**Pre-auth IP limit.** From Titan-1, send unauthenticated POSTs to `/mcp` in parallel batches of 8, up to 400 within 55 seconds, stopping at the first 429. At least one must return 429 `RATE_LIMITED` with `RateLimit-Limit: 60` and `Retry-After`; every other response must be 503. Titan-1 reaches Railway through a rotating egress network (Step 3 §3.0: at least two public addresses), so a fixed 61 requests can spread across addresses without any single one exceeding 60. The first live 7.2a run (2026-10-04 01:07 CEST) sent 61 in 16 s, received 61 × 503 and no 429, and rolled back cleanly; Grafana showed no limiter fallback activations. With up to 400 requests over at most a handful of addresses, at least one address exceeds 60 in its window.
 - The IP limiter runs before the global check (`asgi.py:293–305`).
 - Since Step 3 it keys on the real caller IP through the trusted edge.
 - Wait for the window to reset before continuing.
