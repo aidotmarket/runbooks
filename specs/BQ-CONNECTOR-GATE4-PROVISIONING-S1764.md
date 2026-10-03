@@ -1821,7 +1821,7 @@ No other ticket or episode may appear, test or production.
 
 ### 4.6 Execution record (S1786, 2026-10-02/03)
 
-§4.6 passed on the third live attempt. Every executor was frozen by SHA-256 under `koskadeux-state/s1786/step4/`, and the full panel (GLM, DeepSeek, codex2) approved the exact bytes before each live run. Each stop failed closed and its gated cleanup completed (`cleanup_complete=true`, `recovery_required=false`).
+§4.6 passed on the third live attempt. Every executor was frozen by SHA-256 under `koskadeux-state/s1786/step4/`; before each live run the full panel (GLM, DeepSeek, codex2) reviewed it and every finding was folded until all three approved (R7, R16 and R19 each ended unanimous APPROVE or APPROVE_WITH_NITS on the frozen bytes). The two early stops failed closed, and every run's gated cleanup completed (`cleanup_complete=true`, `recovery_required=false`). Event IDs below are Event Ledger entries; peer message numbers are Koskadeux peer-bus IDs.
 
 | Attempt | Executor | Window (UTC) | Outcome | Evidence |
 | --- | --- | --- | --- | --- |

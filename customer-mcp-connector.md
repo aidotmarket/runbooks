@@ -366,7 +366,7 @@ The two earlier attempts stopped fail-closed and cleaned up. The table, timings 
 - A newly installed `absent_over_time` rule can fire at once, because the ruler evaluates about one minute behind.
 - A deleted rule's alert stays in Alertmanager until its `endsAt`, about 25 minutes after the last resend.
 
-Next: Step 7 (staged enable), per the spec section "Gate 4 STEP 7 operator procedure".
+Next: Step 7 (staged enable). Its operator procedure is in review as runbooks PR #422 (spec section "Gate 4 STEP 7 operator procedure").
 
 ### Signing keyset rotation and recovery (S1786, 2026-10-02)
 
