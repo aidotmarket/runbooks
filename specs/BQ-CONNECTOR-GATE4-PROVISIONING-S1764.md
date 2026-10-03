@@ -2139,7 +2139,7 @@ There are no audit events for code issue or token exchange; those are database r
 
 T-2026-000879 is resolved with this evidence. If Max's consent fails with `insufficient_assurance`, the stage stops and T-879 is reopened as a blocker.
 
-**7.2c — negatives, operator plus Max clicking.** The operator uses the 7.1 probe client with PKCE S256 and a loopback listener on Titan-1. Max opens each consent link in a browser on Titan-1. The browser is signed in as the **reviewer account**; Max reads its password from Infisical `prod` `/directory-review` and the operator never handles credentials. Grants are reconciled from database state, not from IDs recorded after the fact. Every probe grant has `client_id` equal to the probe client journaled in 7.1. The Claude grant is the grant for Max with the Claude CIMD `client_id`, created after this stage's `run_start`.
+**7.2c — negatives, operator plus Max clicking.** The operator uses the 7.1 probe client with PKCE S256 and a loopback listener on Titan-1. Max opens each consent link in a browser on Titan-1. The browser is signed in as the **reviewer account**; Max reads its password from Infisical `prod` `/directory-review` and the operator never handles credentials. Grants are reconciled from database state, not from IDs recorded after the fact. Every probe grant has `client_id` equal to the probe client journaled in 7.1.
 
 - **Deny.** Max clicks Deny. The redirect carries `error=access_denied`, and no grant is created.
 - **Code replay.** One approval issues one code. The first exchange succeeds. The second exchange of the same code returns `invalid_grant`, and the grant **remains active**. A replayed code does not revoke (`token.py:80–88`).
@@ -2149,7 +2149,7 @@ T-2026-000879 is resolved with this evidence. If Max's consent fails with `insuf
 - **Excluded user.** In a private window, Max signs in as a **non-allowlisted test account** and opens a consent link. It is refused with `EARLY_ACCESS_ONLY`, and no code is issued.
 - **D7-1 (accepted, Event `dec59733`).** Exchange, refresh and preexisting-grant refusal after an allowlist *removal* are not driven live. The evidence is backend tests `tests/connector/test_early_access.py` and `tests/connector_auth/test_oauth_early_access.py`; the second needs PostgreSQL, and its result is recorded with the receipt. Live proof is required before public launch.
 
-**Cleanup.** Every recorded probe grant must end with `revoked_at` set. Grants that ever received a token are revoked with `/oauth/revoke`. Tokenless grants, from the expiry and PKCE probes, are revoked by Max on the website's Connected apps page while signed in as the reviewer. The executor reconciles from the database. Every grant with the probe `client_id` must end with `revoked_at` set. On a failed stage, so must every grant created after `run_start` for the Claude CIMD `client_id`. This holds even if the run was interrupted after an approval committed but before its outcome was journaled. `RECOVER=1` performs the same reconciliation. If any such grant is still active, recovery is not complete and later stages refuse. Grants with a refresh token are revoked through `/oauth/revoke`. A tokenless grant is revoked on Connected apps (Max as the reviewer). If that cannot be done, the resource env floor holds, and recovery stays incomplete until it is revoked.
+**Cleanup.** Every recorded probe grant must end with `revoked_at` set. Grants that ever received a token are revoked with `/oauth/revoke`. Tokenless grants, from the expiry and PKCE probes, are revoked by Max on the website's Connected apps page while signed in as the reviewer. The executor reconciles from the database. Every grant with the probe `client_id` must end with `revoked_at` set. On a failed stage, so must every grant for the Claude CIMD `client_id` created after the failed stage's `run_start`. This holds even if the run was interrupted after an approval committed but before its outcome was journaled. `RECOVER=1` performs the same reconciliation. If any such grant is still active, recovery is not complete and later stages refuse. Grants with a refresh token are revoked through `/oauth/revoke`. A tokenless grant is revoked on Connected apps (Max as the reviewer). If that cannot be done, the resource env floor holds, and recovery stays incomplete until it is revoked.
 
 **Rollback for 7.2b/c:** cleanup, then revoke the Claude grant through Connected apps if the stage failed, then the 7.2a rollback.
 
@@ -2163,8 +2163,16 @@ The order is fixed. Each line is a separate invocation with its own receipt.
 2. `('profile','claude')`.
 3. `('global','global')`. With all tool rows still disabled, require:
    - `tools/list` empty for a new `default` probe-client grant and for Max's Claude session;
-   - **401 `AUTH_REQUIRED`** with a `WWW-Authenticate` resource-metadata challenge, for no token, a garbage token and an expired probe token. The expired token is a probe-client access token issued in 7.2c, held only in executor memory. Access tokens live 3600 s, so the executor waits, at most until 3660 s after issue, before this check. A token that is lost to a restart is replaced by a fresh one held for 3660 s;
-   - **token claims** of a fresh probe-client access token, decoded locally against public JWKS and never logged: issuer `https://auth.ai.market`, audience `https://connect.ai.market/mcp`, and scopes equal to the consented scopes.
+   - **401 `AUTH_REQUIRED`** with a `WWW-Authenticate` resource-metadata challenge, for no token and a garbage token;
+   - **token claims** of a fresh probe-client access token, decoded locally against public JWKS and never logged: issuer `https://auth.ai.market`, audience `https://connect.ai.market/mcp`, and scopes equal to the consented scopes;
+   - **expiry, isolated from revocation.** The expiry probe uses the access token of the new `default` probe grant from this item, held only in executor memory. It must discriminate expiry from revocation, so that grant stays **active** until the check is done:
+     1. immediately after issue, the token authenticates (`tools/list` returns 200, empty);
+     2. the executor waits until at least 3660 s after issue (3600 s lifetime plus the verifier's 60 s leeway, `signing.py:44–52`, `verifier.py:70–72`). During the wait there is no other approval for the probe client and reviewer, because a new approval supersedes the earlier grant (`oauth_store.py:49–54`), and the token is not refreshed;
+     3. the database shows the grant with `revoked_at` null and not superseded;
+     4. the token then returns 401 `AUTH_REQUIRED`;
+     5. the grant is revoked with `/oauth/revoke` and `revoked_at` is read back.
+
+     If the token is lost to a restart, `RECOVER=1` revokes that grant first, then the probe restarts from step 1 with a fresh approval. A 401 with the grant not active fails the check. This makes item 3 take about an hour;
 4. `('tool','get_my_account')`.
 5. `('tool','get_activity')`.
 6. `('tool','list_data_requests')`.
