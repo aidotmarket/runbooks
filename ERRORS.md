@@ -912,6 +912,10 @@
 
 - [Backend Daily Health Check (GitHub workflow, "Health Check CRITICAL" issues)](backend-daily-health-check.md)
 
+## `KeyError: 'DATABASE_URL'`
+
+- [Customer MCP connector — build and operations](customer-mcp-connector.md)
+
 ## `kickstart non-zero / no fresh pid`
 
 - [Koskadeux Gateway Transport Runbook](gateway-transport.md)
