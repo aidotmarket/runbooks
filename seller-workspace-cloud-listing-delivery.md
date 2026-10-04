@@ -399,6 +399,35 @@ The final production reread found backend deployment `ba7f01a8-ed90-4e29-b910-0b
 
 These references establish current provider primitives, not product proof. W6 must refresh and verify Cloudflare behavior against a synthetic live account before any R2 claim.
 
+## Moving an AWS seller off AIM Data's S3 connection (S1756)
+
+Use this when a seller's listing is served through legacy AIM Data's S3 connection (`listings.raw_metadata.s3_connection` is set) and must move to Seller Workspace before chunk F removes that path (`specs/AIM-DATA-LEGACY-REMOVAL-S1756.md` §6). In production on 2026-09-27 exactly one listing qualifies: Sergey's `5ab53e16` (eolymp.com). Max's condition: switch him only after a rehearsal proves the switch works.
+
+**Why a new rehearsal.** The only paid AWS proof is order `c91951ed` (2026-09-10): one synthetic one-row file, before the licence and money-path changes since, and it never reached payout ([live release operations](runbooks/seller-workspace-live-release.md)).
+
+**1. Rehearsal (Max's `kisa.cat` seller account, its verified AWS connection, current production).**
+1. Put a folder shaped like the seller's dataset in the test bucket: several files, realistic sizes and formats. Record each file's SHA-256.
+2. In Seller Workspace, select the folder, let allAI draft the listing, choose the licence, publish at the minimum paid price ($25, `PAID_LISTING_MIN_PRICE`).
+3. Buy it from a separate buyer account with a real card in normal Chrome. Accept the licence.
+4. Download every file in the browser. Compare every SHA-256 with step 1.
+5. Wait out the payout hold. Confirm in Stripe that the transfer to the seller's connected account was created and paid, and that ai.market kept 5%.
+6. Second purchase of the same listing; refund it through the Seller Workspace refund route ([seller refund and access diagnosis](runbooks/seller-refund-access-diagnosis.md)) and confirm the full refund reaches the card and no payout is made for it.
+7. Record order ids, file hashes, Stripe transfer and refund ids in the Event Ledger and in the evidence section of [live release operations](runbooks/seller-workspace-live-release.md).
+
+**S1756 run set-up (done 2026-09-27 12:37 CEST by Vulcan with the test-account admin CLI profile `aimarket-sandbox`, account 157263244532):** five synthetic files (62 MB; `problems.csv` 12,050 rows like the seller's listing, `statements.jsonl`, `tests.jsonl`, `README.md`, `LICENSE.txt`) uploaded to `s3://kisa-cat-seller-demo-20260914/gene-expression/rehearsal-s1756/`, inside the prefix that the connection `c0e3af90` role `ai-market-seller-kisa-cat-demo` may read. Hashes: `/Users/max/koskadeux-state/s1756-rehearsal/SHA256SUMS`. The bucket had no CORS rule, so browser downloads would have failed; the rule from the Seller Workspace setup guide (`StorageSetupGuide.tsx`: origin `https://ai.market`, GET, header `If-Match`, 300 s) was applied, as a seller would. **The real seller must do the same CORS step.**
+
+**Pass:** every file byte-identical, payout paid, refund completed, no manual database edit anywhere. Any failure stops the switch; fix, then repeat the failed step.
+
+**Cost (needs Max's GO; the earlier $50 allowance is spent).** $50 is charged to the card; $25 comes back as the refund and $23.75 as the payout to the seller account (Max's own); ai.market keeps $1.25. Real cost is Stripe's processing fees on the two charges, about $2, which Stripe does not return on refund.
+
+**2. Max reviews the evidence and gives GO.**
+
+**3. The switch.**
+1. The seller connects his AWS bucket in Seller Workspace (the role setup page gives him the trust policy with his external ID).
+2. His listing is re-pointed to, or re-published from, the Seller Workspace selection of the same files; the file SHA-256s must match the old listing's.
+3. One check purchase delivers (the seller buys through a buyer account, or ai.market buys and refunds).
+4. Retire his legacy install; confirm `select id, status from listings where raw_metadata ? 's3_connection'` returns no published row.
+
 ## When it breaks
 
 The W2 foundation is deployed but default-off and not publicly available. Diagnose only its W2 AWS connection surface; do not bypass capability responses or interpret deployment as feature availability.
